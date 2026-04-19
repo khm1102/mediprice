@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: mediprice-db
+    environment:
+      POSTGRES_DB: mediprice
+      POSTGRES_USER: ${DB_USERNAME:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - mediprice-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-admin} -d mediprice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mediprice-data:

@@ -1,0 +1,25 @@
+db:
+  url: ${DB_URL:jdbc:postgresql://localhost:5432/mediprice}
+  username: ${DB_USERNAME:admin}
+  password: ${DB_PASSWORD:changeme}
+
+jpa:
+  ddl-auto: ${JPA_DDL_AUTO:update}
+  show-sql: ${JPA_SHOW_SQL:true}
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-change-in-production}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+kakao:
+  map-key: ${KAKAO_MAP_KEY:your-kakao-key}
+
+hira:
+  api-key: ${HIRA_API_KEY:your-hira-key}
+
+cache:
+  # 주의: ConcurrentMapCacheManager는 TTL 미지원. 이 값은 현재 적용되지 않음
+  ttl-seconds: ${CACHE_TTL_SECONDS:3600}
+
+guest:
+  search-limit: ${GUEST_SEARCH_LIMIT:3}
