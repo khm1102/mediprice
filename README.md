@@ -15,6 +15,23 @@
 
 ---
 
+<table align="center">
+  <tr>
+    <td align="center"><img src="https://github.com/kmj228.png" width="100px;"/><br /><sub><b>김민재</b></sub><br /><a href="https://github.com/kmj228">kmj228</a></td>
+    <td align="center"><img src="https://github.com/khm1102.png" width="100px;"/><br /><sub><b>김현민</b></sub><br /><a href="https://github.com/khm1102">khm1102</a></td>
+    <td align="center"><img src="https://github.com/sanggeon-bot.png" width="100px;"/><br /><sub><b>이상건</b></sub><br /><a href="https://github.com/sanggeon-bot">sanggeon-bot</a></td>
+    <td align="center"><img src="https://github.com/boys5210boys5210-stack.png" width="100px;"/><br /><sub><b>정재운</b></sub><br /><a href="https://github.com/boys5210boys5210-stack">boys5210boys5210-stack</a></td>
+  </tr>
+  <tr>
+    <td align="center">PM</td>
+    <td align="center">PL</td>
+    <td align="center">QA</td>
+    <td align="center">Docs</td>
+  </tr>
+</table>
+
+---
+
 ## 목차
 
 - [프로젝트 소개](#프로젝트-소개)
@@ -26,7 +43,6 @@
 - [환경변수 설정](#환경변수-설정)
 - [API 명세](#api-명세)
 - [인증 방식](#인증-방식)
-- [팀원](#팀원)
 
 ---
 
@@ -140,25 +156,6 @@ DB_PASSWORD=your_db_password
 ## 인증 방식
 
 > 추후 작성 예정
-
----
-
-## 팀원
-
-<table align="center">
-  <tr>
-    <td align="center"><img src="https://github.com/kmj228.png" width="100px;"/><br /><sub><b>김민재</b></sub><br /><a href="https://github.com/kmj228">kmj228</a></td>
-    <td align="center"><img src="https://github.com/khm1102.png" width="100px;"/><br /><sub><b>김현민</b></sub><br /><a href="https://github.com/khm1102">khm1102</a></td>
-    <td align="center"><img src="https://github.com/identicons/placeholder2.png" width="100px;"/><br /><sub><b>이상건</b></sub><br /><a href="https://github.com/">GitHub</a></td>
-    <td align="center"><img src="https://github.com/identicons/placeholder3.png" width="100px;"/><br /><sub><b>정재운</b></sub><br /><a href="https://github.com/">GitHub</a></td>
-  </tr>
-  <tr>
-    <td align="center">PM</td>
-    <td align="center">PL</td>
-    <td align="center">QA</td>
-    <td align="center">Docs</td>
-  </tr>
-</table>
 
 <div align="center">
   <sub>한국공학대학교 AI소프트웨어학과 · 김민재(kmj228) · 김현민(khm1102)</sub>
