@@ -40,15 +40,15 @@
   <tr>
     <td align="center">PM</td>
     <td align="center">PL</td>
-    <td align="center"></td>
-    <td align="center"></td>
+    <td align="center">QA</td>
+    <td align="center">Docs</td>
   </tr>
 </table>
 
 ## 프로젝트 소개
 
 >비급여 진료비 비교 플랫폼 MediPrice(메디프라이스)입니다.
-심평원 공공데이터를 기반으로 주변 병원의 비급여 진료비를 비교하고, 카카오맵을 통해 위치 기반 검색을 제공합니다.
+심평원 공공데이터를 기반으로 주변 병원의 비급여 진료비를 비교하고, 네이버맵을 통해 위치 기반 검색을 제공합니다.
 
 ---
 
@@ -65,7 +65,7 @@
 [![JSP](https://img.shields.io/badge/JSP%20+%20JSTL-D22128?style=for-the-badge&logo=apache&logoColor=white)]()
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![JavaScript](https://img.shields.io/badge/Vanilla%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)]()
-[![Kakao Map](https://img.shields.io/badge/Kakao%20Map%20SDK-FFCD00?style=for-the-badge&logo=kakao&logoColor=black)](https://apis.map.kakao.com/)
+[![Naver Map](https://img.shields.io/badge/Naver%20Map%20API-03C75A?style=for-the-badge&logo=naver&logoColor=white)](https://navermaps.github.io/maps.js.ncp/)
 
 ### Infra & DB
 
