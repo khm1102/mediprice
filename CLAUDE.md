@@ -232,7 +232,7 @@ api/                 HospitalApiController, PriceApiController
 filter/              JwtAuthFilter
 util/                JwtUtil, GeoUtil
 exception/           MediPriceException, ErrorCode, GlobalExceptionHandler
-exception/auth/      AuthenticationException, LoginFailedException, TokenExpiredException, TokenInvalidException, AccessDeniedException
+exception/auth/      AuthenticationException, LoginFailedException, TokenExpiredException, TokenInvalidException, AuthorizationDeniedException
 exception/business/  BusinessException, HospitalNotFoundException, PriceNotFoundException, MemberNotFoundException, DuplicateEmailException, GuestSearchLimitExceededException
 ```
 
