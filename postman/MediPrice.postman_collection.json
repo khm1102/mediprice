@@ -1,0 +1,158 @@
+{
+  "info": {
+    "name": "MediPrice API",
+    "description": "MediPrice REST API 컬렉션. 변수 `baseUrl`, `sampleYkiho`, `sampleNpayCd`, `lat`, `lng`, `radius`는 컬렉션 변수에서 수정.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "mediprice-api-collection"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "sampleYkiho",
+      "value": "REPLACE_WITH_REAL_YKIHO",
+      "type": "string",
+      "description": "DB에서 실제 ykiho 한 건 골라서 세팅. 예: SELECT ykiho FROM hospital LIMIT 1"
+    },
+    {
+      "key": "sampleNpayCd",
+      "value": "1021Z",
+      "type": "string",
+      "description": "비급여 항목 코드. /api/items 응답에서 골라서 사용"
+    },
+    {
+      "key": "lat",
+      "value": "37.5",
+      "type": "string",
+      "description": "위도 (서울 강남 근처 기본값)"
+    },
+    {
+      "key": "lng",
+      "value": "127.0",
+      "type": "string",
+      "description": "경도"
+    },
+    {
+      "key": "radius",
+      "value": "2000",
+      "type": "string",
+      "description": "검색 반경(미터). 기본 2000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Public",
+      "description": "프론트가 호출할 API",
+      "item": [
+        {
+          "name": "GET /api/items — 비급여 항목 그룹",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items"]
+            },
+            "description": "비급여 항목을 중분류 기준으로 그룹핑한 응답. 셀렉트박스 옵션 채울 때 사용."
+          }
+        },
+        {
+          "name": "GET /api/hospitals — 근거리 병원 검색",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/hospitals?lat={{lat}}&lng={{lng}}&npayCd={{sampleNpayCd}}&radius={{radius}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hospitals"],
+              "query": [
+                { "key": "lat", "value": "{{lat}}" },
+                { "key": "lng", "value": "{{lng}}" },
+                { "key": "npayCd", "value": "{{sampleNpayCd}}" },
+                { "key": "radius", "value": "{{radius}}" }
+              ]
+            },
+            "description": "PostGIS 프로시저로 거리 기준 정렬, 20건 제한. radius 생략 시 기본 2000m."
+          }
+        },
+        {
+          "name": "GET /api/hospitals/{ykiho} — 병원 상세",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/hospitals/{{sampleYkiho}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hospitals", "{{sampleYkiho}}"]
+            },
+            "description": "DB(병원+가격) + 외부 4개 API(진료과목/장비/특수진료/교통) 병합. ykiho 없으면 404."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Internal",
+      "description": "헬스체크 + 배치 디버그 트리거 (운영 전 제거 예정)",
+      "item": [
+        {
+          "name": "GET /api/health — 헬스체크",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Spring 컨텍스트 살아있는지만 확인. DB/캐시는 별도 인프라 도구 책임."
+          }
+        },
+        {
+          "name": "POST /api/internal/batch/sync — 전체 배치",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/internal/batch/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internal", "batch", "sync"]
+            },
+            "description": "NonPayItem + Hospital + Price 전체 동기화. 30~90분, 비동기 실행 — 응답은 즉시 떨어지고 진행은 로그로 확인."
+          }
+        },
+        {
+          "name": "POST /api/internal/batch/sync/prices — Price만",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/internal/batch/sync/prices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internal", "batch", "sync", "prices"]
+            },
+            "description": "Hospital 테이블의 ykiho 기반으로 가격만 재수집. Hospital이 이미 채워졌을 때 사용."
+          }
+        }
+      ]
+    }
+  ]
+}
