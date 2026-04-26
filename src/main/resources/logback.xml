@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- traceId MDC 키는 com.khm1102.mediprice.filter.TraceIdFilter#MDC_KEY 와 반드시 동기화 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-no-trace}] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- 애플리케이션 코드는 DEBUG 레벨까지 노출 -->
+    <logger name="com.khm1102" level="DEBUG"/>
+
+    <!-- 부팅 시 노이즈 줄이기 -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.hibernate" level="INFO"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+
+</configuration>
