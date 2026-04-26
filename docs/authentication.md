@@ -1,15 +1,16 @@
 # 인증/인가 구조
 
-## 개요
+## 현재 상태 (P1 시점)
 
-MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한다.
-회원과 비회원 모두 JWT를 발급받으며, 토큰 종류에 따라 기능 제한이 달라진다.
+**비회원/회원 모든 인증 미구현 — 모든 `/api/**` 비인증 통과.**
 
-> 단계 표기: ✅ 적용 완료 / ⏳ P1 예정 / ⏸ P2 보류
+P0.5에서 SecurityFilterChain을 두 개로 분리하고 EntryPoint/AccessDeniedHandler까지 셋업했지만, JwtAuthFilter/JwtUtil/AuthApiController/Member 엔티티 등 인증 기능 자체는 미구현. 비회원 검색 횟수 제한도 미구현(`GuestSearchLimitExceededException` ErrorCode만 정의된 상태).
+
+> 단계 표기: ✅ 적용 완료 / ⏸ P2 보류 (비회원 별도 미계획)
 
 ## 현재 SecurityConfig 구조 (✅ P0.5 적용)
 
-두 개의 `SecurityFilterChain`으로 분리되어 등록된다.
+두 개의 `SecurityFilterChain`이 등록되어 있다.
 
 ### apiSecurityFilterChain — `/api/**` 전용 (`@Order(1)`)
 
@@ -17,8 +18,7 @@ MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한
 - 인증 실패 → `apiAuthenticationEntryPoint`가 **JSON 응답** (`ApiResponse.error`)
 - 권한 부족 → `apiAccessDeniedHandler`가 **JSON 응답**
 - CSRF 비활성, stateless, CORS 활성
-- 화이트리스트: `/api/auth/token/guest`, `/api/hospitals/**`, `/api/health` → permitAll
-- 그 외 `/api/**` → `authenticated`
+- 화이트리스트: 모든 `/api/**` permitAll (현재 인증 미적용 상태)
 
 ### pageSecurityFilterChain — 페이지 흐름 (`@Order(2)`, default 매칭)
 
@@ -28,21 +28,18 @@ MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한
 
 > Order가 중요한 이유: page 체인이 먼저 평가되면 모든 요청을 흡수해 api 체인 분리가 무의미해짐.
 
-## 인증 흐름
+## SecurityConfig 보조 빈 (✅ 셋업 완료, 현재 동작 안 함)
 
-### 비회원 (⏳ P1)
+| 빈 | 역할 | 현 상태 |
+|---|---|---|
+| `corsConfigurationSource` | CORS 단일 정의 (`@Primary`). `allowedOriginPatterns`/`allowCredentials(true)`/명시 헤더 화이트리스트 | 활성 |
+| `apiAuthenticationEntryPoint` | 401 + `ApiResponse.error(ErrorCode)` JSON. request attribute의 ErrorCode 우선 사용 | 등록됨 (호출 X — permitAll이라 인증 분기 안 탐) |
+| `apiAccessDeniedHandler` | 403 + `ApiResponse.error(ACCESS_DENIED)` JSON | 등록됨 |
+| `AuthAttributeNames.ERROR_CODE` | JwtAuthFilter ↔ EntryPoint 간 ErrorCode 전달 키 (상수) | 정의만 |
 
-```
-1. 첫 접속 시 JWT 없음 감지 (브라우저 측 JS 또는 API 첫 호출)
-    ↓
-2. GET /api/auth/token/guest → Guest JWT 발급
-    ↓
-3. 응답: Set-Cookie로 Guest JWT 저장 (HttpOnly, SameSite=Strict)
-    ↓
-4. 이후 검색 요청마다 GuestSearchCounter가 횟수 체크
-    ↓
-5. 3회 초과 → 429 + ErrorCode G001 ("로그인이 필요합니다")
-```
+## P2 인증 흐름 (계획)
+
+회원 인증을 도입하면 다음 패턴을 따른다.
 
 ### 회원 (⏸ P2)
 
@@ -58,20 +55,9 @@ MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한
 5. JwtAuthFilter: 쿠키에서 JWT 추출 → 검증 → SecurityContext에 인증 정보 세팅
 ```
 
-## JWT 구조
-
-### 토큰 페이로드
+### JWT 토큰 페이로드 (계획)
 
 ```json
-// 비회원 토큰 (P1)
-{
-  "sub": "guest_uuid",
-  "role": "GUEST",
-  "iat": 1700000000,
-  "exp": 1700086400
-}
-
-// 회원 토큰 (P2)
 {
   "sub": "member_123",
   "role": "MEMBER",
@@ -80,10 +66,10 @@ MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한
 }
 ```
 
-### 토큰 저장
+### 토큰 저장 (계획)
 
 | 항목 | 값 |
-|------|-----|
+|---|---|
 | 저장 방식 | HttpOnly 쿠키 |
 | 쿠키 이름 | `ACCESS_TOKEN` |
 | HttpOnly | `true` (JS 접근 불가 → XSS 방지) |
@@ -93,23 +79,23 @@ MediPrice는 **세션을 사용하지 않고 JWT로 인증을 완전 통일**한
 
 ### 시크릿 정책
 
-- `JWT_SECRET` 환경변수 필수 — `application.yml`에 fallback 없음 → 미지정 시 부팅 실패
-- 32바이트(256bit) 이상 랜덤 문자열 — `JwtUtil` 작성 시 길이 검증 (P1)
+- `JWT_SECRET` 환경변수 필수 — `application.yml`에 fallback 없음 → 미지정 시 부팅 실패 (P0.5에서 적용됨)
+- 32바이트(256bit) 이상 랜덤 문자열 — `JwtUtil` 작성 시 길이 검증 (P2)
 - 생성 예: `openssl rand -base64 48`
 
-## 필터 체인 (P1 완성 형태)
+## P2 도입 시 필터 체인 (계획)
 
 ```
 요청 진입
     ↓
-TraceIdFilter (이미 적용 — 모든 로그에 traceId 부여)
+TraceIdFilter (✅ 적용 — 모든 로그에 traceId 부여)
     ↓
 CharacterEncodingFilter (UTF-8)
     ↓
 springSecurityFilterChain
     ├── apiSecurityFilterChain
     │       ↓
-    │   JwtAuthFilter (P1 추가 예정 — addFilterBefore)
+    │   JwtAuthFilter (⏸ P2 — addFilterBefore)
     │       ├── 쿠키 ACCESS_TOKEN 추출
     │       ├── JwtUtil.parseToken() 호출
     │       ├── 유효 → UsernamePasswordAuthenticationToken 세팅
@@ -119,63 +105,28 @@ springSecurityFilterChain
     │
     └── pageSecurityFilterChain
             ↓
-        (P2에서 formLogin redirect 추가)
+        formLogin redirect 추가 (⏸ P2)
 ```
 
-> P1 시점에는 JwtAuthFilter가 토큰 없는 경우도 통과시키는 **옵셔널 인증** — `/api/hospitals/**`는 비회원도 접근 가능해야 하기 때문. 횟수 제한은 `GuestSearchCounter`가 별도로 강제.
+## 미구현 클래스 (P2 시 작성 예정)
 
-## 비회원 검색 횟수 제한 (⏳ P1)
-
-### 저장소
-
-```java
-// 서버 메모리 — 단일 인스턴스 가정
-ConcurrentHashMap<String, AtomicInteger> guestSearchCount;
-// key: guestId (JWT의 sub 클레임)
-// value: 검색 횟수 (AtomicInteger)
-```
-
-### 동작
-
-| 검색 횟수 | 동작 |
-|-----------|------|
-| 1~3회 | 정상 검색 결과 반환 |
-| 4회 이상 | `GuestSearchLimitExceededException` → 429 + ErrorCode G001 |
-
-### 한계
-
-- **단일 인스턴스 운영 가정** — 다중 인스턴스 배포 시 인스턴스마다 카운터가 따로라 정책 우회 가능
-- 서버 재시작 시 초기화 (별도 영속화 없음)
-- TTL 미적용 (메모리 누수 방지를 위해 ScheduledExecutorService로 주기 소거 검토)
-
-## SecurityConfig 보조 빈
-
-| 빈 | 역할 |
-|---|---|
-| `corsConfigurationSource` | CORS 단일 정의 (@Primary). `allowedOriginPatterns`/`allowCredentials(true)`/명시 헤더 화이트리스트 |
-| `apiAuthenticationEntryPoint` | 401 + `ApiResponse.error(ErrorCode)` JSON. request attribute의 ErrorCode 우선 사용 |
-| `apiAccessDeniedHandler` | 403 + `ApiResponse.error(ACCESS_DENIED)` JSON |
-| `AuthAttributeNames.ERROR_CODE` | JwtAuthFilter ↔ EntryPoint 간 ErrorCode 전달 키 (상수) |
-
-## 관련 클래스
-
-| 패키지 | 클래스 | 상태 |
-|--------|--------|------|
-| `config/` | `SecurityConfig` (apiChain + pageChain + CORS + EntryPoint) | ✅ |
-| `filter/` | `AuthAttributeNames` (request attribute 키 상수) | ✅ |
-| `filter/` | `JwtAuthFilter` (쿠키 → SecurityContext) | ⏳ P1 |
-| `util/` | `JwtUtil` (JWT 생성/검증/길이 검증) | ⏳ P1 |
-| `service/` | `GuestSearchCounter` (검색 횟수 강제) | ⏳ P1 |
+| 패키지 | 클래스 | 단계 |
+|---|---|---|
+| `global/filter/` | `JwtAuthFilter` (쿠키 → SecurityContext) | ⏸ P2 |
+| `util/` | `JwtUtil` (JWT 생성/검증/길이 검증) | ⏸ P2 |
 | `service/` | `AuthService` (login/register/logout) | ⏸ P2 |
-| `api/` | `AuthApiController` (`/api/auth/token/guest`) | ⏳ P1 (login/register는 P2) |
-| `controller/` | `AuthController` (login/register JSP) | ⏸ P2 |
-| `entity/` | `Member` | ⏸ P2 |
+| `controller/` | `AuthApiController` (`/api/auth/login`, `/register`, `/logout`) | ⏸ P2 |
+| `controller/` | `AuthController` (login/register JSP 렌더링) | ⏸ P2 |
+| `entity/` | `Member` (`BaseEntity` 상속, Long id PK) | ⏸ P2 |
 
-## 관련 API
+## 비회원 / 검색 횟수 제한
+
+**미계획**. P1 초기엔 Guest JWT + 검색 3회 제한 안이 있었으나 폐기. `GuestSearchLimitExceededException`(ErrorCode `G001`) 클래스만 잔존하며 실제 throw하는 코드는 없음. 정책상 P2에서도 재도입 계획 없음.
+
+## 관련 API (현재 vs 계획)
 
 | 메서드 | URL | 설명 | 단계 |
-|--------|-----|------|------|
-| GET | `/api/auth/token/guest` | 비회원 임시 토큰 발급 | ⏳ P1 |
+|---|---|---|---|
 | POST | `/api/auth/login` | 로그인 → JWT 발급 | ⏸ P2 |
 | POST | `/api/auth/logout` | 로그아웃 → 쿠키 삭제 | ⏸ P2 |
 | POST | `/api/auth/register` | 회원가입 | ⏸ P2 |
