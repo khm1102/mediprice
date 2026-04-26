@@ -8,7 +8,9 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Properties;
 
@@ -17,7 +19,7 @@ import java.util.Properties;
         basePackages = "com.khm1102.mediprice",
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ANNOTATION,
-                classes = {Controller.class, RestController.class}
+                classes = {Controller.class, RestController.class, ControllerAdvice.class}
         )
 )
 public class AppConfig {
@@ -36,5 +38,12 @@ public class AppConfig {
         configurer.setProperties(properties);
 
         return configurer;
+    }
+
+    @Bean
+    public JsonMapper jsonMapper() {
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .build();
     }
 }
