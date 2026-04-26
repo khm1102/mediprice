@@ -1,20 +1,17 @@
 package com.khm1102.mediprice.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.khm1102.mediprice.exception.ErrorCode;
-import lombok.Getter;
 
-@Getter
-public class ApiResponse<T> {
-
-    private final boolean success;
-    private final T data;
-    private final ErrorDetail error;
-
-    private ApiResponse(boolean success, T data, ErrorDetail error) {
-        this.success = success;
-        this.data = data;
-        this.error = error;
-    }
+/**
+ * 모든 REST API 응답의 공통 래퍼.
+ * <p>
+ * Java 21 record + Jackson 3 native 지원. {@code @JsonInclude(NON_NULL)}로 사용 안 하는 필드는 응답에서 생략된다.
+ * <p>
+ * 응답 모델 전용 — 외부 API 클라이언트의 입력 모델로 재사용하지 않는다.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ApiResponse<T>(boolean success, T data, ErrorDetail error) {
 
     public record ErrorDetail(String code, String message) {
     }
@@ -29,9 +26,5 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> error(ErrorCode errorCode, String detailMessage) {
         return new ApiResponse<>(false, null, new ErrorDetail(errorCode.getCode(), detailMessage));
-    }
-
-    public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, null, new ErrorDetail("UNKNOWN", message));
     }
 }

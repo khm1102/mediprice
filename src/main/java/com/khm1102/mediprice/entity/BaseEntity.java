@@ -42,7 +42,8 @@ public abstract class BaseEntity {
         this.updatedDttm = OffsetDateTime.now();
     }
 
-    public void softDelete() {
+    /** 논리 삭제 — CLAUDE.md §5.2 동사 컨벤션 (delete = 논리 삭제, remove = 물리 삭제). */
+    public void delete() {
         this.deletedDttm = OffsetDateTime.now();
     }
 }
