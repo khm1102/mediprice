@@ -52,7 +52,7 @@ dependencies {
     implementation 'com.zaxxer:HikariCP:6.3.0'
 
     // PostgreSQL
-    runtimeOnly 'org.postgresql:postgresql:42.7.7'
+    implementation 'org.postgresql:postgresql:42.7.7'
 
     // Servlet
     compileOnly 'jakarta.servlet:jakarta.servlet-api:6.1.0'
@@ -83,6 +83,9 @@ dependencies {
 
     // SnakeYAML
     implementation 'org.yaml:snakeyaml:2.4'
+
+    // JSpecify (null safety annotations) — Spring 7이 transitive로 가져오나 직접 import하므로 명시
+    implementation 'org.jspecify:jspecify:1.0.0'
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"

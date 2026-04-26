@@ -17,6 +17,7 @@ public enum ErrorCode {
     TOKEN_EXPIRED("A002", "토큰이 만료되었습니다.", HttpStatus.UNAUTHORIZED),
     TOKEN_INVALID("A003", "유효하지 않은 토큰입니다.", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED("A004", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
+    UNAUTHORIZED("A005", "인증이 필요합니다.", HttpStatus.UNAUTHORIZED),
 
     // 비즈니스 — 게스트 (G)
     GUEST_SEARCH_LIMIT("G001", "비회원 검색 횟수를 초과했습니다. 로그인 후 이용해주세요.", HttpStatus.TOO_MANY_REQUESTS),

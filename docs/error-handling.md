@@ -12,7 +12,7 @@ throw new HospitalNotFoundException()   ← ErrorCode.HOSPITAL_NOT_FOUND 자동 
     ↓
 GlobalExceptionHandler가 catch
     ↓
-ApiResponse.error(ErrorCode) → {"error": {"code": "H001", "message": "..."}}
+ApiResponse.error(ErrorCode) → {"success": false, "error": {"code": "H001", "message": "..."}}
 ```
 
 ---
@@ -41,16 +41,17 @@ ApiResponse.error(ErrorCode) → {"error": {"code": "H001", "message": "..."}}
 
 ```
 C001  서버 내부 오류가 발생했습니다.                              500
-C002  입력값이 올바르지 않습니다.                                400
-C003  요청한 리소스를 찾을 수 없습니다.                          404
-C004  지원하지 않는 HTTP 메서드입니다.                           405
+C002  입력값이 올바르지 않습니다.                                 400
+C003  요청한 리소스를 찾을 수 없습니다.                           404
+C004  지원하지 않는 HTTP 메서드입니다.                            405
 
-A001  이메일 또는 비밀번호가 올바르지 않습니다.                   401
-A002  토큰이 만료되었습니다.                                    401
-A003  유효하지 않은 토큰입니다.                                 401
-A004  접근 권한이 없습니다.                                     403
+A001  이메일 또는 비밀번호가 올바르지 않습니다.                    401
+A002  토큰이 만료되었습니다.                                     401
+A003  유효하지 않은 토큰입니다.                                  401
+A004  접근 권한이 없습니다.                                      403
+A005  인증이 필요합니다.                                        401   ← P0.5에서 추가
 
-G001  비회원 검색 횟수를 초과했습니다. 로그인 후 이용해주세요.      429
+G001  비회원 검색 횟수를 초과했습니다. 로그인 후 이용해주세요.       429
 
 H001  병원 정보를 찾을 수 없습니다.                              404
 H002  가격 정보를 찾을 수 없습니다.                              404
@@ -58,6 +59,8 @@ H002  가격 정보를 찾을 수 없습니다.                              404
 M001  회원 정보를 찾을 수 없습니다.                              404
 M002  이미 가입된 이메일입니다.                                  409
 ```
+
+> `A005 UNAUTHORIZED`는 인증 자체가 누락된 경우(쿠키 없음/익명) 사용. 토큰 만료(A002)/변조(A003)와 구분.
 
 ### 새 코드 추가 시 규칙
 
@@ -78,11 +81,13 @@ MediPriceException (abstract, ErrorCode 보유)
 │   ├── DuplicateEmailException       → M002
 │   └── GuestSearchLimitExceededException → G001
 └── auth/AuthenticationException
-    ├── LoginFailedException          → A001
-    ├── TokenExpiredException         → A002
-    ├── TokenInvalidException         → A003
-    └── AccessDeniedException         → A004
+    ├── LoginFailedException             → A001
+    ├── TokenExpiredException            → A002
+    ├── TokenInvalidException            → A003
+    └── AuthorizationDeniedException     → A004
 ```
+
+> Spring Security의 `org.springframework.security.access.AccessDeniedException`과 이름이 겹치지 않도록 우리 도메인 예외는 `AuthorizationDeniedException`으로 명명. Security 단계 인가 실패는 `SecurityConfig.apiAccessDeniedHandler`가 직접 처리하고, 본 예외는 `GlobalExceptionHandler.handleMediPriceException`이 처리한다.
 
 ### 패키지 구조
 
@@ -91,19 +96,8 @@ exception/
 ├── ErrorCode.java              ← 에러 코드 enum
 ├── MediPriceException.java     ← abstract 베이스 (ErrorCode 필드)
 ├── GlobalExceptionHandler.java ← @RestControllerAdvice
-├── auth/                       ← 인증 관련 예외
-│   ├── AuthenticationException.java
-│   ├── AccessDeniedException.java
-│   ├── LoginFailedException.java
-│   ├── TokenExpiredException.java
-│   └── TokenInvalidException.java
-└── business/                   ← 비즈니스 로직 예외
-    ├── BusinessException.java
-    ├── DuplicateEmailException.java
-    ├── GuestSearchLimitExceededException.java
-    ├── HospitalNotFoundException.java
-    ├── MemberNotFoundException.java
-    └── PriceNotFoundException.java
+├── auth/
+└── business/
 ```
 
 ### 설계 원칙
@@ -111,7 +105,7 @@ exception/
 - **MediPriceException:** abstract. 직접 인스턴스화 금지. 반드시 하위 클래스를 통해 사용.
 - **중간 클래스 (BusinessException, AuthenticationException):** catch 블록에서 카테고리 단위로 잡을 수 있게 하는 용도.
 - **leaf 클래스:** 기본 생성자에서 해당 ErrorCode를 부모에 전달. 1~2줄로 유지.
-- **ErrorCode와 1:1 대응:** 각 leaf 예외는 하나의 ErrorCode에 매핑. 같은 코드를 여러 예외가 공유하지 않는다.
+- **ErrorCode와 1:1 대응:** 각 leaf 예외는 하나의 ErrorCode에 매핑.
 
 ### 사용 예시
 
@@ -136,35 +130,70 @@ try {
 
 **파일:** `exception/GlobalExceptionHandler.java`
 
-### 핸들러 우선순위
+### 핸들러 매핑
 
-| 순서 | 핸들러 | 대상 예외 | 로그 레벨 | HTTP 상태 |
-|------|--------|-----------|-----------|-----------|
-| 1 | `handleMediPriceException` | `MediPriceException` 하위 전체 | `WARN` 한 줄 | ErrorCode에 정의된 상태 |
-| 2 | `handleValidation` | `MethodArgumentNotValidException` | `WARN` 한 줄 | 400 (필드 오류 메시지 포함) |
-| 3 | `handleAccessDenied` | Spring Security `AccessDeniedException` | `WARN` 한 줄 | 403 |
-| 4 | `handleNotFound` | `NoResourceFoundException` / `NoHandlerFoundException` | `WARN` 한 줄 | 404 |
-| 5 | `handleMethodNotAllowed` | `HttpRequestMethodNotSupportedException` | `WARN` 한 줄 | 405 |
-| 6 | `handleException` | 나머지 `Exception` | `ERROR` + 스택트레이스 | 500 |
+| 핸들러 | 대상 예외 | 로그 레벨 | HTTP 상태 |
+|--------|-----------|-----------|-----------|
+| `handleMediPriceException` | `MediPriceException` 하위 전체 | 4xx → WARN, 5xx → ERROR (자동 격상) | ErrorCode 정의값 |
+| `handleValidation` | `MethodArgumentNotValidException` | WARN | 400 (필드 오류 메시지 포함) |
+| `handleBind` | `BindException` | WARN | 400 |
+| `handleMissingParam` | `MissingServletRequestParameterException` | WARN | 400 |
+| `handleTypeMismatch` | `MethodArgumentTypeMismatchException` | WARN | 400 (예: `lat=abc`) |
+| `handleNotReadable` | `HttpMessageNotReadableException` | WARN | 400 (요청 본문 파싱 실패) |
+| `handleNotFound` | `NoResourceFoundException`, `NoHandlerFoundException` | WARN | 404 |
+| `handleMethodNotAllowed` | `HttpRequestMethodNotSupportedException` | WARN | 405 |
+| `handleRuntime` | `RuntimeException` (위 핸들러에 안 잡힌 것) | ERROR + stacktrace | 500 |
 
-### 로그 레벨 분리 기준
+> Spring Security의 `AccessDeniedException`은 GlobalExceptionHandler에 등록하지 않음 — `SecurityConfig.apiAccessDeniedHandler`가 필터 체인 단계에서 직접 처리한다.
 
-- **WARN (1~5번):** 클라이언트 실수이거나 예상된 비즈니스 예외. 한 줄 로그로 충분.
-- **ERROR (6번):** 여기에 도달하면 **진짜 서버 버그**. 스택트레이스를 포함해서 즉시 조사 필요.
+### 로그 포맷 통일
+
+모든 핸들러는 다음 단일 포맷을 따른다:
+
+```
+[{ErrorCode}] {category}: {detail}
+```
+
+내부 헬퍼 `logWarn`/`logError`로 통일:
+
+```java
+private void logWarn(ErrorCode code, String category, Object detail) {
+    log.warn("[{}] {}: {}", code.getCode(), category, detail);
+}
+
+private void logError(ErrorCode code, String category, Object detail, Throwable cause) {
+    log.error("[{}] {}: {}", code.getCode(), category, detail, cause);
+}
+```
+
+예시 로그:
+```
+[H001] Domain error: 병원 정보를 찾을 수 없습니다.
+[C002] Validation failed: lat: must not be null
+[C002] Type mismatch: lat (Double) 변환 실패: abc
+[C003] No handler: No endpoint GET /unknown.
+[C001] Unhandled runtime: NullPointerException at ...
+```
+
+### 5xx 자동 격상
+
+`handleMediPriceException`은 `errorCode.getHttpStatus().is5xxServerError()`를 검사해 5xx면 `log.error`로 자동 격상. 4xx는 WARN 유지.
 
 ---
 
 ## 응답 형식
+
+`ApiResponse`는 `@JsonInclude(NON_NULL)` 적용 — 사용 안 하는 필드는 응답에서 생략.
 
 ### 에러 응답 (ErrorCode 기반)
 
 ```
 HTTP/1.1 404 Not Found
 Content-Type: application/json
+X-Trace-Id: a95790918534483a83089169b4cc329d
 
 {
   "success": false,
-  "data": null,
   "error": {
     "code": "H001",
     "message": "병원 정보를 찾을 수 없습니다."
@@ -172,7 +201,7 @@ Content-Type: application/json
 }
 ```
 
-### 서버 에러 (5번 핸들러)
+### 서버 에러 (handleRuntime)
 
 ```
 HTTP/1.1 500 Internal Server Error
@@ -180,10 +209,23 @@ Content-Type: application/json
 
 {
   "success": false,
-  "data": null,
   "error": {
     "code": "C001",
     "message": "서버 내부 오류가 발생했습니다."
+  }
+}
+```
+
+### 입력 검증 에러 (detail message 포함)
+
+```
+HTTP/1.1 400 Bad Request
+
+{
+  "success": false,
+  "error": {
+    "code": "C002",
+    "message": "lat: must not be null"
   }
 }
 ```
@@ -192,8 +234,9 @@ Content-Type: application/json
 
 ## 규칙
 
-1. **Service 레이어**에서만 예외를 던진다 — Controller에서 직접 예외를 던지지 않는다.
+1. **Service 레이어**에서만 도메인 예외를 던진다 — Controller에서 직접 던지지 않는다.
 2. `new MediPriceException(...)` 직접 사용 금지 — 반드시 leaf 클래스를 사용한다.
 3. 예외 메시지는 기본적으로 `ErrorCode`에 정의된 메시지를 사용한다. 상세 메시지가 필요하면 `(ErrorCode, String detailMessage)` 생성자를 사용할 수 있다.
 4. 프론트엔드는 `error.code`로 분기한다. `error.message`는 사용자 표시용.
 5. 새 도메인이 추가되면 접두사를 새로 할당하고, 이 문서에 등록한다.
+6. **Spring Security 예외**(인증/인가 단계 실패)는 SecurityConfig의 EntryPoint/AccessDeniedHandler가 처리하며, GlobalExceptionHandler에는 등록하지 않는다.
