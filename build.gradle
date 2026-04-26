@@ -26,6 +26,8 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // @RequestParam/@PathVariable 이름 자동 추론 — Spring MVC가 reflection으로 파라미터 이름 읽음
+    options.compilerArgs.add('-parameters')
 }
 
 dependencies {
@@ -65,6 +67,8 @@ dependencies {
 
     // Jackson 3
     implementation 'tools.jackson.core:jackson-databind:3.1.1'
+    // 심평원 API XML 응답 파싱용
+    implementation 'tools.jackson.dataformat:jackson-dataformat-xml:3.1.1'
 
     // Gson
     implementation 'com.google.code.gson:gson:2.13.2'
@@ -87,9 +91,17 @@ dependencies {
     // JSpecify (null safety annotations) — Spring 7이 transitive로 가져오나 직접 import하므로 명시
     implementation 'org.jspecify:jspecify:1.0.0'
 
-    // Test
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    // Test — JUnit 5 BOM으로 platform/jupiter 버전 정렬
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.assertj:assertj-core:3.27.6'
+    testImplementation 'org.mockito:mockito-core:5.20.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.20.0'
+    testCompileOnly 'org.projectlombok:lombok:1.18.38'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 }
 
 war {
