@@ -1,0 +1,38 @@
+# 빌드 산출물
+build/
+.gradle/
+out/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# VCS
+.git/
+.gitignore
+.github/
+
+# 비밀/환경
+.env
+.env.*
+!.env.example
+
+# 도커
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# 문서/참고자료 (런타임 불필요)
+docs/
+README.md
+TODO.md
+CLAUDE.md
+hira-docs/
+postman/
+
+# 테스트 결과/리포트
+**/build/
+**/test-results/
+**/reports/
