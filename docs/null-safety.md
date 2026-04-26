@@ -17,7 +17,8 @@ org.jetbrains.annotations.Nullable    → 사용 금지 (IDE 전용)
 ## 이 프로젝트에서의 규칙
 
 - null 어노테이션은 **`org.jspecify.annotations`만 사용**한다.
-- 별도 의존성 추가 불필요 — Spring Framework 7의 이행적 종속성으로 이미 포함되어 있다.
+- `build.gradle`에 명시 의존성 추가됨: `implementation 'org.jspecify:jspecify:1.0.0'`
+  (Spring 7가 transitive로 가져오기는 하지만 직접 import하므로 명시).
 
 ## 주요 어노테이션
 
