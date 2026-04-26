@@ -401,6 +401,23 @@ LIMIT 20;
 
 ---
 
+## 9.5 Git 커밋 규칙
+
+```
+절대 추가 금지
+  Co-Authored-By: Claude... 트레일러   (commit 메시지에 도구/AI 출처 표시 금지)
+  🤖 Generated with [Claude Code]      (이모지 + 생성 표기 금지)
+```
+
+GitHub은 `Co-Authored-By:` 트레일러를 자동으로 공동 저자로 표시한다 (commit 페이지 + contributors 그래프). MediPrice 저장소는 사람 저자만 표기한다 — 도구/AI 출처는 PR 설명이나 별도 메모로 충분.
+
+커밋 메시지 컨벤션:
+- Conventional Commits 접두사 (`feat`, `fix`, `refactor`, `docs`, `test`, `build`, `chore`, `ci`)
+- 한국어 + 짧게 (1줄, 60자 이내). 자세한 내용은 PR 설명에.
+- 본문은 **why**만 짧게 (필요 시). **what**은 diff가 말해줌.
+
+---
+
 ## 10. 환경 변수 (.env)
 
 ```properties
