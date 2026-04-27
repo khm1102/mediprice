@@ -36,6 +36,22 @@ const addMarker = (lat, lng, title, onClick) => {
     markers.push(marker);
 };
 
+// 현재 위치로 지도 중심 이동
+const recenterMap = () => {
+    if (!navigator.geolocation) {
+        showToast('위치 정보를 지원하지 않는 브라우저입니다', 'error');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            if (!naverMap) return;
+            naverMap.setCenter(new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+            naverMap.setZoom(14);
+        },
+        () => showToast('현재 위치를 가져올 수 없습니다', 'error')
+    );
+};
+
 // 현재 위치 기준으로 지도 초기화
 const initMapWithCurrentLocation = () => {
     if (!navigator.geolocation) {
