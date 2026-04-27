@@ -32,7 +32,7 @@ Frontend
   Script      Vanilla JS ES2025 (React, Vue, jQuery 사용 금지)
   Style       Tailwind CSS CDN (빌드 도구 없음, npm 사용 금지)
   HTTP        fetch API (axios 사용 금지)
-  Map         카카오맵 JavaScript SDK
+  Map         네이버맵 JavaScript SDK v3
 
 Database
   Engine      PostgreSQL + PostGIS 확장
@@ -308,7 +308,7 @@ const api = {
 static/js/
 ├── api.js          ← fetch 공통 유틸 (필수, 항상 먼저 로드)
 ├── auth.js         ← 토큰 관리, 로그인/로그아웃
-├── map.js          ← 카카오맵 초기화, 마커 관리
+├── map.js          ← 네이버맵 초기화, 마커 관리
 ├── hospital.js     ← 병원 목록, 검색
 ├── price.js        ← 가격 비교
 └── common.js       ← 공통 유틸 함수
@@ -318,7 +318,7 @@ static/js/
 
 ```jsp
 <%-- 항상 이 순서로 로드 --%>
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=..."></script>
+<script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=..."></script>
 <script defer src="/static/js/api.js"></script>
 <script defer src="/static/js/auth.js"></script>
 <script defer src="/static/js/common.js"></script>
@@ -413,8 +413,8 @@ DB_PASSWORD=changeme
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRATION=86400000
 
-# 카카오맵
-KAKAO_MAP_KEY=your-kakao-key
+# 네이버맵
+NAVER_MAP_KEY=your-naver-key
 
 # 심평원 API
 HIRA_API_KEY=your-hira-key
