@@ -28,14 +28,49 @@ const formatDistance = (meters) => {
  * @param {string} message
  * @param {'info'|'error'} type
  */
-const showToast = (message, type = 'info') => {
-    const toast = document.createElement('div');
-    const bgColor = type === 'error' ? 'bg-red-500' : 'bg-gray-800';
-    toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${bgColor} text-white text-sm px-5 py-2.5 rounded-full shadow-lg z-50 transition-opacity`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 2500);
-};
+const showToast = (() => {
+    // keyframe 한 번만 주입
+    if (!document.getElementById('toast-style')) {
+        const style = document.createElement('style');
+        style.id = 'toast-style';
+        style.textContent = `
+            @keyframes toastIn {
+                from { opacity: 0; bottom: 1rem; }
+                to   { opacity: 1; bottom: 2rem; }
+            }
+            @keyframes toastOut {
+                from { opacity: 1; bottom: 2rem; }
+                to   { opacity: 0; bottom: 1rem; }
+            }
+            .toast-in  { animation: toastIn  0.3s ease forwards; }
+            .toast-out { animation: toastOut 0.35s ease forwards; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    return (message, type = 'info') => {
+        const bgColor = type === 'error' ? '#ef4444' : '#1f2937';
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.classList.add('toast-in');
+        Object.assign(toast.style, {
+            position: 'fixed',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: bgColor,
+            color: '#fff',
+            fontSize: '0.875rem',
+            padding: '0.625rem 1.25rem',
+            borderRadius: '9999px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+            zIndex: '9999',
+            whiteSpace: 'nowrap',
+        });
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.replace('toast-in', 'toast-out');
+            setTimeout(() => toast.remove(), 380);
+        }, 2500);
+    };
+})();

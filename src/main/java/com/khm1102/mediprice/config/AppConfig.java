@@ -73,6 +73,7 @@ public class AppConfig {
                 // OS 환경변수·JVM 프로퍼티가 우선 — .env는 개발 편의 용도
                 if (System.getenv(key) == null && System.getProperty(key) == null) {
                     target.setProperty(key, value);
+                    System.setProperty(key, value); // 서블릿 컨텍스트에서도 읽을 수 있도록
                 }
             }
         } catch (IOException e) {

@@ -29,6 +29,8 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // Spring 6+: @RequestParam 등 파라미터 이름을 리플렉션으로 읽기 위해 필수
+    options.compilerArgs << '-parameters'
 }
 
 dependencies {

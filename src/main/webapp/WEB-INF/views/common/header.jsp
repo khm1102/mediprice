@@ -1,4 +1,3 @@
-<%@ page pageEncoding="UTF-8" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -23,14 +22,14 @@
         <%-- 네비게이션 --%>
         <nav class="flex items-center gap-3">
             <div id="nav-guest" class="flex items-center gap-3">
-                <a href="/auth/login"
-                   class="text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                <button onclick="showToast('로그인 기능은 차후 개발 예정입니다', 'info')"
+                        class="text-sm text-gray-600 hover:text-blue-600 transition-colors">
                     로그인
-                </a>
-                <a href="/auth/register"
-                   class="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors">
+                </button>
+                <button onclick="showToast('회원가입 기능은 차후 개발 예정입니다', 'info')"
+                        class="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors">
                     회원가입
-                </a>
+                </button>
             </div>
             <div id="nav-member" class="hidden flex items-center gap-3">
                 <button onclick="handleLogout()"
