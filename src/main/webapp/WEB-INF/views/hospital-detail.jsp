@@ -14,16 +14,21 @@
     </div>
 
     <%-- 오류 상태 --%>
-    <div id="state-error" class="hidden flex flex-col items-center justify-center py-24 text-gray-400">
-        <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <p class="text-sm font-medium text-gray-500">데이터를 불러오지 못했습니다</p>
-        <p class="text-xs text-gray-400 mt-1">백엔드 API가 아직 준비 중입니다</p>
-        <a href="/hospitals" class="mt-4 text-xs text-blue-500 hover:text-blue-700 underline">
-            목록으로 돌아가기
-        </a>
+    <div id="state-error" class="hidden flex flex-col items-center justify-center py-24">
+        <div class="bg-white rounded-2xl shadow-sm p-10 text-center max-w-sm w-full">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+            </div>
+            <h2 class="text-base font-semibold text-gray-700 mb-1">병원 정보를 준비 중이에요</h2>
+            <p class="text-sm text-gray-400 mb-6">진료비 데이터 서비스를 곧 제공할 예정입니다</p>
+            <a href="/hospitals"
+               class="inline-block bg-blue-600 text-white text-sm px-5 py-2 rounded-full hover:bg-blue-700 transition-colors">
+                병원 목록으로
+            </a>
+        </div>
     </div>
 
     <%-- 병원 정보 (API 연결 후 표시) --%>

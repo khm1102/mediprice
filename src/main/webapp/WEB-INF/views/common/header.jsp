@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${pageTitle != null ? pageTitle.concat(' - MediPrice') : 'MediPrice'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="/static/js/api.js"></script>
-    <script defer src="/static/js/auth.js"></script>
-    <script defer src="/static/js/common.js"></script>
+    <script defer src="/static/js/api.js?v=3"></script>
+    <script defer src="/static/js/auth.js?v=3"></script>
+    <script defer src="/static/js/common.js?v=3"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
