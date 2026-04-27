@@ -1,99 +1,18 @@
 plugins {
     id 'java'
-    id 'war'
 }
 
-group 'com.khm1102'
-version '1.0-SNAPSHOT'
+group = 'org.example'
+version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
 }
 
-ext {
-    springVersion = '7.0.6'
-    springSecurityVersion = '7.0.4'
-    springDataJpaVersion = '4.0.5'
-    hibernateVersion = '7.0.4.Final'
-    junitVersion = '5.13.2'
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-
 dependencies {
-    // Spring Framework
-    implementation "org.springframework:spring-context:${springVersion}"
-    implementation "org.springframework:spring-webmvc:${springVersion}"
-    implementation "org.springframework:spring-orm:${springVersion}"
-    implementation "org.springframework:spring-tx:${springVersion}"
-    implementation "org.springframework:spring-jdbc:${springVersion}"
-    implementation "org.springframework:spring-context-support:${springVersion}"
-
-    // Spring Security
-    implementation "org.springframework.security:spring-security-web:${springSecurityVersion}"
-    implementation "org.springframework.security:spring-security-config:${springSecurityVersion}"
-
-    // Spring Data JPA
-    implementation "org.springframework.data:spring-data-jpa:${springDataJpaVersion}"
-
-    // Hibernate + Spatial
-    implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
-    implementation "org.hibernate.orm:hibernate-spatial:${hibernateVersion}"
-
-    // HikariCP
-    implementation 'com.zaxxer:HikariCP:6.3.0'
-
-    // PostgreSQL
-    implementation 'org.postgresql:postgresql:42.7.7'
-
-    // Servlet
-    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.1.0'
-    compileOnly 'jakarta.servlet.jsp:jakarta.servlet.jsp-api:4.0.0'
-    compileOnly 'jakarta.el:jakarta.el-api:6.0.1'
-
-    // JSTL 3.0
-    implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
-    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:3.0.2'
-
-    // Jackson 3
-    implementation 'tools.jackson.core:jackson-databind:3.1.1'
-
-    // Gson
-    implementation 'com.google.code.gson:gson:2.13.2'
-
-    // JJWT
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-    runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
-
-    // Logging
-    implementation 'ch.qos.logback:logback-classic:1.5.32'
-
-    // SnakeYAML
-    implementation 'org.yaml:snakeyaml:2.4'
-
-    // JSpecify (null safety annotations) — Spring 7이 transitive로 가져오나 직접 import하므로 명시
-    implementation 'org.jspecify:jspecify:1.0.0'
-
-    // Test
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
-}
-
-war {
-    archiveFileName = 'ROOT.war'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {
