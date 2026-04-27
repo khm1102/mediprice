@@ -1,4 +1,3 @@
-<%@ page pageEncoding="UTF-8" %>
 </main>
 
 <footer class="bg-white border-t border-gray-100 mt-auto">
