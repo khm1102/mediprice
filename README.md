@@ -66,7 +66,7 @@ MediPrice는 건강보험심사평가원(심평원) 공공 API를 기반으로 <
 - **비급여 항목 검색 및 필터** — 키워드 검색, 거리순·가격순 정렬, 병원 종별·진료과·가격 범위 필터 제공.
 - **병원 상세 페이지** — 전체 비급여 항목 가격 목록, 연락처, 진료과목, 운영 시간 제공. 지역 평균 및 종별 평균 대비 가격 수준 표시.
 - **지역·종별 평균가 비교** — 시·군·구별 평균가, 의원·병원·종합병원 종별 평균가 비교 제공.
-- **즐겨찾기 및 가격 비교** — 관심 병원 즐겨찾기 저장, 최대 3개 병원 가격 비교 테이블.
+- **즐겨찾기 및 가격 비교** — 관심 병원 즐겨찾기 저장, 최대 3개 병원 가격 비교 테이블. (회원 기능 도입 시 추가 예정)
 
 ---
 
@@ -89,7 +89,6 @@ MediPrice는 건강보험심사평가원(심평원) 공공 API를 기반으로 <
 [![PostGIS](https://img.shields.io/badge/PostGIS-4EAA25?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgis.net/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Tomcat](https://img.shields.io/badge/Tomcat%2011-F8DC75?style=for-the-badge&logo=apachetomcat&logoColor=black)](https://tomcat.apache.org/)
-[![NGINX](https://img.shields.io/badge/NGINX-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
 [![Cloudflare Tunnel](https://img.shields.io/badge/Cloudflare%20Tunnel-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://www.cloudflare.com/products/tunnel/)
 
 ---
@@ -136,19 +135,24 @@ docker-compose up -d
 프로젝트 루트에 `.env` 파일을 생성하고 아래 항목을 채운다.
 
 ```env
+# 데이터베이스
+DB_URL=jdbc:postgresql://localhost:5432/mediprice
+DB_USERNAME=your_db_username
+DB_PASSWORD=your_db_password
+
+# JWT
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRATION=86400000
+
+# 네이버맵 API
+NAVER_MAP_KEY=your_naver_map_key_here
+
 # 심평원 공공 API
 HIRA_API_KEY=your_hira_api_key_here
 
-# 네이버맵 API
-NAVER_MAP_CLIENT_ID=your_naver_client_id_here
-NAVER_MAP_CLIENT_SECRET=your_naver_client_secret_here
-
-# 데이터베이스
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mediprice
-DB_USERNAME=your_db_username
-DB_PASSWORD=your_db_password
+# 캐시 / 게스트
+CACHE_TTL_SECONDS=3600
+GUEST_SEARCH_LIMIT=3
 ```
 
 ---
