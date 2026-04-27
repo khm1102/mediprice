@@ -1,16 +1,14 @@
 package com.khm1102.mediprice.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.khm1102.mediprice.exception.ErrorCode;
 
 /**
  * 모든 REST API 응답의 공통 래퍼.
  * <p>
- * Java 21 record + Jackson 3 native 지원. {@code @JsonInclude(NON_NULL)}로 사용 안 하는 필드는 응답에서 생략된다.
+ * Java 21 record + Jackson 3 native 지원.
  * <p>
  * 응답 모델 전용 — 외부 API 클라이언트의 입력 모델로 재사용하지 않는다.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(boolean success, T data, ErrorDetail error) {
 
     public record ErrorDetail(String code, String message) {

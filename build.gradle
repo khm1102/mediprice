@@ -1,18 +1,97 @@
 plugins {
     id 'java'
+    id 'war'  // WAR 패키징 — Tomcat 11에 배포
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
+// Maven 좌표. group은 루트 패키지와 일치, version은 배포 식별용
+// archiveFileName = 'ROOT.war' 로 고정하기 때문에 version이 WAR 파일명에 영향 없음
+group 'com.khm1102'
+version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
 }
 
+// 라이브러리 버전 중앙 관리 — 버전 변경 시 이 블록만 수정
+ext {
+    springVersion         = '7.0.6'       // Spring Framework (Boot 아님)
+    springSecurityVersion = '7.0.4'
+    springDataJpaVersion  = '4.0.5'
+    hibernateVersion      = '7.0.4.Final'
+    junitVersion          = '5.13.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // ── Spring Framework ──────────────────────────────────────────────────────
+    implementation "org.springframework:spring-context:${springVersion}"
+    implementation "org.springframework:spring-webmvc:${springVersion}"
+    implementation "org.springframework:spring-orm:${springVersion}"
+    implementation "org.springframework:spring-tx:${springVersion}"
+    implementation "org.springframework:spring-jdbc:${springVersion}"
+    implementation "org.springframework:spring-context-support:${springVersion}"
+
+    // ── Spring Security ───────────────────────────────────────────────────────
+    implementation "org.springframework.security:spring-security-web:${springSecurityVersion}"
+    implementation "org.springframework.security:spring-security-config:${springSecurityVersion}"
+
+    // ── Spring Data JPA ───────────────────────────────────────────────────────
+    implementation "org.springframework.data:spring-data-jpa:${springDataJpaVersion}"
+
+    // ── Hibernate + PostGIS 공간 쿼리 ─────────────────────────────────────────
+    implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
+    implementation "org.hibernate.orm:hibernate-spatial:${hibernateVersion}"
+
+    // ── DB 연결 ───────────────────────────────────────────────────────────────
+    implementation 'com.zaxxer:HikariCP:6.3.0'          // 커넥션 풀
+    implementation 'org.postgresql:postgresql:42.7.7'    // PostgreSQL JDBC 드라이버
+
+    // ── Servlet API (Tomcat이 제공하므로 compileOnly) ─────────────────────────
+    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.1.0'
+    compileOnly 'jakarta.servlet.jsp:jakarta.servlet.jsp-api:4.0.0'
+    compileOnly 'jakarta.el:jakarta.el-api:6.0.1'
+
+    // ── JSTL 3.0 (JSP 태그 라이브러리) ───────────────────────────────────────
+    implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
+    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:3.0.2'
+
+    // ── JSON ──────────────────────────────────────────────────────────────────
+    implementation 'tools.jackson.core:jackson-databind:3.1.1'  // Jackson 3 (패키지: tools.jackson)
+    implementation 'com.google.code.gson:gson:2.13.2'
+
+    // ── JWT 인증 (세션 미사용, JWT 전용) ─────────────────────────────────────
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly  'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly  'io.jsonwebtoken:jjwt-gson:0.12.6'   // JJWT JSON 직렬화 백엔드
+
+    // ── 개발 편의 ─────────────────────────────────────────────────────────────
+    compileOnly          'org.projectlombok:lombok:1.18.38'
+    annotationProcessor  'org.projectlombok:lombok:1.18.38'
+
+    // ── 로깅 ──────────────────────────────────────────────────────────────────
+    implementation 'ch.qos.logback:logback-classic:1.5.32'
+
+    // ── 설정 파일 ─────────────────────────────────────────────────────────────
+    implementation 'org.yaml:snakeyaml:2.4'       // application.yml 파싱
+    implementation 'org.jspecify:jspecify:1.0.0'  // null safety 어노테이션
+
+    // ── 테스트 ────────────────────────────────────────────────────────────────
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testRuntimeOnly    "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+}
+
+war {
+    // Tomcat webapps/ROOT 로 배포되도록 고정 → http://localhost:8080/ 루트 접근
+    archiveFileName = 'ROOT.war'
 }
 
 test {
