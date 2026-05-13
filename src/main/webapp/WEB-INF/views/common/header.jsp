@@ -9,7 +9,7 @@
     <meta name="description" content="비급여 진료비 비교 플랫폼. 내 주변 병원의 비급여 진료비를 한눈에 비교하세요.">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title><c:out value="${pageTitle != null ? pageTitle.concat(' - MediPrice') : 'MediPrice'}" escapeXml="false"/></title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/spoqa/spoqa-han-sans@latest/css/SpoqaHanSansNeo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/spoqa/spoqa-han-sans@latest/css/SpoqaHanSansNeo.css">
     <script>
         tailwind = { config: {
             theme: {
@@ -32,15 +32,15 @@
     <div class="px-4 lg:px-6 w-full flex items-center justify-between">
 
         <%-- 로고 --%>
-        <a href="<c:url value="/"/>" class="text-[#2563EB] font-bold text-xl tracking-tight">
-            MediPrice
+        <a href="<c:url value="/"/>" class="flex items-center">
+            <span class="text-[#2563EB] font-bold text-xl tracking-tight">MediPrice</span>
         </a>
 
         <%-- 네비게이션 --%>
         <nav class="flex items-center">
             <div id="nav-guest">
                 <button onclick="showToast('로그인 기능은 차후 개발 예정입니다', 'info')"
-                        class="text-sm text-[#6B7280] hover:text-[#2563EB] transition-colors min-h-[44px] px-3">
+                        class="text-sm text-[#2563EB] font-medium border border-[#2563EB] rounded-lg hover:bg-[#2563EB] hover:text-white transition-colors min-h-[36px] px-4">
                     로그인
                 </button>
             </div>

@@ -1,3 +1,4 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page contentType="text/html;charset=UTF-8" isErrorPage="true" %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -11,7 +12,7 @@
 
 <header class="bg-white border-b border-gray-100 h-14 flex items-center">
     <div class="max-w-6xl mx-auto px-4 w-full">
-        <a href="/" class="text-[#2563EB] font-bold text-xl tracking-tight">MediPrice</a>
+        <a href="<c:url value="/"/>" class="text-[#2563EB] font-bold text-xl tracking-tight">MediPrice</a>
     </div>
 </header>
 
@@ -20,7 +21,7 @@
         <p class="text-8xl font-bold text-blue-100 mb-4 leading-none">404</p>
         <h1 class="text-lg font-semibold text-gray-700 mb-2">페이지를 찾을 수 없어요</h1>
         <p class="text-sm text-[#6B7280] mb-8">주소를 다시 확인해주세요</p>
-        <a href="/"
+        <a href="<c:url value="/"/>"
            class="inline-block bg-[#2563EB] text-white text-sm px-6 py-2.5 rounded-full hover:bg-blue-700 transition-colors min-h-[44px] leading-[19px]">
             홈으로 돌아가기
         </a>
