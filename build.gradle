@@ -14,11 +14,11 @@ repositories {
 
 // 라이브러리 버전 중앙 관리 — 버전 변경 시 이 블록만 수정
 ext {
-    springVersion         = '7.0.6'       // Spring Framework (Boot 아님)
+    springVersion = '7.0.6'       // Spring Framework (Boot 아님)
     springSecurityVersion = '7.0.4'
-    springDataJpaVersion  = '4.0.5'
-    hibernateVersion      = '7.0.4.Final'
-    junitVersion          = '5.13.2'
+    springDataJpaVersion = '4.0.5'
+    hibernateVersion = '7.0.4.Final'
+    junitVersion = '5.13.2'
 }
 
 java {
@@ -29,8 +29,8 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // Spring 6+: @RequestParam 등 파라미터 이름을 리플렉션으로 읽기 위해 필수
-    options.compilerArgs << '-parameters'
+    // @RequestParam/@PathVariable 이름 자동 추론 — Spring MVC가 reflection으로 파라미터 이름 읽음
+    options.compilerArgs.add('-parameters')
 }
 
 dependencies {
@@ -66,18 +66,19 @@ dependencies {
     implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
     implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:3.0.2'
 
-    // ── JSON ──────────────────────────────────────────────────────────────────
-    implementation 'tools.jackson.core:jackson-databind:3.1.1'  // Jackson 3 (패키지: tools.jackson)
+    // ── JSON / XML ────────────────────────────────────────────────────────────
+    implementation 'tools.jackson.core:jackson-databind:3.1.1'
+    implementation 'tools.jackson.dataformat:jackson-dataformat-xml:3.1.1'  // 심평원 API XML 응답 파싱용
     implementation 'com.google.code.gson:gson:2.13.2'
 
     // ── JWT 인증 (세션 미사용, JWT 전용) ─────────────────────────────────────
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    runtimeOnly  'io.jsonwebtoken:jjwt-impl:0.12.6'
-    runtimeOnly  'io.jsonwebtoken:jjwt-gson:0.12.6'   // JJWT JSON 직렬화 백엔드
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'   // JJWT JSON 직렬화 백엔드
 
     // ── 개발 편의 ─────────────────────────────────────────────────────────────
-    compileOnly          'org.projectlombok:lombok:1.18.38'
-    annotationProcessor  'org.projectlombok:lombok:1.18.38'
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
 
     // ── 로깅 ──────────────────────────────────────────────────────────────────
     implementation 'ch.qos.logback:logback-classic:1.5.32'
@@ -87,8 +88,16 @@ dependencies {
     implementation 'org.jspecify:jspecify:1.0.0'  // null safety 어노테이션
 
     // ── 테스트 ────────────────────────────────────────────────────────────────
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
-    testRuntimeOnly    "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.assertj:assertj-core:3.27.6'
+    testImplementation 'org.mockito:mockito-core:5.20.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.20.0'
+    testCompileOnly 'org.projectlombok:lombok:1.18.38'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 }
 
 war {
