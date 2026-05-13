@@ -5,22 +5,28 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Step 3 — 가격 동기화.
+ * Step 3 — 가격 동기화. ykiho 워커 풀 병렬 패턴.
  * <p>
- * Hospital 테이블의 ykiho 전체에 대해 {@link PriceYkihoSyncService#saveOneYkiho}를 호출.
- * 외부 API의 {@code getNonPaymentItemHospList2}(가격 요약)는 page 2부터 timeout 빈발로 폐기 — 우리가 이미
- * Hospital 테이블에 ykiho를 보유하므로 외부 API에서 다시 수집할 필요 없음.
+ * {@link PriceYkihoSyncService#saveOneYkiho}가 이미 ykiho 단위 {@code @Transactional}로
+ * 분리되어 있으므로, 본 오케스트레이터는 ykiho 리스트를 워커 풀에 분배만 하면 된다.
  * <p>
- * ykiho당 별도 트랜잭션({@link PriceYkihoSyncService})이라 1600+ 순회 동안 DB connection을 오래 점유하지 않는다.
- * 진행률은 100 ykiho마다 로그 출력. 완료 시 가격 신고 병원 수 / 빈 응답 병원 수 통계 출력.
+ * HIRA API rate limit 보호: {@link #WORKER_THREADS}만 조정하여 동시 호출 수 제한.
+ * 페이지 사이 sleep은 {@link PriceYkihoSyncService}가 자체 처리.
  */
 @Slf4j
 @Service
 public class PriceSyncService {
 
-    private static final int PROGRESS_LOG_INTERVAL = 100;
+    // HIRA가 8 worker 동시 호출에서 빈 body 반환하는 사례 관측되어 4로 축소.
+    private static final int WORKER_THREADS = 4;
+    private static final int PROGRESS_LOG_INTERVAL = 500;
 
     private final HospitalRepository hospitalRepository;
     private final PriceYkihoSyncService ykihoSyncService;
@@ -32,41 +38,60 @@ public class PriceSyncService {
     }
 
     public int sync() {
+        long start = System.currentTimeMillis();
         List<String> ykihoList = hospitalRepository.findAllYkiho();
-        log.info("PriceSyncService 시작 — ykiho 수: {}", ykihoList.size());
+        log.info("PriceSyncService 시작 — ykiho 수: {}, workers: {}", ykihoList.size(), WORKER_THREADS);
 
-        int savedTotal = 0;
-        int processed = 0;
-        int reportingHospitals = 0;
-        int emptyHospitals = 0;
+        AtomicInteger savedTotal = new AtomicInteger(0);
+        AtomicInteger processed = new AtomicInteger(0);
+        AtomicInteger reporting = new AtomicInteger(0);
+        AtomicInteger empty = new AtomicInteger(0);
 
-        for (String ykiho : ykihoList) {
-            int saved = ykihoSyncService.saveOneYkiho(ykiho);
-            savedTotal += saved;
-            if (saved > 0) {
-                reportingHospitals++;
-            } else {
-                emptyHospitals++;
-            }
-            processed++;
-            if (processed % PROGRESS_LOG_INTERVAL == 0) {
-                log.info("PriceSyncService 진행 — {}/{}, savedTotal={}, reporting={}, empty={}",
-                        processed, ykihoList.size(), savedTotal, reportingHospitals, emptyHospitals);
-            }
-            sleepBetweenYkiho();
-        }
+        ExecutorService pool = Executors.newFixedThreadPool(WORKER_THREADS, r -> {
+            Thread t = new Thread(r, "price-worker-" + System.nanoTime());
+            t.setDaemon(true);
+            return t;
+        });
 
-        log.info("PriceSyncService 완료 — savedTotal={}, reporting={}, empty={} (총 {} ykiho)",
-                savedTotal, reportingHospitals, emptyHospitals, ykihoList.size());
-        return savedTotal;
-    }
-
-    /** ykiho 간 sleep — 외부 API rate limit 보호. ykiho 내부 페이지 sleep은 PriceYkihoSyncService에서. */
-    private void sleepBetweenYkiho() {
         try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            List<CompletableFuture<Void>> futures = ykihoList.stream()
+                    .map(ykiho -> CompletableFuture.runAsync(() -> {
+                        try {
+                            int saved = ykihoSyncService.saveOneYkiho(ykiho);
+                            savedTotal.addAndGet(saved);
+                            if (saved > 0) {
+                                reporting.incrementAndGet();
+                            } else {
+                                empty.incrementAndGet();
+                            }
+                        } catch (Exception e) {
+                            log.warn("Price sync 실패 (ykiho={}): {}", ykiho, e.getMessage());
+                            empty.incrementAndGet();
+                        } finally {
+                            int n = processed.incrementAndGet();
+                            if (n % PROGRESS_LOG_INTERVAL == 0) {
+                                log.info("PriceSyncService 진행 — {}/{}, savedTotal={}, reporting={}, empty={}",
+                                        n, ykihoList.size(), savedTotal.get(), reporting.get(), empty.get());
+                            }
+                        }
+                    }, pool))
+                    .toList();
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+        } finally {
+            pool.shutdown();
+            try {
+                if (!pool.awaitTermination(2, TimeUnit.HOURS)) {
+                    pool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                pool.shutdownNow();
+            }
         }
+
+        long elapsedMs = System.currentTimeMillis() - start;
+        log.info("PriceSyncService 완료 — savedTotal={}, reporting={}, empty={} (총 {} ykiho), elapsedMs={}",
+                savedTotal.get(), reporting.get(), empty.get(), ykihoList.size(), elapsedMs);
+        return savedTotal.get();
     }
 }

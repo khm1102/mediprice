@@ -96,6 +96,12 @@ public class JpaConfig {
         // dialect는 Hibernate 7+에서 JDBC 메타데이터로 자동 감지 (명시 시 deprecation warning)
         jpaProperties.setProperty("hibernate.format_sql", String.valueOf(formatSql));
         jpaProperties.setProperty("hibernate.jdbc.time_zone", "UTC");
+        // 배치 INSERT 튜닝 — Hospital/Price 대량 적재 시 라운드트립 50배 단축.
+        // PG JDBC URL의 reWriteBatchedInserts=true와 함께 동작 (단일 multi-row INSERT로 결합).
+        jpaProperties.setProperty("hibernate.jdbc.batch_size", "50");
+        jpaProperties.setProperty("hibernate.order_inserts", "true");
+        jpaProperties.setProperty("hibernate.order_updates", "true");
+        jpaProperties.setProperty("hibernate.jdbc.batch_versioned_data", "true");
         emf.setJpaProperties(jpaProperties);
 
         return emf;
