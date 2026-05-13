@@ -107,34 +107,43 @@ const showState = (id) => {
 // ── 병원 목록 ────────────────────────────────────────────────────────────────
 
 const renderHospitalCard = (hospital, isCheapest = false) => {
-    const borderClass = isCheapest
-        ? 'border-blue-400 ring-2 ring-blue-100'
-        : 'border-gray-100';
+    const shadowStyle = isCheapest
+        ? 'box-shadow: 0 0 0 2px #2563EB, 0 4px 16px rgba(37,99,235,0.18);'
+        : 'box-shadow: 0 2px 10px rgba(0,0,0,0.09);';
 
-    const cheapestBadge = isCheapest
-        ? `<span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-medium ml-2">최저가</span>`
-        : '';
+    const cheapestBanner = isCheapest ? `
+        <div class="flex items-center gap-1.5 bg-[#2563EB] px-4 py-1.5 rounded-t-2xl">
+            <svg class="w-3 h-3 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+            <p class="text-[11px] text-white font-semibold tracking-tight">이 지역에서 가장 저렴해요</p>
+        </div>` : '';
 
     const priceText = hospital.minPrice != null
-        ? `<p class="text-xs text-blue-600 font-medium mt-1">${formatPrice(hospital.minPrice)} ~</p>`
+        ? isCheapest
+            ? `<p class="text-sm text-[#2563EB] font-bold mt-2">${formatPrice(hospital.minPrice)} ~</p>`
+            : `<p class="text-xs text-[#2563EB] font-semibold mt-1.5">${formatPrice(hospital.minPrice)} ~</p>`
         : '';
+
+    const cardRadius = isCheapest ? 'rounded-b-2xl' : 'rounded-2xl';
 
     return `
         <a href="/hospitals/${hospital.id}"
-           class="block bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border ${borderClass}">
-            <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center">
-                        <p class="font-semibold text-gray-800 text-sm truncate">${hospital.name}</p>
-                        ${cheapestBadge}
+           class="block hover:opacity-90 transition-all"
+           style="${shadowStyle}; border-radius: 1rem;">
+            ${cheapestBanner}
+            <div class="bg-white ${cardRadius} p-4 min-h-[76px]">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-900 text-sm truncate">${hospital.name}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">${hospital.type ?? ''}</p>
+                        <p class="text-xs text-gray-400 mt-1 truncate">${hospital.address ?? ''}</p>
+                        ${priceText}
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5">${hospital.type ?? ''}</p>
-                    <p class="text-xs text-gray-500 mt-1 truncate">${hospital.address ?? ''}</p>
-                    ${priceText}
+                    <span class="text-xs text-gray-400 font-medium flex-shrink-0 mt-0.5">
+                        ${formatDistance(hospital.distance)}
+                    </span>
                 </div>
-                <span class="text-xs text-gray-400 font-medium flex-shrink-0 ml-3">
-                    ${formatDistance(hospital.distance)}
-                </span>
             </div>
         </a>`;
 };
