@@ -431,9 +431,9 @@
                         건강보험이 적용되지 않아<br>환자가 전액 부담하는 진료비
                     </h2>
                     <p class="text-sm text-gray-500 leading-relaxed mb-4">
-                        급여 항목과 달리 비급여 항목은<br class="hidden lg:block"/>
+                        급여 항목과 달리 비급여 항목은<br class="block sm:hidden lg:block"/>
                         건강보험 혜택 없이 전액 본인 부담입니다.<br>
-                        병원이 자체적으로 금액을 정하기 때문에<br class="hidden lg:block"/>
+                        병원이 자체적으로 금액을 정하기 때문에<br class="block sm:hidden lg:block"/>
                         같은 시술도 병원마다 수배 이상 차이 날 수 있습니다.
                     </p>
                     <p class="text-[11px] text-gray-400 leading-relaxed mb-6">
