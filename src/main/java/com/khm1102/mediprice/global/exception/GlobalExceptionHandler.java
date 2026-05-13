@@ -21,7 +21,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * 로그 포맷은 일관되게 {@code [{ErrorCode}] {category}: {detail}} — {@link #logWarn} / {@link #logError} helper 사용.
  */
 @Slf4j
-@RestControllerAdvice
+@RestControllerAdvice(annotations = org.springframework.web.bind.annotation.RestController.class)
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MediPriceException.class)

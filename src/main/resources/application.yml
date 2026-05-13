@@ -23,8 +23,8 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
-kakao:
-  map-key: ${KAKAO_MAP_KEY:your-kakao-key}
+naver:
+  map-key: ${NAVER_MAP_KEY:}
 
 hira:
   api-key: ${HIRA_API_KEY:your-hira-key}
