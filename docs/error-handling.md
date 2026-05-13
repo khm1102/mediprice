@@ -19,7 +19,7 @@ ApiResponse.error(ErrorCode) → {"success": false, "error": {"code": "H001", "m
 
 ## ErrorCode 체계
 
-**파일:** `exception/ErrorCode.java`
+**파일:** `global/exception/ErrorCode.java`
 
 에러 코드는 **카테고리 접두사 + 3자리 번호**로 구성한다.
 
@@ -92,12 +92,12 @@ MediPriceException (abstract, ErrorCode 보유)
 ### 패키지 구조
 
 ```
-exception/
+global/exception/
 ├── ErrorCode.java              ← 에러 코드 enum
 ├── MediPriceException.java     ← abstract 베이스 (ErrorCode 필드)
 ├── GlobalExceptionHandler.java ← @RestControllerAdvice
-├── auth/
-└── business/
+├── auth/                       ← LoginFailed, TokenExpired/Invalid, AuthorizationDenied, AuthenticationException
+└── business/                   ← BusinessException, HospitalNotFound, PriceNotFound, MemberNotFound, DuplicateEmail, GuestSearchLimitExceeded
 ```
 
 ### 설계 원칙
@@ -128,7 +128,7 @@ try {
 
 ## GlobalExceptionHandler
 
-**파일:** `exception/GlobalExceptionHandler.java`
+**파일:** `global/exception/GlobalExceptionHandler.java` (단위 테스트: `test/.../global/exception/GlobalExceptionHandlerTest`)
 
 ### 핸들러 매핑
 
