@@ -6,11 +6,6 @@
          version="6.0"
          metadata-complete="false">
 
-    <!--
-        JSP 파일 전역 인코딩 설정.
-        metadata-complete="false" 이므로 WebApplicationInitializer (WebAppInitializer 등)는
-        그대로 동작한다 — 이 파일은 JSP 설정 추가만 담당.
-    -->
     <jsp-config>
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
