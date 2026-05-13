@@ -112,7 +112,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                             d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
                         <path stroke-linecap="round" stroke-width="1.5" d="M12 10v3.5"></path>
-                        <circle cx="12" cy="16.5" r="0.7" fill="currentColor" stroke="none"/>
+                        <circle cx="12" cy="16.5" r="0.7" fill="currentColor" stroke="none"></circle>
                     </svg>
                 </div>
                 <p class="text-sm font-semibold text-gray-600">데이터를 불러오지 못했습니다</p>

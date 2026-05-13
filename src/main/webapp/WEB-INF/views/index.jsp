@@ -6,33 +6,78 @@
 <%-- ════════════════════════════════════════════
      히어로
 ════════════════════════════════════════════ --%>
-<div style="background: linear-gradient(160deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);" class="px-4 pt-20 pb-16 lg:pt-32 lg:pb-24">
-    <div class="max-w-2xl mx-auto text-center">
+<div class="relative flex items-center px-4 bg-[#EEF4FF] overflow-hidden"
+     style="min-height: calc(100svh - 3.5rem);">
 
-        <span class="inline-flex items-center gap-1.5 text-xs text-blue-200 mb-5 bg-white/10 rounded-full px-3.5 py-1.5 border border-white/10">
-            <svg class="w-3.5 h-3.5 flex-shrink-0 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <%-- MRI 배경 장식 (우상단) --%>
+    <svg class="absolute top-6 -right-8 w-72 h-72 lg:w-96 lg:h-96 text-[#2563EB] opacity-[0.06] pointer-events-none select-none"
+         fill="currentColor" viewBox="0 0 297 297" aria-hidden="true">
+        <path d="M179.293,23.839c-64.904,0-117.707,52.804-117.707,117.707c0,1.832,0.056,3.651,0.14,5.463H9.933
+            c-5.486,0-9.933,4.448-9.933,9.933v46.189c0,5.486,4.448,9.933,9.933,9.933h22.349v43.209h-6.953c-4.663,0-8.443,3.78-8.443,8.443
+            c0,4.663,3.78,8.443,8.443,8.443h30.793c4.663,0,8.443-3.78,8.443-8.443c0-4.663-3.78-8.443-8.443-8.443h-6.953v-43.209h36.713
+            c21.533,28.059,55.39,46.189,93.411,46.189c64.904,0,117.707-52.804,117.707-117.707S244.196,23.839,179.293,23.839z
+            M19.866,166.876h213.087c-5.257,11.091-13.854,20.295-24.483,26.323H19.866V166.876z M119.942,141.547
+            c0-32.726,26.624-59.35,59.35-59.35s59.35,26.624,59.35,59.35c0,1.843-0.096,3.663-0.261,5.463H120.206
+            C120.04,145.21,119.942,143.39,119.942,141.547z M179.293,239.388c-25.75,0-49.202-10.003-66.689-26.323h32.684
+            c10.31,4.925,21.837,7.698,34.005,7.698c43.68,0,79.217-35.536,79.217-79.217S222.973,62.33,179.293,62.33
+            s-79.217,35.536-79.217,79.217c0,1.839,0.086,3.657,0.214,5.463H81.611c-0.101-1.809-0.16-3.629-0.16-5.463
+            c0-48.871,36.016-89.488,82.901-96.702c-0.758,1.266-1.201,2.741-1.201,4.324c0,4.663,3.78,8.443,8.443,8.443h15.396
+            c4.663,0,8.443-3.78,8.443-8.443c0-1.583-0.443-3.058-1.201-4.324c46.884,7.214,82.901,47.83,82.901,96.702
+            C277.134,195.497,233.243,239.388,179.293,239.388z"></path>
+    </svg>
+
+    <%-- 주사치료 배경 장식 (좌하단) --%>
+    <svg class="absolute bottom-6 -left-6 w-56 h-56 lg:w-80 lg:h-80 text-[#2563EB] opacity-[0.06] pointer-events-none select-none"
+         style="transform: rotate(-20deg);"
+         fill="currentColor" viewBox="0 0 512 512" aria-hidden="true">
+        <path d="M317.418,48.457c-8.281-8.281-21.703-8.281-29.984,0s-8.281,21.703,0,29.984l9.141,9.125L137.559,246.582
+            c-18.766,18.734-28.156,43.391-28.156,67.922c0,14.141,3.141,28.344,9.375,41.391l-27.719,27.719
+            c-2.594,2.578-4.625,5.531-6.047,8.734c-1.391,3.172-2.219,6.609-2.219,10.172c0,2.5,0.406,5.094,1.359,7.578
+            c0.813,2.172,2.094,4.266,3.719,6.125l-87.875,87.844H31.73l72-71.984c1.844,1.609,3.938,2.891,6.109,3.703
+            c2.5,0.953,5.094,1.359,7.563,1.359c3.594,0,7-0.828,10.203-2.219c3.188-1.422,6.125-3.453,8.734-6.047l27.719-27.703
+            c13.031,6.234,27.234,9.391,41.375,9.391c24.547,0,49.203-9.422,67.922-28.156l159.016-159.031l9.125,9.125
+            c8.281,8.281,21.703,8.281,29.984,0s8.281-21.719,0-29.969L317.418,48.457z M120.449,413.02c-0.656,0.656-1.375,1.125-1.953,1.375
+            c-0.219,0.109-0.422,0.141-0.594,0.203l-12.547-12.578c0.047-0.141,0.094-0.359,0.188-0.578c0.25-0.578,0.703-1.297,1.375-1.938
+            l24.172-24.188c2,2.453,4.125,4.813,6.391,7.063v0.031c0.125,0.094,0.25,0.203,0.359,0.344l0.063,0.031
+            c2.156,2.141,4.391,4.172,6.719,6.063L120.449,413.02z M257.496,366.52c-14.422,14.391-33.172,21.547-52.063,21.578
+            c-18.859-0.031-37.609-7.156-52.016-21.531c-7.203-7.188-12.594-15.484-16.188-24.344c-3.594-8.844-5.391-18.25-5.391-27.719
+            c0.031-18.875,7.188-37.641,21.578-52.063l159.016-159l104.063,104.063L257.496,366.52z"></path>
+        <path d="M505.793,95.691l-81.547-81.547c-8.281-8.281-21.703-8.281-29.984,0c-8.281,8.297-8.281,21.703,0,29.984
+            l26.063,26.094l-28.5,28.5l29.391,29.406l28.516-28.516l26.078,26.078c8.281,8.281,21.703,8.281,29.984,0
+            S514.074,103.973,505.793,95.691z"></path>
+        <polygon points="363.949,186.129 333.824,156.004 326.762,163.051 356.887,193.176"></polygon>
+        <polygon points="285.027,204.801 315.137,234.91 322.199,227.879 292.074,197.738"></polygon>
+        <path d="M253.215,227.926c-6.047-6.047-9.688-11.219-12.234-15.984l-69.047,69.031
+            c-18.484,18.5-18.484,48.563-0.031,67.047c18.484,18.484,48.578,18.469,67.078-0.016l76.984-77
+            c-2.047-2.719-4.531-5.625-7.672-8.781C285.949,239.879,275.559,250.254,253.215,227.926z"></path>
+    </svg>
+
+    <div class="max-w-2xl mx-auto text-center w-full py-16 relative z-10">
+
+        <span class="inline-flex items-center gap-1.5 text-xs text-blue-600 mb-6 bg-white rounded-full px-3.5 py-1.5 border border-blue-100" style="box-shadow: 0 1px 6px rgba(37,99,235,0.08);">
+            <svg class="w-3.5 h-3.5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             건강보험심사평가원 공식 데이터 기반
         </span>
 
-        <h1 class="text-3xl lg:text-5xl font-bold text-white mb-4 leading-tight tracking-tight">
+        <h1 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight tracking-tight">
             비급여 진료비,<br>지금 바로 비교하세요
         </h1>
-        <p class="text-blue-200 text-sm lg:text-base mb-10 leading-relaxed">
+        <p class="text-gray-500 text-sm lg:text-base mb-10 leading-relaxed">
             병원마다 다른 가격,<br class="sm:hidden"/>검색 한 번으로 확인하세요
         </p>
 
-        <div class="flex gap-2 bg-white rounded-2xl p-1.5 max-w-lg mx-auto" style="box-shadow: 0 20px 60px rgba(0,0,0,0.25);">
+        <div class="flex gap-2 bg-white rounded-2xl p-1.5 max-w-lg mx-auto" style="box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);">
             <div class="flex-1 flex items-center gap-2 px-3">
                 <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 <input type="text" id="search-input"
-                    placeholder="도수치료, MRI, 초음파..."
-                    class="flex-1 text-sm text-gray-800 placeholder-gray-300 focus:outline-none py-2.5 bg-transparent"/>
+                       placeholder="도수치료, MRI, 초음파..."
+                       class="flex-1 text-sm text-gray-800 placeholder-gray-300 focus:outline-none py-2.5 bg-transparent"/>
             </div>
             <button onclick="handleSearch()"
                 class="bg-[#2563EB] text-white px-5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors flex-shrink-0 min-h-[44px]">
@@ -40,26 +85,19 @@
             </button>
         </div>
 
-    </div>
-</div>
-
-<%-- ════════════════════════════════════════════
-     심평원 안내 배너
-════════════════════════════════════════════ --%>
-<div class="bg-amber-50">
-    <div class="max-w-5xl mx-auto px-4 py-3 text-center">
-        <p class="text-xs text-amber-800 leading-relaxed">
-            2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br class="lg:hidden"/>
+        <p class="mt-6 text-[11px] text-gray-400 leading-relaxed">
+            ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
             해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
         </p>
+
     </div>
-</div>
+</div><%-- /히어로 --%>
 
 <%-- ════════════════════════════════════════════
      통계
 ════════════════════════════════════════════ --%>
 <div class="bg-white">
-    <div class="max-w-5xl mx-auto px-4 py-10 lg:py-12">
+    <div class="max-w-5xl mx-auto px-4 pt-10 pb-10 lg:pt-12 lg:pb-12">
         <div class="grid grid-cols-3 divide-x divide-gray-200">
             <div class="text-center px-4">
                 <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight">최대 6배</p>
@@ -74,9 +112,6 @@
                 <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
             </div>
         </div>
-        <div class="mt-6 pt-5 border-t border-gray-100 flex items-center justify-center">
-            <p class="text-[11px] text-gray-400">출처: 건강보험심사평가원 2025년 비급여 진료비용 통계 · 보건복지부 고시 제2025-48호</p>
-        </div>
     </div>
 </div>
 
@@ -90,7 +125,8 @@
 
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
 
-            <a href="<c:url value='/hospitals?keyword=%EB%8F%84%EC%88%98%EC%B9%98%EB%A3%8C'/>"
+            <%-- 도수치료 --%>
+            <a href="<c:url value='/hospitals?keyword=도수치료'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -105,6 +141,7 @@
                 </div>
             </a>
 
+            <%-- MRI --%>
             <a href="<c:url value='/hospitals?keyword=MRI'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
@@ -130,7 +167,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EC%B2%B4%EC%99%B8%EC%B6%A9%EA%B2%A9%ED%8C%8C'/>"
+            <%-- 체외충격파 --%>
+            <a href="<c:url value='/hospitals?keyword=체외충격파'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -145,7 +183,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EC%B4%88%EC%9D%8C%ED%8C%8C'/>"
+            <%-- 초음파 --%>
+            <a href="<c:url value='/hospitals?keyword=초음파'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -166,7 +205,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EC%A3%BC%EC%82%AC%EC%B9%98%EB%A3%8C'/>"
+            <%-- 주사치료 --%>
+            <a href="<c:url value='/hospitals?keyword=주사치료'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -186,8 +226,8 @@
                         <path d="M505.793,95.691l-81.547-81.547c-8.281-8.281-21.703-8.281-29.984,0c-8.281,8.297-8.281,21.703,0,29.984
                             l26.063,26.094l-28.5,28.5l29.391,29.406l28.516-28.516l26.078,26.078c8.281,8.281,21.703,8.281,29.984,0
                             S514.074,103.973,505.793,95.691z"></path>
-                        <polygon points="363.949,186.129 333.824,156.004 326.762,163.051 356.887,193.176"/>
-                        <polygon points="285.027,204.801 315.137,234.91 322.199,227.879 292.074,197.738"/>
+                        <polygon points="363.949,186.129 333.824,156.004 326.762,163.051 356.887,193.176"></polygon>
+                        <polygon points="285.027,204.801 315.137,234.91 322.199,227.879 292.074,197.738"></polygon>
                         <path d="M253.215,227.926c-6.047-6.047-9.688-11.219-12.234-15.984l-69.047,69.031
                             c-18.484,18.5-18.484,48.563-0.031,67.047c18.484,18.484,48.578,18.469,67.078-0.016l76.984-77
                             c-2.047-2.719-4.531-5.625-7.672-8.781C285.949,239.879,275.559,250.254,253.215,227.926z"></path>
@@ -199,7 +239,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EC%88%98%EB%A9%B4%EB%82%B4%EC%8B%9C%EA%B2%BD'/>"
+            <%-- 수면내시경 --%>
+            <a href="<c:url value='/hospitals?keyword=수면내시경'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -214,7 +255,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EB%B3%B4%ED%86%A1%EC%8A%A4'/>"
+            <%-- 보톡스 --%>
+            <a href="<c:url value='/hospitals?keyword=보톡스'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -231,7 +273,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%ED%95%84%EB%9F%AC'/>"
+            <%-- 필러 --%>
+            <a href="<c:url value='/hospitals?keyword=필러'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -246,7 +289,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EB%A0%88%EC%9D%B4%EC%A0%80%20%EC%8B%9C%EC%88%A0'/>"
+            <%-- 레이저시술 --%>
+            <a href="<c:url value='/hospitals?keyword=레이저시술'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -260,7 +304,8 @@
                 </div>
             </a>
 
-            <a href="<c:url value='/hospitals?keyword=%EC%B6%94%EB%82%98%EC%9A%94%EB%B2%95'/>"
+            <%-- 추나요법 --%>
+            <a href="<c:url value='/hospitals?keyword=추나요법'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -385,11 +430,15 @@
                     <h2 class="text-xl lg:text-2xl font-bold text-gray-900 mb-4 leading-snug">
                         건강보험이 적용되지 않아<br>환자가 전액 부담하는 진료비
                     </h2>
-                    <p class="text-sm text-gray-500 leading-relaxed mb-6">
+                    <p class="text-sm text-gray-500 leading-relaxed mb-4">
                         급여 항목과 달리 비급여 항목은<br class="hidden lg:block"/>
                         건강보험 혜택 없이 전액 본인 부담입니다.<br>
-                        병원이 자유롭게 가격을 정할 수 있어<br class="hidden lg:block"/>
-                        같은 시술도 수배 이상 차이 날 수 있습니다.
+                        병원이 자체적으로 금액을 정하기 때문에<br class="hidden lg:block"/>
+                        같은 시술도 병원마다 수배 이상 차이 날 수 있습니다.
+                    </p>
+                    <p class="text-[11px] text-gray-400 leading-relaxed mb-6">
+                        * 관련근거: 국민건강보험법 제41조 제4항,<br/>
+                        국민건강보험 요양급여의 기준에 관한 규칙 제9조 제1항
                     </p>
                     <div>
                         <a href="<c:url value='/hospitals'/>"
@@ -405,40 +454,40 @@
                 <%-- 카드 영역 --%>
                 <div class="bg-white border-t lg:border-t-0 lg:border-l border-gray-100 p-8 lg:p-10 grid grid-cols-2 gap-3 content-center">
 
-                    <div class="bg-white rounded-2xl p-4 border border-blue-100">
+                    <div class="bg-white rounded-2xl p-4 border border-gray-100">
                         <div class="flex items-center gap-2 mb-2.5">
-                            <div class="w-5 h-5 bg-[#2563EB] rounded-full flex items-center justify-center flex-shrink-0">
+                            <div class="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
                                 <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                                 </svg>
                             </div>
-                            <p class="text-xs font-bold text-[#2563EB]">급여 항목</p>
+                            <p class="text-xs font-bold text-gray-400">급여 항목</p>
                         </div>
-                        <p class="text-xs text-gray-500 leading-relaxed">보험 적용으로<br>일부만 본인 부담<br>전국 동일 가격</p>
+                        <p class="text-xs text-gray-400 leading-relaxed">보험 적용<br>일부만 본인 부담<br>전국 동일 가격</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-4 border border-amber-100">
+                    <div class="bg-[#EEF4FF] rounded-2xl p-4 border border-blue-100">
                         <div class="flex items-center gap-2 mb-2.5">
-                            <div class="w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center flex-shrink-0 flex-shrink-0">
+                            <div class="w-5 h-5 bg-[#2563EB] rounded-full flex items-center justify-center flex-shrink-0">
                                 <svg viewBox="0 0 12 12" width="10" height="10" fill="white" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="5" y="1" width="2" height="6.5" rx="1"/>
-                                    <circle cx="6" cy="10.5" r="1.2"/>
+                                    <rect x="5" y="1" width="2" height="6.5" rx="1"></rect>
+                                    <circle cx="6" cy="10.5" r="1.2"></circle>
                                 </svg>
                             </div>
-                            <p class="text-xs font-bold text-amber-600">비급여 항목</p>
+                            <p class="text-xs font-bold text-[#2563EB]">비급여 항목</p>
                         </div>
-                        <p class="text-xs text-gray-500 leading-relaxed">보험 미적용으로<br>전액 본인 부담<br>병원마다 다른 가격</p>
+                        <p class="text-xs text-gray-600 leading-relaxed">보험 미적용<br>전액 본인 부담<br>병원마다 다른 가격</p>
                     </div>
 
                     <div class="col-span-2 bg-white rounded-2xl p-4 border border-gray-100">
                         <p class="text-xs font-semibold text-gray-400 mb-2.5">대표적인 비급여 항목</p>
                         <div class="flex flex-wrap gap-1.5">
-                            <a href="<c:url value='/hospitals?keyword=%EB%8F%84%EC%88%98%EC%B9%98%EB%A3%8C'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">도수치료</a>
+                            <a href="<c:url value='/hospitals?keyword=도수치료'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">도수치료</a>
                             <a href="<c:url value='/hospitals?keyword=MRI'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">MRI</a>
-                            <a href="<c:url value='/hospitals?keyword=%EC%B4%88%EC%9D%8C%ED%8C%8C'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">초음파</a>
-                            <a href="<c:url value='/hospitals?keyword=%EB%B3%B4%ED%86%A1%EC%8A%A4'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">보톡스</a>
-                            <a href="<c:url value='/hospitals?keyword=%EB%A0%88%EC%9D%B4%EC%A0%80%20%EC%8B%9C%EC%88%A0'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">레이저</a>
-                            <a href="<c:url value='/hospitals?keyword=%EC%88%98%EB%A9%B4%EB%82%B4%EC%8B%9C%EA%B2%BD'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">수면내시경</a>
+                            <a href="<c:url value='/hospitals?keyword=초음파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">초음파</a>
+                            <a href="<c:url value='/hospitals?keyword=보톡스'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">보톡스</a>
+                            <a href="<c:url value='/hospitals?keyword=레이저'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">레이저</a>
+                            <a href="<c:url value='/hospitals?keyword=수면내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">수면내시경</a>
                         </div>
                     </div>
 
