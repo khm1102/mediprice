@@ -3,13 +3,98 @@
 <c:set var="pageTitle" value="비급여 진료비 비교" />
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
+<style>
+    /* ── 히어로 진입 ── */
+    @keyframes mp-fade-up {
+        from { opacity: 0; transform: translateY(32px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-anim { animation: mp-fade-up 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .hero-anim-1 { animation-delay: 0.10s; }
+    .hero-anim-2 { animation-delay: 0.26s; }
+    .hero-anim-3 { animation-delay: 0.42s; }
+    .hero-anim-4 { animation-delay: 0.58s; }
+    .hero-anim-5 { animation-delay: 0.74s; }
+
+    /* ── 스크롤 연동 애니메이션 ── */
+    [data-anim] {
+        transition:
+            opacity  1.0s cubic-bezier(0.16, 1, 0.3, 1) var(--ad, 0ms),
+            transform 1.0s cubic-bezier(0.16, 1, 0.3, 1) var(--ad, 0ms);
+    }
+    /* 세로 (기본) */
+    [data-anim]:not([data-anim="left"]):not([data-anim="right"]).mp-below { opacity: 0; transform: translateY(44px); }
+    [data-anim]:not([data-anim="left"]):not([data-anim="right"]).mp-above { opacity: 0; transform: translateY(-44px); }
+    /* 가로 (방향 고정) */
+    [data-anim="left"].mp-below,  [data-anim="left"].mp-above  { opacity: 0; transform: translateX(-44px); }
+    [data-anim="right"].mp-below, [data-anim="right"].mp-above { opacity: 0; transform: translateX(44px); }
+    /* 진입 완료 */
+    [data-anim].mp-visible { opacity: 1; transform: none; }
+
+    /* ── 검색창 호버 ── */
+    .mp-search {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.35s ease !important;
+    }
+    .mp-search:hover {
+        transform: scale(1.028);
+        box-shadow: 0 16px 56px rgba(0,0,0,0.20), 0 4px 16px rgba(0,0,0,0.10) !important;
+    }
+
+    /* ── 자주 찾는 항목 ── */
+    .mp-quick-grid a {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.4s ease !important;
+    }
+    .mp-quick-grid a:hover {
+        transform: translateY(-4px) scale(1.04);
+    }
+    .mp-quick-grid a .w-10 {
+        transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mp-quick-grid a:hover .w-10 {
+        transform: rotate(-45deg);
+    }
+
+    /* ── 이용 방법 카드 ── */
+    .mp-steps-grid > div[data-anim] {
+        transition:
+            opacity  1.0s cubic-bezier(0.16, 1, 0.3, 1) var(--ad, 0ms),
+            transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.5s ease;
+    }
+    .mp-steps-grid > div:hover {
+        transform: translateY(-10px) scale(1.02) !important;
+        box-shadow: 0 24px 56px rgba(37, 99, 235, 0.15),
+                    0 6px 16px rgba(37, 99, 235, 0.08);
+    }
+
+    /* ── 비급여 항목 강조 ── */
+    .mp-covered-card,
+    .mp-noncovered-card {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.4s ease,
+                    opacity 0.35s ease,
+                    border-color 0.35s ease;
+    }
+    .mp-compare-grid:hover .mp-covered-card {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+    .mp-compare-grid:hover .mp-noncovered-card {
+        transform: scale(1.06) translateY(-5px);
+        box-shadow: 0 12px 36px rgba(37, 99, 235, 0.28);
+        border-color: rgba(37, 99, 235, 0.5);
+    }
+</style>
+
 <%-- ════════════════════════════════════════════
      히어로
 ════════════════════════════════════════════ --%>
 <div class="relative flex items-center px-4 bg-[#EEF4FF] overflow-hidden"
      style="min-height: calc(100svh - 3.5rem);">
 
-    <%-- MRI 배경 장식 (우상단) --%>
+    <%-- MRI 배경 장식 --%>
     <svg class="absolute top-6 -right-8 w-72 h-72 lg:w-96 lg:h-96 text-[#2563EB] opacity-[0.06] pointer-events-none select-none"
          fill="currentColor" viewBox="0 0 297 297" aria-hidden="true">
         <path d="M179.293,23.839c-64.904,0-117.707,52.804-117.707,117.707c0,1.832,0.056,3.651,0.14,5.463H9.933
@@ -26,7 +111,7 @@
             C277.134,195.497,233.243,239.388,179.293,239.388z"></path>
     </svg>
 
-    <%-- 주사치료 배경 장식 (좌하단) --%>
+    <%-- 주사치료 배경 장식 --%>
     <svg class="absolute bottom-6 -left-6 w-56 h-56 lg:w-80 lg:h-80 text-[#2563EB] opacity-[0.06] pointer-events-none select-none"
          style="transform: rotate(-20deg);"
          fill="currentColor" viewBox="0 0 512 512" aria-hidden="true">
@@ -54,7 +139,7 @@
 
     <div class="max-w-2xl mx-auto text-center w-full py-16 relative z-10">
 
-        <span class="inline-flex items-center gap-1.5 text-xs text-blue-600 mb-6 bg-white rounded-full px-3.5 py-1.5 border border-blue-100" style="box-shadow: 0 1px 6px rgba(37,99,235,0.08);">
+        <span class="inline-flex items-center gap-1.5 text-xs text-blue-600 mb-6 bg-white rounded-full px-3.5 py-1.5 border border-blue-100 hero-anim hero-anim-1" style="box-shadow: 0 1px 6px rgba(37,99,235,0.08);">
             <svg class="w-3.5 h-3.5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -62,14 +147,14 @@
             건강보험심사평가원 공식 데이터 기반
         </span>
 
-        <h1 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight tracking-tight">
+        <h1 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight tracking-tight hero-anim hero-anim-2">
             비급여 진료비,<br>지금 바로 비교하세요
         </h1>
-        <p class="text-gray-500 text-sm lg:text-base mb-10 leading-relaxed">
+        <p class="text-gray-500 text-sm lg:text-base mb-10 leading-relaxed hero-anim hero-anim-3">
             병원마다 다른 가격,<br class="sm:hidden"/>검색 한 번으로 확인하세요
         </p>
 
-        <div class="flex gap-2 bg-white rounded-2xl p-1.5 max-w-lg mx-auto" style="box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);">
+        <div class="flex gap-2 bg-white rounded-2xl p-1.5 max-w-lg mx-auto hero-anim hero-anim-4 mp-search" style="box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);">
             <div class="flex-1 flex items-center gap-2 px-3">
                 <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -85,13 +170,13 @@
             </button>
         </div>
 
-        <p class="mt-6 text-[11px] text-gray-400 leading-relaxed">
+        <p class="mt-6 text-[11px] text-gray-400 leading-relaxed hero-anim hero-anim-5">
             ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
             해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
         </p>
 
     </div>
-</div><%-- /히어로 --%>
+</div>
 
 <%-- ════════════════════════════════════════════
      통계
@@ -99,16 +184,19 @@
 <div class="bg-white">
     <div class="max-w-5xl mx-auto px-4 pt-10 pb-10 lg:pt-12 lg:pb-12">
         <div class="grid grid-cols-3 divide-x divide-gray-200">
-            <div class="text-center px-4">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight">최대 6배</p>
+            <div class="text-center px-4" data-anim>
+                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+                   data-counter-target="6" data-counter-prefix="최대 " data-counter-suffix="배">최대 6배</p>
                 <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">MRI 병원 간<br>최저·최고 가격 차이</p>
             </div>
-            <div class="text-center px-4">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight">75,065</p>
+            <div class="text-center px-4" data-anim style="--ad: 80ms">
+                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+                   data-counter-target="75065" data-counter-start="70000" data-counter-suffix="">75,065</p>
                 <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">전국 병·의원급<br>의료기관 수</p>
             </div>
-            <div class="text-center px-4">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight">693개</p>
+            <div class="text-center px-4" data-anim style="--ad: 160ms">
+                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+                   data-counter-target="693" data-counter-start="400" data-counter-suffix="개">693개</p>
                 <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
             </div>
         </div>
@@ -121,14 +209,14 @@
 <div class="bg-[#F2F4F6]">
     <div class="max-w-5xl mx-auto px-4 py-10">
 
-        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-5">자주 찾는 항목</p>
+        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-5" data-anim>자주 찾는 항목</p>
 
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mp-quick-grid">
 
             <%-- 도수치료 --%>
             <a href="<c:url value='/hospitals?keyword=도수치료'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -144,7 +232,7 @@
             <%-- MRI --%>
             <a href="<c:url value='/hospitals?keyword=MRI'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 50ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 297 297">
                         <path d="M179.293,23.839c-64.904,0-117.707,52.804-117.707,117.707c0,1.832,0.056,3.651,0.14,5.463H9.933
@@ -170,7 +258,7 @@
             <%-- 체외충격파 --%>
             <a href="<c:url value='/hospitals?keyword=체외충격파'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 100ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -186,7 +274,7 @@
             <%-- 초음파 --%>
             <a href="<c:url value='/hospitals?keyword=초음파'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 150ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 256 256">
                         <path d="M215,94.5l-70.9-70.9c-9.1,9.1-23.8,9.1-32.9,0L40.3,94.5C88.6,142.8,166.8,142.8,215,94.5z M145.6,52.1
@@ -208,7 +296,7 @@
             <%-- 주사치료 --%>
             <a href="<c:url value='/hospitals?keyword=주사치료'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 200ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 512 512">
                         <path d="M317.418,48.457c-8.281-8.281-21.703-8.281-29.984,0s-8.281,21.703,0,29.984l9.141,9.125L137.559,246.582
@@ -242,7 +330,7 @@
             <%-- 수면내시경 --%>
             <a href="<c:url value='/hospitals?keyword=수면내시경'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 250ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -258,7 +346,7 @@
             <%-- 보톡스 --%>
             <a href="<c:url value='/hospitals?keyword=보톡스'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 300ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -276,7 +364,7 @@
             <%-- 필러 --%>
             <a href="<c:url value='/hospitals?keyword=필러'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 350ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -292,7 +380,7 @@
             <%-- 레이저시술 --%>
             <a href="<c:url value='/hospitals?keyword=레이저시술'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 400ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 512 512">
                         <path d="M16.613 14.686l35.98 46.98c-5.556 6.996-9.327 14.675-11 22.42-2.15 9.954-.637 20.843 6.82 28.3 7.46 7.46 18.346 8.97 28.3 6.82 5.185-1.12 10.34-3.183 15.283-6.087l19.78 25.83c-5.053 7.936-8.567 16.252-10.346 24.49-3.037 14.06-.845 28.715 9.07 38.63 9.915 9.915 24.572 12.107 38.633 9.07 4.758-1.027 9.54-2.643 14.263-4.786l26.323 34.373c-4.797 8.88-8.23 17.956-10.16 26.892-4.22 19.544-1.12 39.23 12.075 52.427 13.195 13.195 32.883 16.295 52.428 12.074 4.237-.914 8.506-2.183 12.77-3.755l28.09 36.676c-6.446 12.33-11.057 24.856-13.704 37.114-6.097 28.228-1.585 55.878 16.805 74.268s46.04 22.902 74.268 16.807c5.34-1.155 10.734-2.682 16.14-4.57 10.45 4.697 22.042 7.33 34.272 7.33 46.236 0 83.514-37.32 83.514-83.556 0-12.21-2.62-23.783-7.298-34.22 1.898-5.428 3.434-10.842 4.592-16.204 6.095-28.227 1.554-55.848-16.836-74.24-13.218-13.216-31.205-19.28-50.758-19.383-7.65-.04-15.542.832-23.48 2.547-11.507 2.485-23.252 6.7-34.846 12.537l-37.31-28.57c1.57-4.256 2.834-8.517 3.747-12.746 4.222-19.544 1.122-39.234-12.073-52.43-9.278-9.277-21.767-13.563-35.158-13.824-.894-.017-1.79-.016-2.69.002-4.8.097-9.695.695-14.58 1.75-8.928 1.928-17.996 5.357-26.868 10.145l-34.39-26.334c2.14-4.715 3.75-9.49 4.777-14.238 3.035-14.062.843-28.718-9.07-38.633-7.438-7.436-17.54-10.528-28.06-10.328-3.506.066-7.06.498-10.574 1.257-8.228 1.778-16.534 5.286-24.463 10.332l-25.84-19.788c2.897-4.935 4.956-10.084 6.074-15.26 2.15-9.956.638-20.842-6.82-28.3-5.594-5.594-13.117-7.843-20.73-7.71-2.536.043-5.082.352-7.57.89-7.74 1.67-15.41 5.436-22.4 10.982l-46.984-35.98zm77.213 42.752c3.488-.127 5.814.84 7.254 2.28 1.92 1.92 3.003 5.42 1.768 11.14-.513 2.376-1.486 4.995-2.858 7.68l-20.838-15.96c3.754-2.346 7.502-3.917 10.79-4.627 1.43-.308 2.722-.47 3.884-.513zm-29.322 19.78L80.47 98.07c-2.693 1.378-5.32 2.355-7.7 2.87-5.723 1.235-9.22.152-11.14-1.768s-3.004-5.417-1.77-11.14c.713-3.293 2.29-7.05 4.644-10.81zm111.674 39.686c6.395-.194 11.303 1.62 14.586 4.903 4.377 4.377 6.14 11.643 4.017 21.472-.445 2.066-1.082 4.213-1.887 6.402l-35.868-27.467c4.22-2.096 8.38-3.587 12.266-4.426 2.458-.532 4.756-.82 6.888-.886zm-52.04 38.186l27.48 35.885c-2.198.81-4.354 1.452-6.43 1.9-9.83 2.123-17.096.36-21.473-4.018-4.377-4.377-6.14-11.645-4.018-21.474.84-3.895 2.336-8.063 4.44-12.293zm162.133 39.443c9.408.11 17.085 3.027 22.468 8.41 7.657 7.657 10.328 19.953 7.022 35.264-.33 1.53-.74 3.087-1.194 4.656l-55.27-42.328c4.838-2.073 9.607-3.624 14.18-4.61 3.826-.828 7.466-1.28 10.89-1.376.643-.02 1.278-.024 1.905-.017zm-83.815 62.824l42.344 55.29c-1.58.458-3.144.87-4.683 1.203-15.31 3.306-27.607.636-35.263-7.02-7.657-7.656-10.33-19.954-7.022-35.266.99-4.58 2.544-9.36 4.623-14.207zm223.16 29.672c15.535 0 28.615 4.717 37.85 13.952 12.687 12.688 16.832 32.637 11.947 56.235-11.877-13.486-28.038-23.1-46.402-26.713l-44.63-34.178c7.452-3.184 14.83-5.58 21.954-7.117 6.748-1.458 13.202-2.18 19.28-2.18zm-127.953 94.646l32.307 42.185c2.768 20.375 12.847 38.37 27.51 51.296-23.602 4.89-43.553.744-56.242-11.945-12.85-12.848-16.955-33.14-11.773-57.132 1.706-7.9 4.467-16.115 8.197-24.402z"></path>
@@ -307,7 +395,7 @@
             <%-- 추나요법 --%>
             <a href="<c:url value='/hospitals?keyword=추나요법'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 450ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 280.919 280.919">
                         <path d="M213.999,23.952h-12.268V9.597c0-3.36-1.709-6.418-4.563-8.175c-2.82-1.74-6.409-1.894-9.37-0.399
@@ -364,11 +452,11 @@
 <div class="bg-white">
     <div class="max-w-5xl mx-auto px-4 py-10">
 
-        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-8">이용 방법</p>
+        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-8" data-anim>이용 방법</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mp-steps-grid">
 
-            <div class="rounded-2xl p-6" style="background: #F0F6FF;">
+            <div class="rounded-2xl p-6" style="background: #F0F6FF;" data-anim>
                 <div class="flex items-center justify-between mb-5">
                     <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center" style="box-shadow: 0 2px 8px rgba(37,99,235,0.15);">
                         <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,7 +470,7 @@
                 <p class="text-xs text-gray-500 leading-relaxed">받고 싶은 시술이나 검사 항목을<br>검색창에 입력하세요</p>
             </div>
 
-            <div class="rounded-2xl p-6" style="background: #F0F6FF;">
+            <div class="rounded-2xl p-6" style="background: #F0F6FF; --ad: 120ms" data-anim>
                 <div class="flex items-center justify-between mb-5">
                     <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center" style="box-shadow: 0 2px 8px rgba(37,99,235,0.15);">
                         <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,7 +486,7 @@
                 <p class="text-xs text-gray-500 leading-relaxed">현재 위치 기반으로<br>가까운 병원을 지도에서 확인하세요</p>
             </div>
 
-            <div class="rounded-2xl p-6" style="background: #F0F6FF;">
+            <div class="rounded-2xl p-6" style="background: #F0F6FF; --ad: 240ms" data-anim>
                 <div class="flex items-center justify-between mb-5">
                     <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center" style="box-shadow: 0 2px 8px rgba(37,99,235,0.15);">
                         <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,11 +509,12 @@
 ════════════════════════════════════════════ --%>
 <div class="bg-[#F2F4F6]">
     <div class="max-w-5xl mx-auto px-4 py-10">
+
         <div class="bg-white rounded-3xl overflow-hidden" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
             <div class="lg:grid lg:grid-cols-2">
 
                 <%-- 텍스트 영역 --%>
-                <div class="p-8 lg:p-10 flex flex-col justify-center">
+                <div class="p-8 lg:p-10 flex flex-col justify-center" data-anim="left">
                     <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">비급여 진료비란?</p>
                     <h2 class="text-xl lg:text-2xl font-bold text-gray-900 mb-4 leading-snug">
                         건강보험이 적용되지 않아<br>환자가 전액 부담하는 진료비
@@ -452,9 +541,9 @@
                 </div>
 
                 <%-- 카드 영역 --%>
-                <div class="bg-white border-t lg:border-t-0 lg:border-l border-gray-100 p-8 lg:p-10 grid grid-cols-2 gap-3 content-center">
+                <div class="bg-white border-t lg:border-t-0 lg:border-l border-gray-100 p-8 lg:p-10 grid grid-cols-2 gap-3 content-center mp-compare-grid" data-anim="right">
 
-                    <div class="bg-white rounded-2xl p-4 border border-gray-100">
+                    <div class="bg-white rounded-2xl p-4 border border-gray-100 mp-covered-card">
                         <div class="flex items-center gap-2 mb-2.5">
                             <div class="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
                                 <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,7 +555,7 @@
                         <p class="text-xs text-gray-400 leading-relaxed">보험 적용<br>일부만 본인 부담<br>전국 동일 가격</p>
                     </div>
 
-                    <div class="bg-[#EEF4FF] rounded-2xl p-4 border border-blue-100">
+                    <div class="bg-[#EEF4FF] rounded-2xl p-4 border border-blue-100 mp-noncovered-card">
                         <div class="flex items-center gap-2 mb-2.5">
                             <div class="w-5 h-5 bg-[#2563EB] rounded-full flex items-center justify-center flex-shrink-0">
                                 <svg viewBox="0 0 12 12" width="10" height="10" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -497,6 +586,85 @@
         </div>
     </div>
 </div>
+
+<script>
+    /* ════════════════════════════════════════════
+       양방향 스크롤 애니메이션
+    ════════════════════════════════════════════ */
+    const mpObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const el = entry.target;
+
+            if (entry.isIntersecting) {
+                /* 진입 */
+                el.style.transition = '';
+                el.classList.remove('mp-below', 'mp-above');
+                el.classList.add('mp-visible');
+            } else {
+                /* 이탈 */
+                el.style.transition = 'none';
+                el.classList.remove('mp-visible');
+
+                if (entry.boundingClientRect.top < 0) {
+                    /* 위쪽으로 이탈 */
+                    el.classList.add('mp-above');
+                    el.classList.remove('mp-below');
+                } else {
+                    /* 아래쪽으로 이탈  */
+                    el.classList.add('mp-below');
+                    el.classList.remove('mp-above');
+                }
+
+                /* 두 프레임 후 transition 복원 */
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    el.style.transition = '';
+                }));
+            }
+        });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('[data-anim]').forEach(el => {
+        el.classList.add('mp-below');
+        mpObserver.observe(el);
+    });
+
+    /* ════════════════════════════════════════════
+       통계 숫자 카운터 애니메이션
+    ════════════════════════════════════════════ */
+    const animateCounter = (el) => {
+        const target   = parseInt(el.dataset.counterTarget, 10);
+        const from     = parseInt(el.dataset.counterStart  ?? '0', 10);
+        const prefix   = el.dataset.counterPrefix ?? '';
+        const suffix   = el.dataset.counterSuffix ?? '';
+        const duration = 2200;
+        const startTime = performance.now();
+
+        const tick = (now) => {
+            const progress = Math.min((now - startTime) / duration, 1);
+            /* ease-out cubic */
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const value = Math.round(from + eased * (target - from));
+            el.textContent = prefix + value.toLocaleString('ko-KR') + suffix;
+            if (progress < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    };
+
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            if (el.dataset.counted) return;
+            el.dataset.counted = 'true';
+            counterObserver.unobserve(el);
+            animateCounter(el);
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('[data-counter-target]').forEach(el => {
+        counterObserver.observe(el);
+    });
+</script>
 
 <script>
     const handleSearch = () => {
