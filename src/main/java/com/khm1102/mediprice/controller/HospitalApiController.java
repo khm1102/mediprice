@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/api/hospitals")
 public class HospitalApiController {
 
-    private static final int DEFAULT_RADIUS_METERS = 2000;
+    private static final int DEFAULT_RADIUS_METERS = 5000;
 
     private final HospitalService hospitalService;
     private final HospitalDetailService detailService;

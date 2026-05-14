@@ -3,7 +3,7 @@
 <c:set var="pageTitle" value="병원 상세" />
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
-<script defer src="<c:url value="/static/js/hospital.js?v=7"/>"></script>
+<script defer src="<c:url value="/static/js/hospital.js?v=20"/>"></script>
 
 <div class="bg-[#F2F4F6] min-h-full">
 <div class="max-w-xl mx-auto px-4 py-6">
@@ -36,13 +36,21 @@
     <div id="state-content" class="hidden space-y-3">
 
         <%-- 뒤로가기 --%>
-        <a href="<c:url value="/hospitals"/>"
+        <a id="back-btn" href="/hospitals"
            class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563EB] transition-colors min-h-[44px] -ml-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
             병원 목록
         </a>
+        <script>
+            (function() {
+                const kw = new URLSearchParams(location.search).get('keyword');
+                if (kw) {
+                    document.getElementById('back-btn').href = '/hospitals?keyword=' + encodeURIComponent(kw);
+                }
+            })();
+        </script>
 
         <%-- 병원 헤더 카드 --%>
         <div class="bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
@@ -65,6 +73,18 @@
                                 d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                         </svg>
                     </div>
+                </a>
+
+                <%-- 길찾기 --%>
+                <a id="hospital-directions" href="#" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center gap-2.5 text-sm text-gray-600 font-medium hover:text-[#2563EB] transition-colors min-h-[32px]">
+                    <div class="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                    </div>
+                    네이버 지도로 길찾기
                 </a>
 
                 <%-- 의사 수 --%>
@@ -120,7 +140,7 @@
                 <thead>
                     <tr class="text-left text-xs text-gray-400 border-b border-gray-200">
                         <th class="pb-3 font-medium">항목명</th>
-                        <th class="pb-3 font-medium text-right">가격</th>
+                        <th class="pb-3 font-medium text-right whitespace-nowrap w-px">가격</th>
                     </tr>
                 </thead>
                 <tbody id="price-tbody" class="divide-y divide-gray-100"></tbody>

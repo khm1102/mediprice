@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION search_nearby_hospitals(
     p_lat     DOUBLE PRECISION,
     p_lng     DOUBLE PRECISION,
     p_npay_cd VARCHAR,
-    p_radius  INTEGER DEFAULT 2000
+    p_radius  INTEGER DEFAULT 5000
 )
 RETURNS JSON AS $$
 BEGIN
@@ -35,7 +35,7 @@ BEGIN
             )
             AND p.npay_cd = p_npay_cd
             AND p.adt_end_dd = '99991231'
-            LIMIT 20
+            LIMIT 100
         ) sub
     );
 END;
