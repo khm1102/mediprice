@@ -31,15 +31,27 @@ const getCurrentPosition = () => {
 // ── 비급여 항목 목록 취득 (캐시) ──────────────────────────────────────────────
 
 let _itemsCache = null;
+let _npayCdToGroupCache = null; // npayCd → groupName 매핑
 
 const fetchItemsCache = async () => {
     if (_itemsCache) return _itemsCache;
     const data = await api.get('/api/items');
     if (!data.success) return [];
+    const groups = data.data ?? [];
+    // npayCd → groupName 매핑 빌드
+    _npayCdToGroupCache = {};
+    groups.forEach(group => {
+        (group.items ?? []).forEach(item => {
+            _npayCdToGroupCache[item.npayCd] = group.groupName ?? '기타';
+        });
+    });
     // NonPayItemGroupDto[] → Item[] { npayCd, npayKorNm } 평탄화
-    _itemsCache = data.data.flatMap(group => group.items ?? []);
+    _itemsCache = groups.flatMap(group => group.items ?? []);
     return _itemsCache;
 };
+
+// npayCd → 그룹명 반환 (캐시 미준비 시 빈 문자열)
+const resolveGroupName = (npayCd) => _npayCdToGroupCache?.[npayCd] ?? '';
 
 // keyword → npayCd 변환 (이름에 keyword가 포함되는 첫 번째 항목)
 const resolveNpayCd = async (keyword) => {
@@ -51,10 +63,13 @@ const resolveNpayCd = async (keyword) => {
 // ── 상태 표시 ─────────────────────────────────────────────────────────────────
 
 const showState = (id) => {
-    ['state-loading', 'state-empty', 'state-error', 'state-content'].forEach(s => {
+    ['state-loading', 'state-prompt', 'state-empty', 'state-error', 'state-content'].forEach(s => {
         const el = document.getElementById(s);
         if (el) el.classList.toggle('hidden', s !== id);
     });
+    // hospitals 페이지: 카드 목록은 id가 null일 때(결과 표시)만 보임
+    const hospitalList = document.getElementById('hospital-list');
+    if (hospitalList) hospitalList.classList.toggle('hidden', id !== null);
 };
 
 // ── 병원 목록 ─────────────────────────────────────────────────────────────────
@@ -79,11 +94,15 @@ const renderHospitalCard = (hospital, isCheapest = false) => {
         : '';
 
     const cardRadius = isCheapest ? 'rounded-b-2xl' : 'rounded-2xl';
-    const detailUrl = `/hospitals/0?ykiho=${encodeURIComponent(hospital.ykiho)}&dist=${hospital.distance ?? ''}`;
+    const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
+    const lat = hospital.lat ?? 0;
+    const lng = hospital.lng ?? 0;
+    const onclick = `showHospitalInPanel('${hospital.ykiho}', ${hospital.distance ?? 0}, '${encodeURIComponent(_kw)}', ${lat}, ${lng})`;
 
     return `
-        <a href="${detailUrl}"
-           class="block hover:opacity-90 transition-all"
+        <div onclick="${onclick}"
+           data-ykiho="${hospital.ykiho}"
+           class="block hover:opacity-90 transition-all cursor-pointer"
            style="${shadowStyle}; border-radius: 1rem;">
             ${cheapestBanner}
             <div class="bg-white ${cardRadius} p-4 min-h-[76px]">
@@ -99,16 +118,19 @@ const renderHospitalCard = (hospital, isCheapest = false) => {
                     </span>
                 </div>
             </div>
-        </a>`;
+        </div>`;
 };
 
-const fetchHospitals = async (keyword) => {
-    showState('state-loading');
+// ── 검색 결과 ykiho 맵 (상세 즉시 렌더링용) ──────────────────────────────────
+let _hospitalMap = {};
 
+const fetchHospitals = async (keyword) => {
     if (!keyword?.trim()) {
-        showState('state-empty');
+        showState('state-prompt');
         return;
     }
+
+    showState('state-loading');
 
     try {
         // 1. 위치 취득
@@ -122,7 +144,7 @@ const fetchHospitals = async (keyword) => {
         }
 
         // 3. 병원 검색 API
-        const params = new URLSearchParams({ lat, lng, npayCd, radius: 2000 });
+        const params = new URLSearchParams({ lat, lng, npayCd });
         const data = await api.get('/api/hospitals?' + params.toString());
 
         if (!data.success) {
@@ -139,27 +161,337 @@ const fetchHospitals = async (keyword) => {
             (a.curAmt ?? Infinity) - (b.curAmt ?? Infinity)
         );
 
-        // 5. 카드 렌더링
-        const list = document.getElementById('hospital-list');
-        list.innerHTML = sorted.map((h, i) => renderHospitalCard(h, i === 0)).join('');
-        showState(null);
-
-        // 6. 지도 마커
-        clearMarkers?.();
-        sorted.forEach(h => {
-            if (h.lat && h.lng) {
-                addMarker?.(h.lat, h.lng, h.yadmNm, () => {
-                    window.location.href = `/hospitals/0?ykiho=${encodeURIComponent(h.ykiho)}&dist=${h.distance ?? ''}`;
-                });
-            }
-        });
+        renderHospitalResults(keyword, sorted);
 
     } catch {
         showState('state-error');
     }
 };
 
-// ── 병원 상세 ─────────────────────────────────────────────────────────────────
+const renderHospitalResults = (keyword, sorted) => {
+        // ykiho → hospital 빠른 조회 맵 구성
+        _hospitalMap = {};
+        sorted.forEach(h => { _hospitalMap[h.ykiho] = h; });
+
+        // 카드 렌더링
+        const list = document.getElementById('hospital-list');
+        list.innerHTML = sorted.map((h, i) => renderHospitalCard(h, i === 0)).join('');
+        showState(null);
+
+        // 지도 마커 — 핀 클릭 시 왼쪽 목록에서 카드 강조
+        clearMarkers?.();
+        sorted.forEach((h, i) => {
+            if (h.lat && h.lng) {
+                addMarker?.(h.lat, h.lng, h.yadmNm, h.curAmt ?? null, i === 0, h.ykiho, () => {
+                    highlightHospitalCard(h.ykiho);
+                });
+            }
+        });
+};
+
+// ── 핀 클릭 시 목록 카드 강조 + 스크롤 ─────────────────────────────────────────
+
+let _highlightedYkiho = null;
+
+const clearHospitalHighlight = () => {
+    if (!_highlightedYkiho) return;
+    const prev = document.querySelector(`[data-ykiho="${_highlightedYkiho}"]`);
+    if (prev) prev.style.boxShadow = '0 2px 10px rgba(0,0,0,0.09)';
+    _highlightedYkiho = null;
+};
+
+const highlightHospitalCard = (ykiho) => {
+    // 상세 패널이 열려있으면 목록으로 복귀
+    showHospitalList();
+
+    // 이전 강조 제거
+    clearHospitalHighlight();
+
+    const card = document.querySelector(`[data-ykiho="${ykiho}"]`);
+    if (!card) return;
+
+    _highlightedYkiho = ykiho;
+
+    // 파란 링 강조
+    card.style.boxShadow = '0 0 0 2.5px #2563EB, 0 4px 20px rgba(37,99,235,0.22)';
+
+    // 스크롤 컨테이너 내에서 부드럽게 이동
+    const listEl = document.getElementById('hospital-list');
+    if (listEl) {
+        const cardTop    = card.offsetTop;
+        const cardHeight = card.offsetHeight;
+        const contTop    = listEl.scrollTop;
+        const contHeight = listEl.clientHeight;
+        const isVisible  = cardTop >= contTop && (cardTop + cardHeight) <= (contTop + contHeight);
+        if (!isVisible) {
+            listEl.scrollTo({ top: cardTop - 12, behavior: 'smooth' });
+        }
+    }
+};
+
+// ── 패널 전환 (hospitals 페이지 전용) ────────────────────────────────────────
+
+const showHospitalList = () => {
+    const pl = document.getElementById('panel-list');
+    const pd = document.getElementById('panel-detail');
+    if (!pl || !pd) return;
+    pd.style.display = 'none';
+    pl.style.display = '';
+    // 뒤로가기 시 핀 클릭 강조 초기화
+    clearHospitalHighlight();
+};
+
+// ── 상세 패널 섹션 초기화 (이전 병원 데이터 클리어) ────────────────────────────
+const _resetDetailSections = () => {
+    ['pd-section-dgsbjt', 'pd-section-medoft', 'pd-section-spcl', 'pd-section-trnsprt'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+    });
+    document.getElementById('pd-price-empty')?.classList.add('hidden');
+    document.getElementById('pd-price-table')?.classList.add('hidden');
+    const tbody = document.getElementById('pd-price-tbody');
+    if (tbody) tbody.innerHTML = '';
+    document.querySelector('[data-field="pd-dr-count"]')?.classList.add('hidden');
+    document.querySelector('[data-field="pd-url"]')?.classList.add('hidden');
+    document.querySelector('[data-field="pd-park"]')?.classList.add('hidden');
+    document.querySelector('[data-field="pd-traf"]')?.classList.add('hidden');
+    // 가격 로딩 스피너 표시
+    document.getElementById('pd-price-loading')?.classList.remove('hidden');
+};
+
+// ── 네이버 지도 길찾기 URL 생성 ─────────────────────────────────────────────
+const _buildNaverDirectionsUrl = (name, addr) => {
+    // 주소로 검색, 없으면 병원 이름 폴백
+    const query = addr?.trim() || name;
+    return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
+};
+
+// ── 병원 기본 정보 즉시 렌더 (검색 결과 캐시 활용) ──────────────────────────
+const _renderBasicInfo = (h, dist) => {
+    document.getElementById('pd-name').textContent    = h.yadmNm ?? '';
+    document.getElementById('pd-type').textContent    = h.clCdNm ?? '';
+    document.getElementById('pd-address').textContent = h.addr ?? '';
+
+    const distEl = document.getElementById('pd-distance');
+    if (dist) {
+        distEl.textContent = formatDistance(parseFloat(dist));
+        distEl.classList.remove('hidden');
+    } else {
+        distEl.classList.add('hidden');
+    }
+
+    // 전화번호는 API 응답 전까지 비움
+    const phoneEl = document.getElementById('pd-phone');
+    phoneEl.textContent = '';
+    phoneEl.removeAttribute('href');
+
+    // 길찾기 URL
+    const dirEl = document.getElementById('pd-directions');
+    if (dirEl) {
+        dirEl.href = _buildNaverDirectionsUrl(h.yadmNm ?? '', h.addr);
+    }
+};
+
+// ── 상세 API 응답으로 나머지 정보 렌더 ─────────────────────────────────────
+const _renderFullDetails = async (h, kw) => {
+    // 전화번호
+    const phoneEl = document.getElementById('pd-phone');
+    if (h.telNo) {
+        phoneEl.textContent = h.telNo;
+        phoneEl.href = 'tel:' + h.telNo;
+    } else {
+        phoneEl.textContent = '전화번호 정보 없음';
+        phoneEl.removeAttribute('href');
+    }
+
+    // 의사 수
+    const drEl = document.getElementById('pd-dr-count');
+    if (drEl && h.drTotCnt != null) {
+        drEl.textContent = h.drTotCnt + '명';
+        drEl.closest('[data-field="pd-dr-count"]')?.classList.remove('hidden');
+    }
+
+    // 홈페이지
+    const urlEl = document.getElementById('pd-url');
+    if (urlEl && h.hospUrl) {
+        urlEl.href = h.hospUrl.startsWith('http') ? h.hospUrl : 'https://' + h.hospUrl;
+        urlEl.textContent = h.hospUrl;
+        urlEl.closest('[data-field="pd-url"]')?.classList.remove('hidden');
+    }
+
+    // 진료과목
+    const dgSect = document.getElementById('pd-section-dgsbjt');
+    if (dgSect) {
+        const list = h.dgsbjtList ?? [];
+        if (list.length) {
+            dgSect.classList.remove('hidden');
+            document.getElementById('pd-dgsbjt-list').innerHTML =
+                list.map(d => `<span class="inline-block bg-blue-50 text-[#2563EB] text-xs font-medium px-2.5 py-1 rounded-full">${d}</span>`).join('');
+        }
+    }
+
+    // 진료시간
+    const moSect = document.getElementById('pd-section-medoft');
+    if (moSect) {
+        const list = h.medOftList ?? [];
+        if (list.length) {
+            moSect.classList.remove('hidden');
+            document.getElementById('pd-medoft-list').innerHTML =
+                list.map(t => `<p class="text-sm text-gray-600 leading-relaxed">${t}</p>`).join('');
+        }
+    }
+
+    // 특수진단
+    const spSect = document.getElementById('pd-section-spcl');
+    if (spSect) {
+        const list = h.spclDiagList ?? [];
+        if (list.length) {
+            spSect.classList.remove('hidden');
+            document.getElementById('pd-spcl-list').innerHTML =
+                list.map(s => `<span class="inline-block bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">${s}</span>`).join('');
+        }
+    }
+
+    // 교통/주차
+    const trSect = document.getElementById('pd-section-trnsprt');
+    if (trSect) {
+        const t = h.trnsprtInfo;
+        if (t && (t.parkYn || t.trafInfo || t.parkEtc)) {
+            trSect.classList.remove('hidden');
+            const parkEl = document.getElementById('pd-park');
+            if (parkEl && t.parkYn) {
+                const canPark = t.parkYn === 'Y';
+                let txt = canPark ? '주차 가능' : '주차 불가';
+                if (canPark && t.parkQty) txt += ` (${t.parkQty}대)`;
+                if (canPark && t.parkXpnsYn === 'Y') txt += ' · 유료';
+                else if (canPark && t.parkXpnsYn === 'N') txt += ' · 무료';
+                if (canPark && t.parkEtc) txt += `\n${t.parkEtc}`;
+                parkEl.textContent = txt;
+                parkEl.closest('[data-field="pd-park"]')?.classList.remove('hidden');
+            }
+            const trafEl = document.getElementById('pd-traf');
+            if (trafEl && t.trafInfo) {
+                trafEl.textContent = t.trafInfo;
+                trafEl.closest('[data-field="pd-traf"]')?.classList.remove('hidden');
+            }
+        }
+    }
+
+    // 비급여 가격 테이블
+    document.getElementById('pd-price-loading')?.classList.add('hidden');
+    const prices = h.prices ?? [];
+    if (!prices.length) {
+        document.getElementById('pd-price-empty').classList.remove('hidden');
+        return;
+    }
+
+    await fetchItemsCache();
+    const searchKw = kw.toLowerCase().trim();
+    const groups = [];
+    const groupIndex = {};
+    prices.forEach(p => {
+        const gName = (p.npayKorNm ?? '').split('/')[0].trim() || '기타';
+        if (groupIndex[gName] === undefined) {
+            groupIndex[gName] = groups.length;
+            groups.push({ name: gName, items: [], matched: false });
+        }
+        groups[groupIndex[gName]].items.push(p);
+    });
+    if (searchKw) {
+        groups.forEach(g => {
+            g.matched = g.name.toLowerCase().includes(searchKw)
+                || g.items.some(p => (p.npayKorNm ?? '').toLowerCase().includes(searchKw));
+        });
+        groups.sort((a, b) => (b.matched ? 1 : 0) - (a.matched ? 1 : 0));
+    }
+    const rows = [];
+    groups.forEach((group, gi) => {
+        if (groups.length > 1) {
+            if (gi > 0) rows.push(`<tr><td colspan="2" class="pt-2 pb-0"><div class="border-t border-gray-200"></div></td></tr>`);
+            const hStyle = group.matched ? 'color:#2563EB;font-size:11px;font-weight:700;' : 'color:#9CA3AF;font-size:11px;font-weight:600;';
+            const badge  = group.matched ? `<span style="margin-left:5px;background:#EFF6FF;color:#2563EB;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;">검색 항목</span>` : '';
+            rows.push(`<tr><td colspan="2" class="pt-3 pb-1.5"><span style="${hStyle}">${group.name}</span>${badge}</td></tr>`);
+        }
+        group.items.forEach(p => {
+            const segs = (p.npayKorNm ?? '').split('/');
+            const disp = groups.length > 1 ? (segs.slice(1).join(' / ').trim() || segs[0]) : p.npayKorNm ?? '';
+            rows.push(`<tr>
+                <td class="py-2.5 pr-3 text-sm leading-snug" style="word-break:keep-all;color:${group.matched?'#111827':'#6B7280'};">${disp}</td>
+                <td class="py-2.5 text-right text-sm whitespace-nowrap w-px" style="font-weight:${group.matched?'700':'500'};color:${group.matched?'#2563EB':'#9CA3AF'};">${formatPrice(p.curAmt)}</td>
+            </tr>`);
+        });
+    });
+    document.getElementById('pd-price-tbody').innerHTML = rows.join('');
+    document.getElementById('pd-price-table').classList.remove('hidden');
+};
+
+const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
+    const pl = document.getElementById('panel-list');
+    const pd = document.getElementById('panel-detail');
+    if (!pl || !pd) return;
+
+    pl.style.display = 'none';
+    pd.style.display = '';
+
+    clearHospitalHighlight();
+
+    if (lat && lng) {
+        focusMapOnHospital?.(parseFloat(lat), parseFloat(lng));
+    }
+
+    const pdLoading = document.getElementById('pd-loading');
+    const pdError   = document.getElementById('pd-error');
+    const pdContent = document.getElementById('pd-content');
+
+    // 섹션 초기화 (이전 병원 데이터 클리어)
+    _resetDetailSections();
+
+    const kw = keyword ? decodeURIComponent(keyword) : '';
+    const cached = _hospitalMap[ykiho];
+
+    if (cached) {
+        // ── 1단계: 캐시된 기본 정보 즉시 표시 ──
+        _renderBasicInfo(cached, dist);
+        pdLoading.classList.add('hidden');
+        pdError.classList.add('hidden');
+        pdContent.classList.remove('hidden');
+        pdContent.scrollTop = 0;
+    } else {
+        // 캐시 없으면 전체 로딩
+        pdLoading.classList.remove('hidden');
+        pdError.classList.add('hidden');
+        pdContent.classList.add('hidden');
+    }
+
+    try {
+        // ── 2단계: API로 상세 정보 비동기 로드 ──
+        const data = await api.get('/api/hospitals/' + encodeURIComponent(ykiho));
+        if (!data.success || !data.data) throw new Error('no data');
+        const h = data.data;
+
+        // 캐시 없었으면 기본 정보도 여기서 채움
+        if (!cached) {
+            _renderBasicInfo(h, dist);
+            pdLoading.classList.add('hidden');
+            pdContent.classList.remove('hidden');
+            pdContent.scrollTop = 0;
+        }
+
+        await _renderFullDetails(h, kw);
+
+    } catch {
+        document.getElementById('pd-price-loading')?.classList.add('hidden');
+        if (pdContent.classList.contains('hidden')) {
+            // 기본 정보도 없으면 에러 전체 표시
+            pdLoading.classList.add('hidden');
+            pdError.classList.remove('hidden');
+        } else {
+            // 기본 정보는 나왔는데 상세만 실패 — 가격 없음으로 처리
+            document.getElementById('pd-price-empty')?.classList.remove('hidden');
+        }
+    }
+};
+
+// ── 병원 상세 (hospital-detail.jsp 단독 페이지 전용) ─────────────────────────
 
 const fetchHospitalDetail = async (ykiho) => {
     showState('state-loading');
@@ -202,6 +534,12 @@ const fetchHospitalDetail = async (ykiho) => {
         } else {
             phoneEl.textContent = '전화번호 정보 없음';
             phoneEl.removeAttribute('href');
+        }
+
+        // 길찾기
+        const dirEl = document.getElementById('hospital-directions');
+        if (dirEl) {
+            dirEl.href = _buildNaverDirectionsUrl(h.yadmNm ?? '', h.addr);
         }
 
         // 의사 수
@@ -284,12 +622,76 @@ const fetchHospitalDetail = async (ykiho) => {
         if (!prices.length) {
             document.getElementById('price-empty').classList.remove('hidden');
         } else {
+            // 아이템 캐시가 준비된 상태일 때만 그룹 활용 (상세 페이지는 fetchItemsCache 미리 호출 안 하므로 직접 호출)
+            await fetchItemsCache();
+
+            // 검색 키워드 (목록 페이지에서 URL로 전달)
+            const searchKw = (new URLSearchParams(location.search).get('keyword') ?? '').toLowerCase().trim();
+
+            // 항목명의 첫 번째 '/' 앞 텍스트를 그룹 키로 사용
+            const groups = [];
+            const groupIndex = {};
+            prices.forEach(p => {
+                const gName = (p.npayKorNm ?? '').split('/')[0].trim() || '기타';
+                if (groupIndex[gName] === undefined) {
+                    groupIndex[gName] = groups.length;
+                    groups.push({ name: gName, items: [], matched: false });
+                }
+                groups[groupIndex[gName]].items.push(p);
+            });
+
+            // 검색어와 일치하는 그룹을 맨 앞으로
+            // 그룹명뿐 아니라 그룹 내 항목명 전체에서 키워드 검색
+            if (searchKw) {
+                groups.forEach(g => {
+                    g.matched = g.name.toLowerCase().includes(searchKw)
+                        || g.items.some(p => (p.npayKorNm ?? '').toLowerCase().includes(searchKw));
+                });
+                groups.sort((a, b) => (b.matched ? 1 : 0) - (a.matched ? 1 : 0));
+            }
+
             const tbody = document.getElementById('price-tbody');
-            tbody.innerHTML = prices.map(p => `
-                <tr>
-                    <td class="py-3 pr-4 text-gray-700 text-sm">${p.npayKorNm ?? ''}</td>
-                    <td class="py-3 text-right font-semibold text-[#2563EB] text-sm">${formatPrice(p.curAmt)}</td>
-                </tr>`).join('');
+            const rows = [];
+            groups.forEach((group, gi) => {
+                if (groups.length > 1) {
+                    if (gi > 0) {
+                        rows.push(`<tr><td colspan="2" class="pt-2 pb-0"><div class="border-t border-gray-200"></div></td></tr>`);
+                    }
+                    // 검색어 매칭 그룹은 파란색 강조 헤더
+                    const headerStyle = group.matched
+                        ? `color:#2563EB; font-size:11px; font-weight:700;`
+                        : `color:#9CA3AF; font-size:11px; font-weight:600;`;
+                    const matchBadge = group.matched
+                        ? `<span style="margin-left:5px; background:#EFF6FF; color:#2563EB;
+                            font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px;">검색 항목</span>`
+                        : '';
+                    rows.push(`
+                        <tr>
+                            <td colspan="2" class="pt-3 pb-1.5">
+                                <span style="${headerStyle}">${group.name}</span>${matchBadge}
+                            </td>
+                        </tr>`);
+                }
+                group.items.forEach(p => {
+                    const segments = (p.npayKorNm ?? '').split('/');
+                    const displayName = groups.length > 1
+                        ? segments.slice(1).join(' / ').trim() || segments[0]
+                        : p.npayKorNm ?? '';
+                    rows.push(`
+                        <tr>
+                            <td class="py-2.5 pr-3 text-sm leading-snug"
+                                style="word-break:keep-all; color:${group.matched ? '#111827' : '#6B7280'};">
+                                ${displayName}
+                            </td>
+                            <td class="py-2.5 text-right text-sm whitespace-nowrap w-px"
+                                style="font-weight:${group.matched ? '700' : '500'};
+                                       color:${group.matched ? '#2563EB' : '#9CA3AF'};">
+                                ${formatPrice(p.curAmt)}
+                            </td>
+                        </tr>`);
+                });
+            });
+            tbody.innerHTML = rows.join('');
             document.getElementById('price-table').classList.remove('hidden');
         }
 

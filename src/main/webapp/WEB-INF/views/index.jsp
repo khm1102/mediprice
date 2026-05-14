@@ -211,7 +211,7 @@
 
         <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-5" data-anim>자주 찾는 항목</p>
 
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mp-quick-grid">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mp-quick-grid">
 
             <%-- 도수치료 --%>
             <a href="<c:url value='/hospitals?keyword=도수치료'/>"
@@ -343,52 +343,21 @@
                 </div>
             </a>
 
-            <%-- 보톡스 --%>
-            <a href="<c:url value='/hospitals?keyword=보톡스'/>"
+            <%-- 임플란트 --%>
+            <a href="<c:url value='/hospitals?keyword=임플란트'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 300ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                     <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
+                            d="M12 2C9.5 2 8 4 8 6c0 1.5.5 2.5 1 3.5L8 21h8l-1-11.5c.5-1 1-2 1-3.5 0-2-1.5-4-4-4z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"></path>
+                            d="M9 9.5h6"></path>
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">보톡스</p>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate">피부과 · 성형외과</p>
-                </div>
-            </a>
-
-            <%-- 필러 --%>
-            <a href="<c:url value='/hospitals?keyword=필러'/>"
-               class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 350ms" data-anim>
-                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                    <svg class="w-5 h-5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M12 3c-4.97 5.076-7.5 8.834-7.5 11.5a7.5 7.5 0 0015 0C19.5 11.834 16.97 8.076 12 3z"></path>
-                    </svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">필러</p>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate">피부과 · 성형외과</p>
-                </div>
-            </a>
-
-            <%-- 레이저시술 --%>
-            <a href="<c:url value='/hospitals?keyword=레이저시술'/>"
-               class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
-               style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 400ms" data-anim>
-                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                    <svg class="w-5 h-5 text-[#2563EB]" fill="currentColor" viewBox="0 0 512 512">
-                        <path d="M16.613 14.686l35.98 46.98c-5.556 6.996-9.327 14.675-11 22.42-2.15 9.954-.637 20.843 6.82 28.3 7.46 7.46 18.346 8.97 28.3 6.82 5.185-1.12 10.34-3.183 15.283-6.087l19.78 25.83c-5.053 7.936-8.567 16.252-10.346 24.49-3.037 14.06-.845 28.715 9.07 38.63 9.915 9.915 24.572 12.107 38.633 9.07 4.758-1.027 9.54-2.643 14.263-4.786l26.323 34.373c-4.797 8.88-8.23 17.956-10.16 26.892-4.22 19.544-1.12 39.23 12.075 52.427 13.195 13.195 32.883 16.295 52.428 12.074 4.237-.914 8.506-2.183 12.77-3.755l28.09 36.676c-6.446 12.33-11.057 24.856-13.704 37.114-6.097 28.228-1.585 55.878 16.805 74.268s46.04 22.902 74.268 16.807c5.34-1.155 10.734-2.682 16.14-4.57 10.45 4.697 22.042 7.33 34.272 7.33 46.236 0 83.514-37.32 83.514-83.556 0-12.21-2.62-23.783-7.298-34.22 1.898-5.428 3.434-10.842 4.592-16.204 6.095-28.227 1.554-55.848-16.836-74.24-13.218-13.216-31.205-19.28-50.758-19.383-7.65-.04-15.542.832-23.48 2.547-11.507 2.485-23.252 6.7-34.846 12.537l-37.31-28.57c1.57-4.256 2.834-8.517 3.747-12.746 4.222-19.544 1.122-39.234-12.073-52.43-9.278-9.277-21.767-13.563-35.158-13.824-.894-.017-1.79-.016-2.69.002-4.8.097-9.695.695-14.58 1.75-8.928 1.928-17.996 5.357-26.868 10.145l-34.39-26.334c2.14-4.715 3.75-9.49 4.777-14.238 3.035-14.062.843-28.718-9.07-38.633-7.438-7.436-17.54-10.528-28.06-10.328-3.506.066-7.06.498-10.574 1.257-8.228 1.778-16.534 5.286-24.463 10.332l-25.84-19.788c2.897-4.935 4.956-10.084 6.074-15.26 2.15-9.956.638-20.842-6.82-28.3-5.594-5.594-13.117-7.843-20.73-7.71-2.536.043-5.082.352-7.57.89-7.74 1.67-15.41 5.436-22.4 10.982l-46.984-35.98zm77.213 42.752c3.488-.127 5.814.84 7.254 2.28 1.92 1.92 3.003 5.42 1.768 11.14-.513 2.376-1.486 4.995-2.858 7.68l-20.838-15.96c3.754-2.346 7.502-3.917 10.79-4.627 1.43-.308 2.722-.47 3.884-.513zm-29.322 19.78L80.47 98.07c-2.693 1.378-5.32 2.355-7.7 2.87-5.723 1.235-9.22.152-11.14-1.768s-3.004-5.417-1.77-11.14c.713-3.293 2.29-7.05 4.644-10.81zm111.674 39.686c6.395-.194 11.303 1.62 14.586 4.903 4.377 4.377 6.14 11.643 4.017 21.472-.445 2.066-1.082 4.213-1.887 6.402l-35.868-27.467c4.22-2.096 8.38-3.587 12.266-4.426 2.458-.532 4.756-.82 6.888-.886zm-52.04 38.186l27.48 35.885c-2.198.81-4.354 1.452-6.43 1.9-9.83 2.123-17.096.36-21.473-4.018-4.377-4.377-6.14-11.645-4.018-21.474.84-3.895 2.336-8.063 4.44-12.293zm162.133 39.443c9.408.11 17.085 3.027 22.468 8.41 7.657 7.657 10.328 19.953 7.022 35.264-.33 1.53-.74 3.087-1.194 4.656l-55.27-42.328c4.838-2.073 9.607-3.624 14.18-4.61 3.826-.828 7.466-1.28 10.89-1.376.643-.02 1.278-.024 1.905-.017zm-83.815 62.824l42.344 55.29c-1.58.458-3.144.87-4.683 1.203-15.31 3.306-27.607.636-35.263-7.02-7.657-7.656-10.33-19.954-7.022-35.266.99-4.58 2.544-9.36 4.623-14.207zm223.16 29.672c15.535 0 28.615 4.717 37.85 13.952 12.687 12.688 16.832 32.637 11.947 56.235-11.877-13.486-28.038-23.1-46.402-26.713l-44.63-34.178c7.452-3.184 14.83-5.58 21.954-7.117 6.748-1.458 13.202-2.18 19.28-2.18zm-127.953 94.646l32.307 42.185c2.768 20.375 12.847 38.37 27.51 51.296-23.602 4.89-43.553.744-56.242-11.945-12.85-12.848-16.955-33.14-11.773-57.132 1.706-7.9 4.467-16.115 8.197-24.402z"></path>
-                    </svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">레이저 시술</p>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate">피부과</p>
+                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">임플란트</p>
+                    <p class="text-xs text-gray-400 mt-0.5 truncate">치과</p>
                 </div>
             </a>
 
@@ -574,8 +543,7 @@
                             <a href="<c:url value='/hospitals?keyword=도수치료'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">도수치료</a>
                             <a href="<c:url value='/hospitals?keyword=MRI'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">MRI</a>
                             <a href="<c:url value='/hospitals?keyword=초음파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">초음파</a>
-                            <a href="<c:url value='/hospitals?keyword=보톡스'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">보톡스</a>
-                            <a href="<c:url value='/hospitals?keyword=레이저'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">레이저</a>
+                            <a href="<c:url value='/hospitals?keyword=체외충격파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">체외충격파</a>
                             <a href="<c:url value='/hospitals?keyword=수면내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">수면내시경</a>
                         </div>
                     </div>
