@@ -53,7 +53,7 @@
         transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .mp-quick-grid a:hover .w-10 {
-        transform: rotate(-45deg);
+        transform: rotate(-25deg);
     }
 
     /* ── 이용 방법 카드 ── */
