@@ -130,3 +130,6 @@ springSecurityFilterChain
 | POST | `/api/auth/login` | 로그인 → JWT 발급 | ⏸ P2 |
 | POST | `/api/auth/logout` | 로그아웃 → 쿠키 삭제 | ⏸ P2 |
 | POST | `/api/auth/register` | 회원가입 | ⏸ P2 |
+
+
+
