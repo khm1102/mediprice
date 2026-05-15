@@ -1,6 +1,3 @@
-/**
- * 병원 목록 및 상세 데이터 처리
- */
 
 // ── 현재 위치 취득 (캐시 포함) ────────────────────────────────────────────────
 
@@ -179,14 +176,16 @@ const renderHospitalResults = (keyword, sorted) => {
         showState(null);
 
         // 지도 마커 — 핀 클릭 시 왼쪽 목록에서 카드 강조
+        const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
         clearMarkers?.();
         sorted.forEach((h, i) => {
             if (h.lat && h.lng) {
                 addMarker?.(h.lat, h.lng, h.yadmNm, h.curAmt ?? null, i === 0, h.ykiho, () => {
-                    highlightHospitalCard(h.ykiho);
+                    showHospitalInPanel(h.ykiho, h.distance ?? 0, encodeURIComponent(_kw), h.lat, h.lng);
                 });
             }
         });
+        initClustering?.();
 };
 
 // ── 핀 클릭 시 목록 카드 강조 + 스크롤 ─────────────────────────────────────────
@@ -229,32 +228,24 @@ const highlightHospitalCard = (ykiho) => {
     }
 };
 
-// ── 패널 전환 (hospitals 페이지 전용) ────────────────────────────────────────
+// ── 패널 전환  ────────────────────────────────────────
 
 const showHospitalList = () => {
-    const pl = document.getElementById('panel-list');
-    const pd = document.getElementById('panel-detail');
-    if (!pl || !pd) return;
-    pd.style.display = 'none';
-    pl.style.display = '';
-    // 뒤로가기 시 핀 클릭 강조 초기화
+    document.getElementById('panel-detail')?.classList.remove('open');
+    document.getElementById('pd-backdrop')?.classList.remove('open');
     clearHospitalHighlight();
 };
 
-// ── 상세 패널 섹션 초기화 (이전 병원 데이터 클리어) ────────────────────────────
+// ── 상세 패널 섹션 초기화  ────────────────────────────
 const _resetDetailSections = () => {
-    ['pd-section-dgsbjt', 'pd-section-medoft', 'pd-section-spcl', 'pd-section-trnsprt'].forEach(id => {
+    ['pd-section-dgsbjt', 'pd-section-medoft'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
     });
     document.getElementById('pd-price-empty')?.classList.add('hidden');
     document.getElementById('pd-price-table')?.classList.add('hidden');
     const tbody = document.getElementById('pd-price-tbody');
     if (tbody) tbody.innerHTML = '';
-    document.querySelector('[data-field="pd-dr-count"]')?.classList.add('hidden');
     document.querySelector('[data-field="pd-url"]')?.classList.add('hidden');
-    document.querySelector('[data-field="pd-park"]')?.classList.add('hidden');
-    document.querySelector('[data-field="pd-traf"]')?.classList.add('hidden');
-    // 가격 로딩 스피너 표시
     document.getElementById('pd-price-loading')?.classList.remove('hidden');
 };
 
@@ -265,7 +256,7 @@ const _buildNaverDirectionsUrl = (name, addr) => {
     return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
 };
 
-// ── 병원 기본 정보 즉시 렌더 (검색 결과 캐시 활용) ──────────────────────────
+// ── 병원 기본 정보 즉시 렌더 ──────────────────────────
 const _renderBasicInfo = (h, dist) => {
     document.getElementById('pd-name').textContent    = h.yadmNm ?? '';
     document.getElementById('pd-type').textContent    = h.clCdNm ?? '';
@@ -303,13 +294,6 @@ const _renderFullDetails = async (h, kw) => {
         phoneEl.removeAttribute('href');
     }
 
-    // 의사 수
-    const drEl = document.getElementById('pd-dr-count');
-    if (drEl && h.drTotCnt != null) {
-        drEl.textContent = h.drTotCnt + '명';
-        drEl.closest('[data-field="pd-dr-count"]')?.classList.remove('hidden');
-    }
-
     // 홈페이지
     const urlEl = document.getElementById('pd-url');
     if (urlEl && h.hospUrl) {
@@ -337,42 +321,6 @@ const _renderFullDetails = async (h, kw) => {
             moSect.classList.remove('hidden');
             document.getElementById('pd-medoft-list').innerHTML =
                 list.map(t => `<p class="text-sm text-gray-600 leading-relaxed">${t}</p>`).join('');
-        }
-    }
-
-    // 특수진단
-    const spSect = document.getElementById('pd-section-spcl');
-    if (spSect) {
-        const list = h.spclDiagList ?? [];
-        if (list.length) {
-            spSect.classList.remove('hidden');
-            document.getElementById('pd-spcl-list').innerHTML =
-                list.map(s => `<span class="inline-block bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">${s}</span>`).join('');
-        }
-    }
-
-    // 교통/주차
-    const trSect = document.getElementById('pd-section-trnsprt');
-    if (trSect) {
-        const t = h.trnsprtInfo;
-        if (t && (t.parkYn || t.trafInfo || t.parkEtc)) {
-            trSect.classList.remove('hidden');
-            const parkEl = document.getElementById('pd-park');
-            if (parkEl && t.parkYn) {
-                const canPark = t.parkYn === 'Y';
-                let txt = canPark ? '주차 가능' : '주차 불가';
-                if (canPark && t.parkQty) txt += ` (${t.parkQty}대)`;
-                if (canPark && t.parkXpnsYn === 'Y') txt += ' · 유료';
-                else if (canPark && t.parkXpnsYn === 'N') txt += ' · 무료';
-                if (canPark && t.parkEtc) txt += `\n${t.parkEtc}`;
-                parkEl.textContent = txt;
-                parkEl.closest('[data-field="pd-park"]')?.classList.remove('hidden');
-            }
-            const trafEl = document.getElementById('pd-traf');
-            if (trafEl && t.trafInfo) {
-                trafEl.textContent = t.trafInfo;
-                trafEl.closest('[data-field="pd-traf"]')?.classList.remove('hidden');
-            }
         }
     }
 
@@ -425,73 +373,61 @@ const _renderFullDetails = async (h, kw) => {
 };
 
 const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
-    const pl = document.getElementById('panel-list');
     const pd = document.getElementById('panel-detail');
-    if (!pl || !pd) return;
+    if (!pd) return;
 
-    pl.style.display = 'none';
-    pd.style.display = '';
-
+    pd.classList.add('open');
+    document.getElementById('pd-backdrop')?.classList.add('open');
     clearHospitalHighlight();
 
-    if (lat && lng) {
-        focusMapOnHospital?.(parseFloat(lat), parseFloat(lng));
-    }
+    if (lat && lng) focusMapOnHospital?.(parseFloat(lat), parseFloat(lng));
 
     const pdLoading = document.getElementById('pd-loading');
     const pdError   = document.getElementById('pd-error');
     const pdContent = document.getElementById('pd-content');
 
-    // 섹션 초기화 (이전 병원 데이터 클리어)
     _resetDetailSections();
 
-    const kw = keyword ? decodeURIComponent(keyword) : '';
+    const kw     = keyword ? decodeURIComponent(keyword) : '';
     const cached = _hospitalMap[ykiho];
 
     if (cached) {
-        // ── 1단계: 캐시된 기본 정보 즉시 표시 ──
         _renderBasicInfo(cached, dist);
         pdLoading.classList.add('hidden');
         pdError.classList.add('hidden');
         pdContent.classList.remove('hidden');
-        pdContent.scrollTop = 0;
+        pd.scrollTop = 0;
     } else {
-        // 캐시 없으면 전체 로딩
         pdLoading.classList.remove('hidden');
         pdError.classList.add('hidden');
         pdContent.classList.add('hidden');
     }
 
     try {
-        // ── 2단계: API로 상세 정보 비동기 로드 ──
         const data = await api.get('/api/hospitals/' + encodeURIComponent(ykiho));
         if (!data.success || !data.data) throw new Error('no data');
         const h = data.data;
 
-        // 캐시 없었으면 기본 정보도 여기서 채움
         if (!cached) {
             _renderBasicInfo(h, dist);
             pdLoading.classList.add('hidden');
             pdContent.classList.remove('hidden');
-            pdContent.scrollTop = 0;
+            pd.scrollTop = 0;
         }
-
         await _renderFullDetails(h, kw);
 
     } catch {
         document.getElementById('pd-price-loading')?.classList.add('hidden');
         if (pdContent.classList.contains('hidden')) {
-            // 기본 정보도 없으면 에러 전체 표시
             pdLoading.classList.add('hidden');
             pdError.classList.remove('hidden');
         } else {
-            // 기본 정보는 나왔는데 상세만 실패 — 가격 없음으로 처리
             document.getElementById('pd-price-empty')?.classList.remove('hidden');
         }
     }
 };
 
-// ── 병원 상세 (hospital-detail.jsp 단독 페이지 전용) ─────────────────────────
+// ── 병원 상세 ─────────────────────────
 
 const fetchHospitalDetail = async (ykiho) => {
     showState('state-loading');
@@ -515,7 +451,7 @@ const fetchHospitalDetail = async (ykiho) => {
         document.getElementById('hospital-type').textContent    = h.clCdNm ?? '';
         document.getElementById('hospital-address').textContent = h.addr ?? '';
 
-        // 거리: 목록 페이지에서 URL 쿼리 파라미터로 전달받음
+        // 거리
         const distEl = document.getElementById('hospital-distance');
         if (distEl) {
             const distParam = new URLSearchParams(location.search).get('dist');
@@ -540,13 +476,6 @@ const fetchHospitalDetail = async (ykiho) => {
         const dirEl = document.getElementById('hospital-directions');
         if (dirEl) {
             dirEl.href = _buildNaverDirectionsUrl(h.yadmNm ?? '', h.addr);
-        }
-
-        // 의사 수
-        const drCountEl = document.getElementById('hospital-dr-count');
-        if (drCountEl && h.drTotCnt != null) {
-            drCountEl.textContent = h.drTotCnt + '명';
-            drCountEl.closest('[data-field="dr-count"]')?.classList.remove('hidden');
         }
 
         // 홈페이지
@@ -579,53 +508,15 @@ const fetchHospitalDetail = async (ykiho) => {
             }
         }
 
-        // ── 특수진단 ──
-        const spclSection = document.getElementById('section-spcl');
-        if (spclSection) {
-            const list = h.spclDiagList ?? [];
-            if (list.length) {
-                spclSection.classList.remove('hidden');
-                document.getElementById('spcl-list').innerHTML =
-                    list.map(s => `<span class="inline-block bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">${s}</span>`).join('');
-            }
-        }
-
-        // ── 교통/주차 ──
-        const trnsprtSection = document.getElementById('section-trnsprt');
-        if (trnsprtSection) {
-            const t = h.trnsprtInfo;
-            if (t && (t.parkYn || t.trafInfo || t.parkEtc)) {
-                trnsprtSection.classList.remove('hidden');
-
-                const parkEl = document.getElementById('trnsprt-park');
-                if (parkEl && t.parkYn) {
-                    const canPark = t.parkYn === 'Y';
-                    let parkText = canPark ? '주차 가능' : '주차 불가';
-                    if (canPark && t.parkQty) parkText += ` (${t.parkQty}대)`;
-                    if (canPark && t.parkXpnsYn === 'Y') parkText += ' · 유료';
-                    else if (canPark && t.parkXpnsYn === 'N') parkText += ' · 무료';
-                    if (canPark && t.parkEtc) parkText += `\n${t.parkEtc}`;
-                    parkEl.textContent = parkText;
-                    parkEl.closest('[data-field="park"]')?.classList.remove('hidden');
-                }
-
-                const trafEl = document.getElementById('trnsprt-traf');
-                if (trafEl && t.trafInfo) {
-                    trafEl.textContent = t.trafInfo;
-                    trafEl.closest('[data-field="traf"]')?.classList.remove('hidden');
-                }
-            }
-        }
-
-        // ── 비급여 가격 테이블 (PriceItem: npayCd, npayKorNm, curAmt) ──
+        // ── 비급여 가격 테이블 ──
         const prices = h.prices ?? [];
         if (!prices.length) {
             document.getElementById('price-empty').classList.remove('hidden');
         } else {
-            // 아이템 캐시가 준비된 상태일 때만 그룹 활용 (상세 페이지는 fetchItemsCache 미리 호출 안 하므로 직접 호출)
+            // 아이템 캐시가 준비된 상태일 때만 그룹 활용
             await fetchItemsCache();
 
-            // 검색 키워드 (목록 페이지에서 URL로 전달)
+            // 검색 키워드
             const searchKw = (new URLSearchParams(location.search).get('keyword') ?? '').toLowerCase().trim();
 
             // 항목명의 첫 번째 '/' 앞 텍스트를 그룹 키로 사용

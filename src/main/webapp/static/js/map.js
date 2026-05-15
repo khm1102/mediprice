@@ -1,10 +1,8 @@
-/**
- * 네이버맵 초기화 및 마커 관리
- */
-let naverMap = null;
-const markers = [];
-let _pendingMarkers = []; // 지도 준비 전 addMarker 호출 큐
 
+let naverMap = null;
+let _markerClustering = null;
+const markers = [];
+let _pendingMarkers = [];
 
 const initMap = (lat, lng) => {
     const mapEl = document.getElementById('map');
@@ -21,12 +19,19 @@ const initMap = (lat, lng) => {
         mapDataControl: false,
     });
 
-    // 지도 준비 완료 후 대기 중인 마커 일괄 추가
-    _pendingMarkers.forEach(args => _addMarkerNow(...args));
-    _pendingMarkers = [];
+    // 지도 준비 완료 후 대기 중인 마커 일괄 추가 후 클러스터링
+    if (_pendingMarkers.length > 0) {
+        _pendingMarkers.forEach(args => _addMarkerNow(...args));
+        _pendingMarkers = [];
+        initClustering();
+    }
 };
 
 const clearMarkers = () => {
+    if (_markerClustering) {
+        _markerClustering.setMap(null);
+        _markerClustering = null;
+    }
     markers.forEach(m => m.setMap(null));
     markers.length = 0;
     _pendingMarkers = [];
@@ -43,67 +48,87 @@ const addMarker = (lat, lng, name, price, isCheapest, ykiho, onHighlight) => {
 const _addMarkerNow = (lat, lng, name, price, isCheapest, ykiho, onHighlight) => {
     const marker = new naver.maps.Marker({
         position: new naver.maps.LatLng(lat, lng),
-        map: naverMap,
+        // map을 직접 설정하지 않음 — MarkerClustering이 관리
         icon: { content: buildPinHtml(name, price, isCheapest) },
         zIndex: isCheapest ? 10 : 1,
     });
 
-    naver.maps.Event.addListener(marker, 'click', () => {
-        // 왼쪽 목록에서 해당 카드 강조 + 스크롤 (핀 자체 시각 변화 없음)
-        onHighlight?.();
-    });
+    naver.maps.Event.addListener(marker, 'click', () => onHighlight?.());
 
     markers.push(marker);
 };
 
-/** 지도 중심 이동 + 확대 (병원 상세 열릴 때 호출) */
+/** 클러스터링 인스턴스 생성 */
+const initClustering = () => {
+    if (!naverMap || markers.length === 0) return;
+
+    // MarkerClustering 라이브러리 로드 실패 시 마커 직접 지도에 추가
+    if (typeof MarkerClustering === 'undefined') {
+        markers.forEach(m => m.setMap(naverMap));
+        return;
+    }
+
+    if (_markerClustering) {
+        _markerClustering.setMap(null);
+    }
+
+    _markerClustering = new MarkerClustering({
+        minClusterSize: 2,
+        maxZoom: 14,        // 15이상 줌인 시 개별 마커 표시
+        map: naverMap,
+        markers: [...markers],
+        disableClickZoom: false,
+        gridSize: 160,
+        icons: [_buildClusterIcon(38), _buildClusterIcon(46)],
+        indexGenerator: [10, 50],
+        stylingFunction: (clusterMarker, count) => {
+            const el = clusterMarker.getElement();
+            if (el) {
+                const countEl = el.querySelector('.cluster-count');
+                if (countEl) countEl.textContent = count;
+            }
+        },
+    });
+};
+
+/** 클러스터 아이콘  */
+const _buildClusterIcon = (size) => ({
+    content: `<div style="
+        width:${size}px; height:${size}px;
+        background:#2563EB; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-weight:700; font-size:13px;
+        box-shadow:0 2px 10px rgba(37,99,235,0.45);
+        border:2px solid #fff;
+        transform:translate(-50%,-50%);
+        cursor:pointer;
+    "><span class="cluster-count"></span></div>`,
+    size: new naver.maps.Size(size, size),
+    anchor: new naver.maps.Point(size / 2, size / 2),
+});
+
+/** 지도 중심 이동 + 확대 */
 const focusMapOnHospital = (lat, lng) => {
     if (!naverMap || !lat || !lng) return;
     naverMap.setCenter(new naver.maps.LatLng(lat, lng));
     naverMap.setZoom(16);
 };
 
-/** 핀 HTML — 말풍선 + 기둥 + 점 구조 */
+/** 핀 HTML */
 const buildPinHtml = (name, price, isCheapest) => {
-    const priceLabel = price != null ? formatPrice(price) : '가격 미등록';
-    const shortName = name.length > 7 ? name.slice(0, 7) + '…' : name;
+    const shortName = name.length > 9 ? name.slice(0, 9) + '…' : name;
+    const bg        = isCheapest ? '#2563EB' : '#fff';
+    const color     = isCheapest ? '#fff'    : '#374151';
+    const border    = isCheapest ? 'none'    : '1px solid #E5E7EB';
+    const shadow    = isCheapest ? '0 3px 8px rgba(37,99,235,0.38)' : '0 2px 6px rgba(0,0,0,0.12)';
+    const stemColor = isCheapest ? '#2563EB' : '#D1D5DB';
 
-    const bubbleColor = isCheapest ? '#2563EB' : '#fff';
-    const priceColor  = isCheapest ? '#fff'    : '#111827';
-    const nameColor   = isCheapest ? 'rgba(255,255,255,0.8)' : '#9CA3AF';
-    const stemColor   = isCheapest ? '#2563EB' : '#D1D5DB';
-    const dotColor    = isCheapest ? '#2563EB' : '#D1D5DB';
-    const border      = isCheapest ? 'none'    : '1.5px solid #E5E7EB';
-    const shadow      = isCheapest
-        ? '0 4px 12px rgba(37,99,235,0.45)'
-        : '0 2px 8px rgba(0,0,0,0.15)';
-
-    const starIcon = isCheapest
-        ? `<svg width="10" height="10" viewBox="0 0 20 20" fill="${priceColor}" style="flex-shrink:0;">
-               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-           </svg>`
-        : '';
-
-    return `
-    <div style="
-        transform: translate(-50%, -100%);
-        display: flex; flex-direction: column; align-items: center;
-        cursor: pointer;
-    ">
-        <div style="
-            background: ${bubbleColor}; border: ${border};
-            border-radius: 12px; padding: 6px 11px;
-            box-shadow: ${shadow}; white-space: nowrap;
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
-        ">
-            <div style="display:flex; align-items:center; gap:3px;">
-                ${starIcon}
-                <span style="font-size:12px; font-weight:700; color:${priceColor};">${priceLabel}</span>
-            </div>
-            <span style="font-size:10px; color:${nameColor};">${shortName}</span>
+    return `<div style="transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+        <div style="background:${bg};border:${border};border-radius:8px;padding:3px 8px;box-shadow:${shadow};white-space:nowrap;">
+            <span style="font-size:11px;font-weight:${isCheapest ? '700' : '500'};color:${color};">${shortName}</span>
         </div>
-        <div style="width:2px; height:7px; background:${stemColor};"></div>
-        <div style="width:7px; height:7px; border-radius:50%; background:${dotColor};"></div>
+        <div style="width:2px;height:5px;background:${stemColor};"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:${stemColor};"></div>
     </div>`;
 };
 
@@ -129,7 +154,7 @@ const initMapWithCurrentLocation = () => {
     }
     navigator.geolocation.getCurrentPosition(
         pos => initMap(pos.coords.latitude, pos.coords.longitude),
-        ()  => initMap(37.5665, 126.9780)
+        () => initMap(37.5665, 126.9780)
     );
 };
 

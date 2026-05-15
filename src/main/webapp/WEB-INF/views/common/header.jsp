@@ -22,9 +22,9 @@
         }};
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="<c:url value='/static/js/api.js?v=4'/>"></script>
-    <script defer src="<c:url value='/static/js/auth.js?v=4'/>"></script>
-    <script defer src="<c:url value='/static/js/common.js?v=4'/>"></script>
+    <script defer src="<c:url value='/static/js/api.js'/>"></script>
+    <script defer src="<c:url value='/static/js/auth.js'/>"></script>
+    <script defer src="<c:url value='/static/js/common.js'/>"></script>
 </head>
 <body class="bg-[#F9FAFB] min-h-screen flex flex-col">
 
