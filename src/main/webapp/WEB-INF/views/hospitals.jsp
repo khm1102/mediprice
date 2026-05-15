@@ -5,8 +5,9 @@
 
 <script type="text/javascript"
     src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKey}"></script>
-<script defer src="<c:url value="/static/js/map.js?v=10"/>"></script>
-<script defer src="<c:url value="/static/js/hospital.js?v=20"/>"></script>
+<script src="<c:url value="/static/js/MarkerClustering.js"/>"></script>
+<script defer src="<c:url value="/static/js/map.js"/>"></script>
+<script defer src="<c:url value="/static/js/hospital.js"/>"></script>
 
 <style>
     html, body { overflow: hidden; height: 100%; }
@@ -22,12 +23,34 @@
             "list";
         height: 100%;
     }
-    .list-area {
+    .list-area { overflow-y: auto; }
+    .map-area  { border-bottom: 2px solid #E5E7EB; position: relative; }
+
+    /* ── 상세 패널: 모바일 — 하단 시트 ── */
+    #panel-detail {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        height: 75vh;
+        z-index: 200;
+        background: #F2F4F6;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.13);
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        transform: translateY(110%);
+        transition: transform 0.32s cubic-bezier(.4,0,.2,1);
     }
-    .map-area {
-        border-bottom: 2px solid #E5E7EB;
+    #panel-detail.open { transform: translateY(0); }
+
+    /* 백드롭 (모바일) */
+    #pd-backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.25);
+        z-index: 199;
     }
+    #pd-backdrop.open { display: block; }
+
     @media (min-width: 1024px) {
         .hospitals-grid {
             grid-template-columns: 400px 1fr;
@@ -41,9 +64,23 @@
             z-index: 10;
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.07);
         }
-        .map-area {
-            border-bottom: none;
+        .map-area { border-bottom: none; }
+
+        /* ── 상세 패널: 데스크톱 ── */
+        #panel-detail {
+            position: fixed;
+            top: 56px; left: 400px; bottom: 0;
+            right: auto;
+            width: 380px;
+            height: auto;
+            border-radius: 0;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+            transform: translateX(-110%);
+            transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+            z-index: 5;
         }
+        #panel-detail.open { transform: translateX(0); }
+        #pd-backdrop { display: none !important; }
     }
 </style>
 
@@ -131,33 +168,46 @@
 
     </div>
 
-    <%-- 병원 상세 패널 (목록과 같은 grid-area 공유, JS로 전환) --%>
-    <div id="panel-detail" style="grid-area: list; display:none;" class="panel-left list-area bg-[#F2F4F6]">
 
-        <%-- 상세 로딩 --%>
-        <div id="pd-loading" class="flex flex-col items-center justify-center h-full text-gray-400">
-            <div class="w-5 h-5 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin mb-3"></div>
-            <p class="text-sm">병원 정보를 불러오는 중...</p>
-        </div>
+</div>
 
-        <%-- 상세 오류 --%>
-        <div id="pd-error" class="hidden flex-col items-center justify-center h-full">
-            <p class="text-sm font-semibold text-gray-600">정보를 불러오지 못했습니다</p>
-            <button onclick="showHospitalList()" class="mt-3 text-xs text-[#2563EB] font-medium hover:underline min-h-[44px] px-2">목록으로</button>
-        </div>
+<%-- 백드롭 (모바일 전용) --%>
+<div id="pd-backdrop" onclick="showHospitalList()"></div>
 
-        <%-- 상세 콘텐츠 --%>
-        <div id="pd-content" class="hidden h-full overflow-y-auto">
-            <div class="max-w-xl mx-auto px-4 py-5 space-y-3">
+<%-- 병원 상세 패널 --%>
+<div id="panel-detail">
 
-                <%-- 뒤로가기 --%>
+    <%-- 모바일: 드래그 핸들 --%>
+    <div class="lg:hidden flex justify-center pt-3 pb-1">
+        <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+    </div>
+
+    <%-- 상세 로딩 --%>
+    <div id="pd-loading" class="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div class="w-5 h-5 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-sm">병원 정보를 불러오는 중...</p>
+    </div>
+
+    <%-- 상세 오류 --%>
+    <div id="pd-error" class="hidden flex-col items-center justify-center py-20">
+        <p class="text-sm font-semibold text-gray-600">정보를 불러오지 못했습니다</p>
+        <button onclick="showHospitalList()" class="mt-3 text-xs text-[#2563EB] font-medium hover:underline min-h-[44px] px-2">닫기</button>
+    </div>
+
+    <%-- 상세 콘텐츠 --%>
+    <div id="pd-content" class="hidden">
+        <div class="px-4 py-4 space-y-3">
+
+            <%-- 닫기 버튼 --%>
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-400">병원 상세</p>
                 <button onclick="showHospitalList()"
-                    class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563EB] transition-colors min-h-[44px] -ml-1">
+                    class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-400 hover:text-gray-700">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
-                    병원 목록
                 </button>
+            </div>
 
                 <%-- 병원 헤더 카드 --%>
                 <div class="bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
@@ -189,16 +239,6 @@
                             </div>
                             네이버 지도로 길찾기
                         </a>
-                        <div data-field="pd-dr-count" class="hidden" style="display:none">
-                            <div class="flex items-center gap-2.5 text-sm text-gray-600">
-                                <div class="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                </div>
-                                <span>의사 <span id="pd-dr-count" class="font-medium text-gray-800"></span></span>
-                            </div>
-                        </div>
                         <div data-field="pd-url" class="hidden" style="display:none">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -211,6 +251,17 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <%-- 안내 문구 --%>
+                <div class="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex gap-2.5">
+                    <svg class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-xs text-amber-700 leading-relaxed">
+                        병원마다 시술 방법·시간이 다를 수 있어요.<br>
+                        가격은 참고용이니 병원에 직접 문의해 주세요.
+                    </p>
                 </div>
 
                 <%-- 진료과목 --%>
@@ -244,46 +295,36 @@
                     </table>
                 </div>
 
-                <%-- 특수진단 --%>
-                <div id="pd-section-spcl" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">특수진단</h3>
-                    <div id="pd-spcl-list" class="flex flex-wrap gap-1.5"></div>
-                </div>
-
-                <%-- 교통/주차 --%>
-                <div id="pd-section-trnsprt" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">교통 / 주차</h3>
-                    <div class="space-y-3">
-                        <div data-field="pd-park" class="hidden" style="display:none">
-                            <div class="flex items-start gap-2.5">
-                                <div class="w-6 h-6 bg-gray-50 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m0 0h3l3 3v5h-3m-3 0H9m6 0a2 2 0 11-4 0 2 2 0 014 0zM7 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
-                                </div>
-                                <p id="pd-park" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line"></p>
-                            </div>
-                        </div>
-                        <div data-field="pd-traf" class="hidden" style="display:none">
-                            <div class="flex items-start gap-2.5">
-                                <div class="w-6 h-6 bg-gray-50 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                                    </svg>
-                                </div>
-                                <p id="pd-traf" class="text-sm text-gray-600 leading-relaxed"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
             </div>
         </div>
     </div>
 
-</div>
-
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const pd = document.getElementById('panel-detail');
+        const pl = document.getElementById('panel-list');
+        const bd = document.getElementById('pd-backdrop');
+        if (!pd || !pl) return;
+
+        new MutationObserver(() => {
+            if (pl.style.display === 'none') {
+                pl.style.display = '';
+                pd.classList.add('open');
+                bd?.classList.add('open');
+            }
+        }).observe(pl, { attributes: true, attributeFilter: ['style'] });
+
+        new MutationObserver(() => {
+            if (pd.style.display === 'none') {
+                pd.style.display = '';
+                pd.classList.remove('open');
+                bd?.classList.remove('open');
+            }
+        }).observe(pd, { attributes: true, attributeFilter: ['style'] });
+    });
+
+    // ── 검색 ──
     const handleSearch = () => {
         const keyword = document.getElementById('search-input').value.trim();
         if (!keyword) return;

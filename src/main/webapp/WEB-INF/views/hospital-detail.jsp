@@ -3,7 +3,7 @@
 <c:set var="pageTitle" value="병원 상세" />
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
-<script defer src="<c:url value="/static/js/hospital.js?v=20"/>"></script>
+<script defer src="<c:url value="/static/js/hospital.js"/>"></script>
 
 <div class="bg-[#F2F4F6] min-h-full">
 <div class="max-w-xl mx-auto px-4 py-6">
@@ -87,18 +87,6 @@
                     네이버 지도로 길찾기
                 </a>
 
-                <%-- 의사 수 --%>
-                <div data-field="dr-count" class="hidden" style="display:none">
-                    <div class="flex items-center gap-2.5 text-sm text-gray-600">
-                        <div class="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                        </div>
-                        <span>의사 <span id="hospital-dr-count" class="font-medium text-gray-800"></span></span>
-                    </div>
-                </div>
 
                 <%-- 홈페이지 --%>
                 <div data-field="hosp-url" class="hidden" style="display:none">
@@ -147,40 +135,6 @@
             </table>
         </div>
 
-        <%-- 특수진단 --%>
-        <div id="section-spcl" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">특수진단</h2>
-            <div id="spcl-list" class="flex flex-wrap gap-1.5"></div>
-        </div>
-
-        <%-- 교통/주차 --%>
-        <div id="section-trnsprt" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">교통 / 주차</h2>
-            <div class="space-y-3">
-                <div data-field="park" class="hidden" style="display:none">
-                    <div class="flex items-start gap-2.5">
-                        <div class="w-6 h-6 bg-gray-50 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m0 0h3l3 3v5h-3m-3 0H9m6 0a2 2 0 11-4 0 2 2 0 014 0zM7 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                        <p id="trnsprt-park" class="text-sm text-gray-600 leading-relaxed whitespace-pre-line"></p>
-                    </div>
-                </div>
-                <div data-field="traf" class="hidden" style="display:none">
-                    <div class="flex items-start gap-2.5">
-                        <div class="w-6 h-6 bg-gray-50 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                            </svg>
-                        </div>
-                        <p id="trnsprt-traf" class="text-sm text-gray-600 leading-relaxed"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 </div>
