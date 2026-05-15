@@ -68,6 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           cd /app
@@ -75,9 +76,8 @@ jobs:
           # 호스트 bind-mount 디렉터리는 host UID 소유 → git이 dubious ownership 경고
           git config --global --add safe.directory /app
 
-          # GITHUB_TOKEN으로 fetch 인증 (runner container에는 git creds 없음)
-          # extraheader는 .git/config에 안 남고 이 명령에서만 사용됨
-          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" fetch origin master
+          # GITHUB_TOKEN을 fetch URL에 임시로 박아 사용 (origin remote는 그대로 유지, .git/config 변경 없음)
+          git fetch "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" master:refs/remotes/origin/master
           git reset --hard origin/master
 
           # GHCR private 이미지 pull 인증
