@@ -16,7 +16,7 @@
 | **P0** | 인프라 (Docker/PG/Tomcat/Spring 부팅) | ✅ 완료 |
 | **P0.5** | SecurityFilterChain 분리, TraceIdFilter, Hikari/Hibernate 보강, 통일 로그 | ✅ 완료 |
 | **P1** | 심평원 3개 API 동기화 + REST API 3개 + PostGIS 프로시저 + 단위 테스트 45개 | ✅ 완료 |
-| **다음 라운드** | JSP 페이지 + 카카오맵 SDK + 정적 JS | 대기 |
+| **다음 라운드** | JSP 페이지 + 네이버맵 SDK + 정적 JS | 대기 |
 | **P2** | 회원가입/로그인 (JWT), 즐겨찾기, AI 추천 등 | 보류 |
 
 **비회원 기능 미구현 확정** — Guest JWT/검색 횟수 제한 모두 없음. 모든 `/api/**`는 비인증 통과.

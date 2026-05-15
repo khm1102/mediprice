@@ -1,6 +1,33 @@
-# MediPrice — CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 > Claude Code가 이 프로젝트에서 코드를 생성할 때 반드시 따라야 하는 규칙 문서.
 > 이 문서에 정의되지 않은 사항은 임의로 판단하지 말고 반드시 질문할 것.
+
+---
+
+## 0. 명령어 (Commands)
+
+```bash
+# 빌드 및 테스트
+./gradlew clean build          # 전체 빌드 (테스트 포함)
+./gradlew test                 # 테스트만 실행
+./gradlew test --tests "com.khm1102.mediprice.service.HospitalServiceTest"  # 단일 테스트 클래스
+./gradlew test --tests "*HospitalService*"   # 패턴 매칭
+./gradlew war                  # ROOT.war 패키징 (build/libs/ROOT.war)
+
+# Docker (개발 DB + 앱)
+cp .env.example .env           # 최초 1회, .env에 실제 값 입력
+docker-compose up -d           # DB + App 시작
+docker-compose up -d db        # DB만 시작 (IDE에서 앱 실행 시)
+docker-compose logs -f app     # 앱 로그 확인
+docker-compose down            # 서비스 종료
+docker-compose up --build      # 소스 변경 후 이미지 재빌드
+
+# 헬스체크
+curl http://localhost:8080/api/health
+```
 
 ---
 
@@ -110,6 +137,41 @@ PostgreSQL + PostGIS
   → Service 레이어는 하나만 (Controller/RestController 공유)
 ```
 
+### 3.5 부트스트랩 구조
+
+Spring Boot가 아니므로 `@SpringBootApplication` 없음. 진입점:
+
+```
+WebAppInitializer (AbstractAnnotationConfigDispatcherServletInitializer 상속)
+  → getRootConfigClasses(): AppConfig, JpaConfig, SecurityConfig, CacheConfig
+  → getServletConfigClasses(): WebMvcConfig
+  → 등록 필터: TraceIdFilter (MDC UUID), CharacterEncodingFilter (UTF-8)
+
+DatabaseInitializer (@Component + @PostConstruct)
+  → 서버 시작 시 sql/procedures.sql 자동 실행
+  → search_nearby_hospitals() PostgreSQL 함수 생성
+```
+
+### 3.6 배치 (HIRA API 동기화)
+
+```
+batch/ 패키지 — 심평원 데이터 초기 적재 및 갱신
+  HospitalSyncService    병원 기본 정보
+  NonPayItemSyncService  비급여 항목 코드
+  PriceSyncService       비급여 가격
+
+BatchAdminApiController  /api/admin/batch/** → 수동 트리거 엔드포인트
+  (운영 중 데이터 갱신 시 사용)
+```
+
+### 3.7 분산 추적
+
+```
+TraceIdFilter → 모든 요청에 UUID 생성 → MDC(traceId) 저장
+logback.xml → [%X{traceId}] 패턴으로 모든 로그에 포함
+docker logs로 traceId 기준 요청 추적 가능
+```
+
 ---
 
 ## 4. API URL 컨벤션
@@ -147,7 +209,7 @@ GET    /auth/register                    회원가입 페이지
 ### 5.1 네이밍
 
 ```
-패키지     소문자만                     com.mediprice.hospital
+패키지     소문자만                     com.khm1102.mediprice.hospital
 클래스     PascalCase + 명사            HospitalService, PriceInfo
 인터페이스 PascalCase + 명사/형용사     HospitalRepository, Cacheable
 메서드     camelCase + 동사로 시작      searchHospitals(), lookupHospital()
