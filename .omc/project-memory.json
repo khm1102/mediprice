@@ -1,0 +1,147 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778853300706,
+  "projectRoot": "/Users/khm1102/Documents/GitHub/mediprice",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Java/Kotlin",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "build.gradle"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "gradle",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1778853300702,
+      "keyFiles": [
+        "authentication.md",
+        "error-handling.md",
+        "feature-spec.md",
+        "layered-architecture.md",
+        "null-safety.md"
+      ]
+    },
+    "gradle": {
+      "path": "gradle",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778853300703,
+      "keyFiles": []
+    },
+    "hira-docs": {
+      "path": "hira-docs",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1778853300703,
+      "keyFiles": [
+        "OpenAPI활용가이드_건강보험심사평가원(병원정보서비스).docx",
+        "OpenAPI활용가이드_건강보험심사평가원(비급여진료비정보서비스).docx",
+        "의료기관별상세정보서비스.md"
+      ]
+    },
+    "postman": {
+      "path": "postman",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778853300703,
+      "keyFiles": [
+        "MediPrice.postman_collection.json"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1778853300704,
+      "keyFiles": []
+    },
+    "src/test": {
+      "path": "src/test",
+      "purpose": "Test files",
+      "fileCount": 0,
+      "lastAccessed": 1778853300704,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": ".env.example",
+      "accessCount": 5,
+      "lastAccessed": 1778859682218,
+      "type": "file"
+    },
+    {
+      "path": "docker-compose.yml",
+      "accessCount": 5,
+      "lastAccessed": 1778860361676,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 3,
+      "lastAccessed": 1778860384180,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "accessCount": 2,
+      "lastAccessed": 1778859529077,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1778859532276,
+      "type": "file"
+    },
+    {
+      "path": "Dockerfile",
+      "accessCount": 2,
+      "lastAccessed": 1778859681940,
+      "type": "file"
+    },
+    {
+      "path": ".dockerignore",
+      "accessCount": 1,
+      "lastAccessed": 1778858957539,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

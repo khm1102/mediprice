@@ -1,36 +1,20 @@
 services:
-  db:
-    image: postgis/postgis:16-3.4-alpine
-    container_name: mediprice-db
-    env_file:
-      - .env
-    environment:
-      POSTGRES_DB: mediprice
-      POSTGRES_USER: ${DB_USERNAME:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - mediprice-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-admin} -d mediprice"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
+    # 운영: GitHub Actions가 master push 시 ghcr.io에 푸시 → 서버에서 pull
+    # 로컬: docker compose build로 로컬 빌드 가능 (같은 태그 재사용)
+    image: ghcr.io/khm1102/mediprice:latest
     build: .
     container_name: mediprice-app
+    restart: unless-stopped
     env_file:
       - .env
-    # .env의 DB_URL은 호스트에서 IDE로 띄울 때 기준(localhost). 컨테이너 내부에서는 db 서비스명으로 덮어쓴다.
-    environment:
-      DB_URL: jdbc:postgresql://db:5432/mediprice?reWriteBatchedInserts=true
+    # DB는 호스트의 cloudflared(localhost:5774)로 접근 — Linux 호환 위해 host-gateway 매핑
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
+    networks:
+      - mediprice-network
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/api/health || exit 1"]
       interval: 15s
@@ -38,5 +22,8 @@ services:
       retries: 8
       start_period: 30s
 
-volumes:
-  mediprice-data:
+# infra 레포의 nginx/prometheus가 이 네트워크에 external로 붙어 mediprice-app:8080을 upstream으로 사용
+networks:
+  mediprice-network:
+    external: true
+    name: mediprice-network

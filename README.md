@@ -135,8 +135,8 @@ docker-compose up -d
 프로젝트 루트에 `.env` 파일을 생성하고 아래 항목을 채운다.
 
 ```env
-# 데이터베이스
-DB_URL=jdbc:postgresql://localhost:5432/mediprice
+# 데이터베이스 (Cloudflare Tunnel 프록시 경유 — 호스트 localhost:5774에 cloudflared 리스닝 필요)
+DB_URL=jdbc:postgresql://host.docker.internal:5774/mediprice?reWriteBatchedInserts=true
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
 
