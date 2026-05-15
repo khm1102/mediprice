@@ -26,6 +26,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # arm64 빌드를 amd64 ubuntu runner에서 emulation으로 빌드하기 위함
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -51,6 +55,8 @@ jobs:
         with:
           context: .
           push: true
+          # Apple Silicon(arm64) 호스트와 Linux x86 서버(amd64) 둘 다 호환
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
