@@ -60,8 +60,14 @@ jobs:
     name: Deploy on self-hosted runner
     runs-on: [self-hosted, mediprice]
     needs: build-and-push
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Sync compose + pull image + restart
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
           cd /app
@@ -69,9 +75,13 @@ jobs:
           # 호스트 bind-mount 디렉터리는 host UID 소유 → git이 dubious ownership 경고
           git config --global --add safe.directory /app
 
-          # master 최신화 (compose.yml/Dockerfile 변경 자동 반영, .env는 gitignore되어 보존)
-          git fetch origin master
+          # GITHUB_TOKEN으로 fetch 인증 (runner container에는 git creds 없음)
+          # extraheader는 .git/config에 안 남고 이 명령에서만 사용됨
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" fetch origin master
           git reset --hard origin/master
+
+          # GHCR private 이미지 pull 인증
+          echo "${GH_TOKEN}" | docker login ghcr.io -u "${GH_ACTOR}" --password-stdin
 
           # 새 이미지 pull + 컨테이너 재기동
           docker compose pull
