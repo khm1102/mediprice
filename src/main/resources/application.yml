@@ -1,5 +1,6 @@
 db:
-  url: ${DB_URL:jdbc:postgresql://localhost:5432/mediprice}
+  # 앱은 Docker 컨테이너로 실행 — DB는 호스트의 Cloudflare Tunnel 프록시(host.docker.internal:5774) 경유
+  url: ${DB_URL:jdbc:postgresql://host.docker.internal:5774/mediprice}
   username: ${DB_USERNAME:admin}
   # 의도적으로 fallback 없음: 환경변수 누락 시 부팅 실패 (약한 비밀번호로 운영 가는 사고 차단)
   password: ${DB_PASSWORD}

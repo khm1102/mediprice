@@ -17,13 +17,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew test --tests "*HospitalService*"   # 패턴 매칭
 ./gradlew war                  # ROOT.war 패키징 (build/libs/ROOT.war)
 
-# Docker (개발 DB + 앱)
-cp .env.example .env           # 최초 1회, .env에 실제 값 입력
-docker-compose up -d           # DB + App 시작
-docker-compose up -d db        # DB만 시작 (IDE에서 앱 실행 시)
-docker-compose logs -f app     # 앱 로그 확인
-docker-compose down            # 서비스 종료
-docker-compose up --build      # 소스 변경 후 이미지 재빌드
+# Docker (앱만 — DB는 외부 Cloudflare Tunnel 프록시 사용)
+cp .env.example .env                          # 최초 1회, .env에 실제 값 입력
+docker network create mediprice-network       # 최초 1회 (infra의 nginx가 붙는 외부 네트워크)
+docker-compose up -d                          # 운영 이미지 pull 후 시작 (ghcr.io)
+docker-compose up -d --build                  # 로컬 빌드 후 시작 (이미지 없거나 소스 변경 시)
+docker-compose logs -f app                    # 앱 로그
+docker-compose down                           # 종료
+
+# 배포 (CI/CD)
+# master 브랜치에 push하면 GitHub Actions가 자동으로:
+#   1. ghcr.io/khm1102/mediprice:{latest, sha-<short>} 빌드 & 푸시
+#   2. 서버에 SSH로 들어가 docker compose pull && up -d
+#   3. /api/health 헬스체크 통과까지 대기 (실패 시 로그 출력 후 실패 처리)
 
 # 헬스체크
 curl http://localhost:8080/api/health
