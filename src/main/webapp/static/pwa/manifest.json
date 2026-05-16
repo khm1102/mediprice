@@ -1,0 +1,25 @@
+{
+  "name": "MediPrice",
+  "short_name": "MediPrice",
+  "description": "비급여 진료비 비교 플랫폼. 내 주변 병원의 비급여 진료비를 한눈에 비교하세요.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563EB",
+  "background_color": "#F9FAFB",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/static/pwa/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/pwa/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

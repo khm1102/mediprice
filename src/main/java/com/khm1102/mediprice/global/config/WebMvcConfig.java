@@ -59,6 +59,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/static/**")
                 .addResourceLocations("/static/")
                 .setCachePeriod(3600);
+
+        registry.addResourceHandler("/manifest.json", "/sw.js")
+                .addResourceLocations("/static/pwa/")
+                .setCachePeriod(0);
     }
 
     @Override

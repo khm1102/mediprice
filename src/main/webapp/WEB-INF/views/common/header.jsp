@@ -8,6 +8,13 @@
     <meta name="theme-color" content="#2563EB">
     <meta name="description" content="비급여 진료비 비교 플랫폼. 내 주변 병원의 비급여 진료비를 한눈에 비교하세요.">
     <meta name="referrer" content="strict-origin-when-cross-origin">
+    <%-- PWA --%>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MediPrice">
+    <link rel="apple-touch-icon" href="/static/pwa/icons/icon-180.png">
     <title><c:out value="${pageTitle != null ? pageTitle.concat(' - MediPrice') : 'MediPrice'}" escapeXml="false"/></title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/spoqa/spoqa-han-sans@latest/css/SpoqaHanSansNeo.css">
     <script>
@@ -56,3 +63,4 @@
 </header>
 
 <main class="flex-1">
+</main>
