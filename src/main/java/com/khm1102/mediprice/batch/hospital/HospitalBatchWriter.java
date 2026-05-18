@@ -1,4 +1,4 @@
-package com.khm1102.mediprice.batch;
+package com.khm1102.mediprice.batch.hospital;
 
 import com.khm1102.mediprice.client.hira.HospBasisItem;
 import com.khm1102.mediprice.entity.Hospital;

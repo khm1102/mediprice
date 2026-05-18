@@ -43,6 +43,7 @@
 - [환경변수 설정](#환경변수-설정)
 - [API 명세](#api-명세)
 - [인증 방식](#인증-방식)
+- [문서](#문서)
 
 ---
 
@@ -95,13 +96,25 @@ MediPrice는 건강보험심사평가원(심평원) 공공 API를 기반으로 <
 
 ## 아키텍처
 
-> 추후 작성 예정
+- 순수 Spring Framework 7 + Tomcat 11 WAR 배포 구조다.
+- REST API는 DB를 조회하고, 심평원 OpenAPI는 배치 또는 병원 상세 보강 정보에서만 호출한다.
+- 배치는 7개 SyncService를 병렬 dispatch한다. 단, 가격 상세(`PriceSyncService`)는 병원 `ykiho` 목록이 필요해 Hospital 완료 뒤 실행한다.
+- 병원 상세는 DB 정보와 심평원 상세 API 5개(진료과목, 의료장비, 대중교통, 세부정보, 특수진료)를 병렬 병합한다.
+
+자세한 구조는 `architecture.md`와 `docs/layered-architecture.md`를 기준으로 한다.
 
 ---
 
 ## 패키지 구조
 
-> 추후 작성 예정
+- `controller/` — JSP Controller와 JSON RestController
+- `service/` — 검색/상세/항목 조회 비즈니스 로직
+- `batch/admin/` — 수동 배치 트리거
+- `batch/orchestrator/` — 전체 배치 병렬 실행
+- `batch/hospital/`, `batch/item/`, `batch/price/`, `batch/summary/`, `batch/stat/` — 도메인별 sync/writer
+- `client/` — 심평원 외부 API client
+- `entity/`, `repository/`, `dto/` — JPA 도메인과 API 응답
+- `global/` — 설정, 공통 응답, 예외, 필터
 
 ---
 
@@ -149,6 +162,7 @@ NAVER_MAP_KEY=your_naver_map_key_here
 
 # 심평원 공공 API
 HIRA_API_KEY=your_hira_api_key_here
+HIRA_API_KEYS=your_hira_key_1,your_hira_key_2
 
 # 캐시 / 게스트
 CACHE_TTL_SECONDS=3600
@@ -159,13 +173,37 @@ GUEST_SEARCH_LIMIT=3
 
 ## API 명세
 
-> 추후 작성 예정
+프론트가 직접 호출하는 주요 API:
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | `/api/items` | 비급여 항목 그룹 |
+| GET | `/api/hospitals?lat&lng&npayCd&radius` | 위치 기반 병원 검색 |
+| GET | `/api/hospitals/{ykiho}` | 병원 상세 |
+
+운영/디버그 배치 API:
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| POST | `/api/internal/batch/sync` | 전체 배치 |
+| POST | `/api/internal/batch/sync/prices` | 가격 상세 단독 |
+| POST | `/api/internal/batch/sync/summary` | 가격 요약 단독 |
+| POST | `/api/internal/batch/sync/clcd-stat` | 종별 통계 단독 |
+| POST | `/api/internal/batch/sync/sido-stat` | 지역 통계 단독 |
 
 ---
 
 ## 인증 방식
 
-> 추후 작성 예정
+현재 MVP는 `/api/**` 비인증 통과 상태다. JWT 기반 회원/게스트 인증은 P2 범위로 보류되어 있다.
+
+## 문서
+
+- `docs/project-overview.md` — 최신 프로젝트 상태와 데이터 스냅샷
+- `docs/hira-api-spec.md` — 심평원 API 필드와 DB 가공 규격
+- `docs/troubleshooting.md` — 배치/인코딩/통계 코드 장애 이력
+- `TODO.md` — 남은 작업과 결정 보류 사항
+- `CLAUDE.md` / `AGENTS.md` — 작업 규칙과 코드 컨벤션
 
 <div align="center">
   <sub>한국공학대학교 AI소프트웨어학과 · 김민재(kmj228) · 김현민(khm1102)</sub>

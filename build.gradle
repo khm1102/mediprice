@@ -96,6 +96,7 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.27.6'
     testImplementation 'org.mockito:mockito-core:5.20.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.20.0'
+    testImplementation 'org.wiremock:wiremock-standalone:3.10.0'  // HIRA 외부 API stub
     testCompileOnly 'org.projectlombok:lombok:1.18.38'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 }

@@ -1,6 +1,6 @@
 # TODO
 
-환경 설정(P0 + P0.5) + P1 도메인 진입 단계에서 결정 보류된 항목과 향후 운영 단계로 미룬 항목 정리.
+환경 설정(P0 + P0.5) + P1/P1.5 진행 중 결정 보류된 항목과 향후 운영 단계로 미룬 항목 정리.
 
 ---
 
@@ -29,10 +29,10 @@
   - 또는 RestClient interceptor에 retry 로직
 - **결정 시점:** 운영 안정화 단계
 
-### N5. 배치 트랜잭션 경계 분리
-- **현황:** 각 SyncService.sync()가 `@Transactional` 전체 — 외부 API 호출 시간만큼 connection 점유
-- **방향:** 페이지별 또는 ykiho별 별도 트랜잭션으로 분리 (self-injection 또는 별도 빈)
-- **결정 시점:** 운영 부하 모니터링 후
+### N5. 배치 트랜잭션 경계 분리 — ✅ 적용됨
+- **적용:** 외부 API 호출과 DB write 트랜잭션을 분리했다.
+- **방식:** 페이지/청크 단위 writer 빈에서 `@Transactional(REQUIRES_NEW)`로 저장하고, 저장 후 flush/clear로 persistence context를 비운다.
+- **효과:** 긴 외부 API 호출 중 connection을 붙잡는 구조를 줄이고, 실패 범위를 페이지/ykiho 단위로 제한한다.
 
 ### N6. NonPayItem 메모리 캐시
 - **현황:** `HospitalDetailService`에서 항목명 매핑 시 매번 `findAllById` 호출
@@ -43,6 +43,26 @@
 - **현황:** API/배치만 구현. 사용자 결정으로 프론트는 다음 라운드 보류
 - **방향:** PageController + index.jsp + hospital-list.jsp + hospital-detail.jsp + 카카오맵 SDK + api.js/hospital.js
 - **결정 시점:** 사용자가 시작 지시 시
+
+### N8. Price 배치 파이프라인화
+- **현황:** 전체 배치는 7개 sync 작업을 `hiraBatchExecutor`로 동시에 dispatch한다. 단, `PriceSyncService`는 `Hospital.ykiho` 목록이 필요해 `HospitalSyncService` 완료 뒤에 실행된다.
+- **결정적 이유:** 가격 상세 API `getNonPaymentItemHospDtlList`의 입력이 병원 식별자 `ykiho`다. 따라서 Price는 Hospital 결과 없이 독립 실행할 수 없다.
+- **개선 방향:** `HospitalSyncService`가 `ykiho`를 수집하는 즉시 큐에 publish하고, Price worker들이 그 큐를 소비하게 만든다. 그러면 Hospital 전체 완료를 기다리지 않고 Price 적재를 시작할 수 있다.
+- **결정 시점:** 가격 전체 재적재 전. 개발 키 quota가 회복되거나 운영계정 사용 가능할 때 적용 가치가 큼.
+
+### N9. Price/PriceSummary 부분 적재 재개 정책
+- **현황:** 2026-05-17 로컬 배치에서 가격 API quota 초과로 Price 계열 배치가 중단됐다. DB에 저장된 부분 데이터는 보존됨.
+- **스냅샷:** `Price` 79,428건, `PriceSummary` 122,097건.
+- **결정 필요:** 
+  - truncate 후 전체 재적재: 데이터 정합성은 단순하지만 시간이 오래 걸리고 quota를 다시 크게 사용.
+  - PK 기준 upsert로 이어받기: 저장분을 보존하지만 “어디까지 성공했는지”를 별도 추적해야 함.
+- **권장:** 운영계정 확보 전까지는 truncate 재시도보다 부분 데이터 보존 + 진행률/실패 로그 기반 재개 방식을 설계.
+
+### N10. SidoStat 누락 지역 확인
+- **현황:** `getNonPaymentItemSidoCdList`는 공식 문서/실제 응답의 시도 약어가 불완전하다.
+- **수정 완료:** 광주 `Kw`, 울산 `Usn`, 경북 `Ksb`, 경남 `Ksn` 매핑 반영 후 `NonPayItemSidoStat` 재적재 완료.
+- **남은 확인:** 부산(`Bs`), 충북(`Cb`), 전북(`Jb`), 전남(`Jn`), 제주(`Jj`) 필드는 현재 문서/응답에서 확인되지 않았다.
+- **방향:** 실제 API 샘플을 항목별로 더 넓게 수집해 필드 존재 여부를 확정하고, 없으면 “API 미제공”으로 문서화.
 
 ---
 
@@ -111,31 +131,22 @@
 
 ## 🚢 배포/운영 인프라
 
-### F1. `docker-compose.yml`에 app 서비스 추가
-- **현황:** DB만 띄움. WAS는 IntelliJ Tomcat으로 로컬 배포
-- **방향:** 통합 테스트 환경 필요해지면 추가:
-  ```yaml
-  app:
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file: .env
-    ports: ["8080:8080"]
-  ```
+### F1. `docker-compose.yml` app 서비스 — ✅ 적용됨
+- **현황:** DB와 app 컨테이너 기반 실행 흐름이 구성되어 있다.
+- **잔여:** 운영 배포 전 profile, secret 주입, healthcheck, Cloudflare Tunnel 연결 정책만 확정하면 된다.
 
-### F2. `Dockerfile` 작성
-- **방향:** Tomcat 11 base 이미지 + `build/libs/ROOT.war` 복사 + 외부 SECRET 주입 가능 구조
-- **결정 시점:** F1과 함께
+### F2. `Dockerfile` 작성 — ✅ 적용됨
+- **현황:** WAR 빌드 후 Tomcat 11 기반 app image를 만들 수 있다.
+- **잔여:** 이미지 태그/배포 레지스트리/운영 secret 주입 방식 결정.
 
 ### F3. Cloudflare Tunnel 구성
 - **방향:** 외부 노출 결정 시. `cloudflared` 설정 + DNS 라우팅
 - **결정 시점:** 데모/발표 직전
 
-### F4. 테스트 인프라 도입
-- **현황:** JUnit 5만 의존성에 있음, 테스트 코드 0건
-- **추가 필요:** `spring-test`, `mockito-core`, `mockito-junit-jupiter`, `assertj-core`, `testcontainers-postgresql` (PostGIS 통합 테스트용)
-- **결정 시점:** 첫 테스트 작성 직전 (P1 첫 Service 작성 시점이 자연스러움)
+### F4. 테스트 인프라 도입 — ✅ 적용됨
+- **현황:** JUnit/Mockito/AssertJ/Spring Test 기반 테스트가 구성되어 있다.
+- **최근 검증:** `./gradlew test` 기준 94 tests, 0 failures, 0 errors.
+- **잔여:** PostGIS 통합 테스트는 Testcontainers 기반으로 별도 추가 필요.
 
 ### F5. `JWT_SECRET` 강한 키로 교체
 - **현황:** `.env`에 `dev-secret-key-change-in-production` (31바이트)

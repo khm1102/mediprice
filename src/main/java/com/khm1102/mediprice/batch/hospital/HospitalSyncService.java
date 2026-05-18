@@ -1,9 +1,10 @@
-package com.khm1102.mediprice.batch;
+package com.khm1102.mediprice.batch.hospital;
 
 
 import com.khm1102.mediprice.client.HiraHospitalClient;
 import com.khm1102.mediprice.client.hira.HiraBody;
 import com.khm1102.mediprice.client.hira.HospBasisItem;
+import com.khm1102.mediprice.batch.support.SidoCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -102,27 +103,38 @@ public class HospitalSyncService {
         return savedTotal.get();
     }
 
-    /** 시도 1개 Producer — 페이지 순회하면서 DTO를 큐에 push. */
+    /** 시도 1개 Producer — 페이지 순회하면서 DTO를 큐에 push.
+     * <p>
+     * 첫 페이지 빈 응답은 종료 (totalCount 모름). 중간 페이지 빈 응답은 일시 장애 가능성이 있어
+     * skip 후 다음 페이지로 진행 — 첫 페이지에서 받은 totalPages 기준으로 종료. */
     private void produce(SidoCode sido, BlockingQueue<HospBasisItem> queue, AtomicInteger producedTotal) {
         int produced = 0;
         int pageNo = 1;
+        int totalPages = -1;
         try {
             while (true) {
                 HiraBody<HospBasisItem> body = client.searchHospitals(sido.getCode(), pageNo, PAGE_SIZE);
                 List<HospBasisItem> items = body.safeItems();
-                if (items.isEmpty()) {
-                    // page 1에서 빈 응답이면 quota 초과/일시 거부 가능성 큼 — 단순 종료가 아니라 진단용 WARN.
-                    if (pageNo == 1) {
+
+                if (pageNo == 1) {
+                    if (items.isEmpty()) {
+                        // 첫 페이지 빈 응답: totalCount 모르므로 종료. quota/매핑 오류 의심.
                         log.warn("Hospital producer 첫 페이지 빈 응답 — sido={} (HIRA quota 초과 또는 sidoCd 매핑 오류 의심)",
                                 sido.getName());
+                        break;
                     }
-                    break;
+                    totalPages = (int) Math.ceil((double) body.getTotalCount() / PAGE_SIZE);
+                } else if (items.isEmpty()) {
+                    // 중간 페이지 빈 응답: 일시 장애로 가정. skip하고 다음 페이지 진행.
+                    log.warn("Hospital producer 중간 페이지 빈 응답 — sido={}, pageNo={}/{} (skip)",
+                            sido.getName(), pageNo, totalPages);
                 }
+
                 for (HospBasisItem dto : items) {
                     queue.put(dto);
                     produced++;
                 }
-                int totalPages = (int) Math.ceil((double) body.getTotalCount() / PAGE_SIZE);
+
                 if (pageNo >= totalPages) {
                     break;
                 }

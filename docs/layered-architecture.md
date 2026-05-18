@@ -13,7 +13,7 @@ com.khm1102.mediprice/
 ├── service/              도메인 서비스 (비즈니스 로직)
 │   ├── NonPayItemService           항목 그룹핑 + 코드→이름 룩업
 │   ├── HospitalService             PostGIS 프로시저 호출 + JSON 파싱
-│   └── HospitalDetailService       DB(병원/가격) + 외부 4개 API 병합
+│   └── HospitalDetailService       DB(병원/가격) + 외부 5개 API 병합
 ├── entity/               도메인 엔티티 (자체 PK)
 │   ├── Hospital                    ykiho PK + native UPDATE location
 │   ├── NonPayItem                  npay_cd PK
@@ -25,26 +25,27 @@ com.khm1102.mediprice/
 │   └── PriceRepository             findAllByYkiho
 ├── dto/                  도메인 DTO (record)
 │   ├── HospitalSummaryDto          /api/hospitals 응답 element
-│   ├── HospitalDetailDto           /api/hospitals/{ykiho} 응답 (PriceItem, TrnsprtInfo 중첩)
+│   ├── HospitalDetailDto           /api/hospitals/{ykiho} 응답 (PriceItem, transit/parking/operating 중첩)
 │   └── NonPayItemGroupDto          /api/items 응답 (Item 중첩)
-├── batch/                운영 묶음 — 스케줄러로 도는 모든 것 평면
-│   ├── BatchAdminApiController     POST /api/internal/batch/sync, /sync/prices (디버그 트리거)
-│   ├── BatchService                @Scheduled(cron "0 0 0 1 * *") 매월 1일
-│   ├── NonPayItemSyncService       Step 1
-│   ├── HospitalSyncService         Step 2 (SidoCode 17개 순회)
-│   ├── PriceSyncService            Step 3 — Hospital.findAllYkiho() 순회
-│   ├── PriceYkihoSyncService       ykiho당 별도 트랜잭션
-│   └── SidoCode                    17개 시도 enum
+├── batch/                운영 묶음 — 스케줄러/수동 트리거/도메인별 적재
+│   ├── admin/                    BatchAdminApiController — POST /api/internal/batch/**
+│   ├── orchestrator/             BatchService — 전체 배치 병렬 dispatch
+│   ├── hospital/                 HospitalSyncService, HospitalBatchWriter
+│   ├── item/                     NonPayItem/NonPayItemDesc sync + writer
+│   ├── price/                    PriceSyncService, PriceYkihoSyncService
+│   ├── summary/                  PriceSummary sync + writer
+│   ├── stat/                     ClcdStat/SidoStat sync + writer
+│   └── support/                  SidoCode 등 배치 공통 코드
 ├── client/               외부 API 통합
 │   ├── HiraHospitalClient          getHospBasisList (시도+페이징)
-│   ├── HiraNonPayClient            getNonPaymentItemCodeList2, getNonPaymentItemHospDtlList
-│   ├── HiraDetailClient            의료기관 상세 4개 API CompletableFuture 병렬
+│   ├── HiraNonPayClient            비급여 항목/가격/통계 API
+│   ├── HiraDetailClient            의료기관 상세 5개 API CompletableFuture 병렬
 │   └── hira/                       외부 응답 XML DTO
 │       ├── HiraResponse/Header/Body  (generic wrapper, Body는 record 아닌 class — XmlMapper 충돌 회피)
 │       ├── HospBasisItem
 │       ├── NonPayCodeItem, NonPayDtlItem (ACTIVE_END_DATE='99991231')
 │       ├── DgsbjtItem, MedOftItem
-│       └── TrnsprtItem, SpclDiagItem
+│       └── TrnsprtItem, DtlInfoItem, SpclDiagItem
 └── global/               cross-cutting 인프라 (한 곳에 묶음)
     ├── common/
     │   └── ApiResponse             record + ErrorDetail 중첩
@@ -111,21 +112,21 @@ Repository (JPA) ──────► PostgreSQL + PostGIS
 @Scheduled cron "0 0 0 1 * *" (매월 1일 0시) → BatchService.syncAll()
                   + 수동: POST /api/internal/batch/sync (BatchAdminApiController)
     ↓
-NonPayItemSyncService → HiraNonPayClient.searchItemCodes (페이징)
-    └─► NonPayItem upsert (npay_cd PK, EntityManager.merge)
-    ↓
-HospitalSyncService → HiraHospitalClient.searchHospitals (시도 17 × 페이징)
-    └─► Hospital upsert (ykiho PK) + native UPDATE location = ST_MakePoint(...)
-    ↓
-PriceSyncService → hospitalRepository.findAllYkiho() (DB의 ykiho 직접 순회)
-    └─► PriceYkihoSyncService.saveOneYkiho(ykiho) per ykiho — 트랜잭션 분리
-        └─► HiraNonPayClient.searchHospPriceDetail(ykiho, page) (페이징)
-            └─► Price upsert (ykiho+npay_cd 복합키, adt_end_dd='99991231'만)
+BatchService가 hiraBatchExecutor로 7개 작업 dispatch
+    ├─ NonPayItemSyncService          → NonPayItem upsert
+    ├─ HospitalSyncService            → Hospital upsert + location native UPDATE
+    ├─ NonPayItemDescSyncService      → NonPayItemDesc upsert
+    ├─ PriceSummarySyncService        → PriceSummary upsert
+    ├─ NonPayItemClcdStatSyncService  → NonPayItemClcdStat long table upsert
+    ├─ NonPayItemSidoStatSyncService  → NonPayItemSidoStat long table upsert
+    └─ PriceSyncService               → Hospital 완료 후 findAllYkiho() 기반 Price upsert
 
-* 외부 API 호출 사이 Thread.sleep(100) — rate limit 보호
+* Price만 Hospital 결과에 의존한다. getNonPaymentItemHospDtlList 입력값이 ykiho이기 때문이다.
+* 각 SyncService는 외부 API 호출과 DB write 트랜잭션을 분리한다.
+* DB write는 페이지/청크/ykiho writer에서 REQUIRES_NEW로 실행하고 flush/clear한다.
 * 개별 항목/페이지 실패는 log.warn + 계속 진행 (예외 전파 금지)
-* getNonPaymentItemHospList2(가격 요약)는 page 2부터 timeout 빈발로 폐기 — Hospital ykiho 직접 사용
-* PriceSyncService는 100 ykiho마다 진행률 로그 (reporting/empty 구분)
+* PriceSyncService는 진행률 로그에서 processed/saved/reporting/empty를 구분한다.
+* 다음 개선안: Hospital producer가 ykiho를 queue에 publish하고 Price worker가 즉시 소비하는 파이프라인.
 ```
 
 ## 실시간 외부 호출 (병원 상세)
@@ -133,12 +134,13 @@ PriceSyncService → hospitalRepository.findAllYkiho() (DB의 ykiho 직접 순�
 ```
 GET /api/hospitals/{ykiho} → HospitalDetailService.lookupDetail(ykiho)
     ├── DB: Hospital + Price(adt_end_dd='99991231' 필터) + NonPayItemService.lookupNamesByCodes(이름 매핑)
-    └── HiraDetailClient.fetchAll(ykiho) — 4개 API CompletableFuture.allOf
+    └── HiraDetailClient.fetchAll(ykiho) — 5개 API CompletableFuture.allOf
         ├── getDgsbjtInfo2.7    (진료과목)
         ├── getMedOftInfo2.7    (의료장비)
-        ├── getTrnsprtInfo2.7   (교통, Optional 단일 item)
+        ├── getTrnsprtInfo2.7   (대중교통, 복수 row)
+        ├── getDtlInfo2.7       (주차/진료시간/응급)
         └── getSpclDiagInfo2.7  (특수진료)
-            * hiraDetailExecutor 풀 (core 4 / max 8)
+            * hiraDetailExecutor 풀 (core 5 / max 10)
             * 개별 API 실패는 빈 리스트 fallback
 ```
 
@@ -179,10 +181,10 @@ GET /api/hospitals/{ykiho} → HospitalDetailService.lookupDetail(ykiho)
 - `Hospital.location`은 JTS Point 매핑 회피 — JPA에 매핑 X, native UPDATE로 `ST_MakePoint(x,y)::geography` 채움.
 
 ### Batch
-- 평면 배치 — sync 서비스 4개 + Orchestrator + 디버그 트리거 + SidoCode 모두 `batch/` 한 폴더.
+- 기능 기준 패키지 — `admin`, `orchestrator`, `hospital`, `item`, `price`, `summary`, `stat`, `support`로 분리한다.
 - write 책임은 도메인이 아닌 batch가 가짐 (도메인 service는 read 위주).
-- 트랜잭션 경계: Price만 ykiho당 분리(`PriceYkihoSyncService.saveOneYkiho`), 나머지는 전체 sync 한 트랜잭션.
-- 외부 API 회복력: 단발 호출 + try-catch 빈 결과 fallback. 회로차단기 미적용 (TODO).
+- 트랜잭션 경계: 외부 API 호출과 DB write를 분리하고, 페이지/청크/ykiho 단위 writer에서 `REQUIRES_NEW`를 사용한다.
+- 외부 API 회복력: endpoint별 retry/backoff + 실패 격리. 회로차단기는 미적용 (TODO).
 
 ## ApiResponse — 공통 응답 DTO
 
@@ -225,7 +227,7 @@ if (result.success) {
 
 | 테스트 | 검증 |
 |---|---|
-| `service/HospitalDetailServiceTest` | 병원 없음 → 예외, Price 활성 필터, 코드→이름 매핑 fallback, bundle null 필터링, trnsprt Optional |
+| `service/HospitalDetailServiceTest` | 병원 없음 → 예외, Price 활성 필터, 코드→이름 매핑 fallback, 상세 bundle null 필터링 |
 | `service/HospitalServiceTest` | 정상 JSON 파싱, null/blank/파싱실패 모두 빈 리스트 (장애 격리) |
 | `service/NonPayItemServiceTest` | 그룹핑+활성+가나다순, 빈 코드 리스트, 일부 미존재 코드 |
 | `global/exception/GlobalExceptionHandlerTest` | 5xx vs 4xx 분기, BindException 첫 필드에러, MissingParam detail, RuntimeException 격상 |
@@ -235,12 +237,12 @@ if (result.success) {
 | `client/hira/HiraBodyTest` | empty 팩토리, safeItems null 처리 |
 | `client/hira/NonPayDtlItemTest` | isActive 99991231/과거/null |
 
-총 45 테스트 (`./gradlew test`). 메서드명은 영문 camelCase + 한 줄 한국어 javadoc으로 의도 표시.
+총 94 테스트 (`./gradlew test`). 메서드명은 영문 camelCase + 한 줄 한국어 javadoc으로 의도 표시.
 
 **의존성**: JUnit 5 BOM + Mockito 5.20 + AssertJ 3.27 + junit-jupiter-params.
 
 **커버리지 공백 (별도 인프라 필요)**:
-- 배치 sync 5개 — Testcontainers Postgres + WireMock 필요
+- 배치 sync 통합 검증 — Testcontainers Postgres + WireMock 필요
 - 컨트롤러 3개 — `@WebMvcTest` + MockMvc 필요
 - Repository — `@DataJpaTest` + Testcontainers + PostGIS 필요
-- HiraDetailClient 병렬 호출 — WireMock 필요
+- 전체 배치 병렬 orchestration — executor/의존성 순서 검증 필요
