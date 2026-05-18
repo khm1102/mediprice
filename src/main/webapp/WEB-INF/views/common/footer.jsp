@@ -1,4 +1,3 @@
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 </main>
 
 <footer class="bg-white border-t border-gray-100 mt-auto">
