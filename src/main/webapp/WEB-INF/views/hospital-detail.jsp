@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <c:set var="pageTitle" value="병원 상세" />
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
@@ -36,7 +37,7 @@
     <div id="state-content" class="hidden space-y-3">
 
         <%-- 뒤로가기 --%>
-        <a id="back-btn" href="/hospitals"
+        <a id="back-btn" href="<c:url value="/hospitals"/>"
            class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563EB] transition-colors min-h-[44px] -ml-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
