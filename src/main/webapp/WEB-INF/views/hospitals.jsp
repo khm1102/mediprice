@@ -11,7 +11,7 @@
 
 <style>
     html, body { overflow: hidden; height: 100%; }
-    main { min-height: 0; }
+    main { height: calc(100vh - 3.5rem); min-height: 0; overflow: hidden; }
 
     .hospitals-grid {
         display: grid;
@@ -30,7 +30,8 @@
     #panel-detail {
         position: fixed;
         left: 0; right: 0; bottom: 0;
-        height: 75vh;
+        top: 3.5rem;
+        height: auto;
         z-index: 200;
         background: #F2F4F6;
         border-radius: 20px 20px 0 0;
@@ -69,7 +70,7 @@
         /* ── 상세 패널: 데스크톱 ── */
         #panel-detail {
             position: fixed;
-            top: 56px; left: 400px; bottom: 0;
+            top: 3.5rem; left: 400px; bottom: 0;
             right: auto;
             width: 380px;
             height: auto;

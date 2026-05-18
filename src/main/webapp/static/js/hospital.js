@@ -95,24 +95,47 @@ const renderHospitalCard = (hospital, isCheapest = false) => {
     const lat = hospital.lat ?? 0;
     const lng = hospital.lng ?? 0;
     const onclick = `showHospitalInPanel('${hospital.ykiho}', ${hospital.distance ?? 0}, '${encodeURIComponent(_kw)}', ${lat}, ${lng})`;
+    const ykihoEsc = hospital.ykiho.replace(/'/g, "\\'");
 
     return `
         <div onclick="${onclick}"
            data-ykiho="${hospital.ykiho}"
-           class="block hover:opacity-90 transition-all cursor-pointer"
+           data-cheapest="${isCheapest}"
+           class="hospital-card block hover:opacity-90 transition-all cursor-pointer"
            style="${shadowStyle}; border-radius: 1rem;">
             ${cheapestBanner}
             <div class="bg-white ${cardRadius} p-4 min-h-[76px]">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-gray-900 text-sm truncate">${hospital.yadmNm ?? ''}</p>
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <p class="font-semibold text-gray-900 text-sm truncate">${hospital.yadmNm ?? ''}</p>
+                            <span class="fav-badge hidden flex-shrink-0 whitespace-nowrap"
+                                  style="font-size:10px;font-weight:600;color:#F59E0B;background:#FFFBEB;
+                                         border:1px solid #FDE68A;padding:2px 6px;border-radius:9999px;">
+                                ★ 저장됨
+                            </span>
+                        </div>
                         <p class="text-xs text-gray-400 mt-0.5">${hospital.clCdNm ?? ''}</p>
                         <p class="text-xs text-gray-400 mt-1 truncate">${hospital.addr ?? ''}</p>
                         ${priceText}
                     </div>
-                    <span class="text-xs text-gray-400 font-medium flex-shrink-0 mt-0.5">
-                        ${formatDistance(hospital.distance)}
-                    </span>
+                    <div class="flex items-center gap-0.5 flex-shrink-0">
+                        <span class="text-xs text-gray-400 font-medium">${formatDistance(hospital.distance)}</span>
+                        <button onclick="handleFavoriteClick('${ykihoEsc}', this, event)"
+                                data-ykiho="${hospital.ykiho}"
+                                data-favorited="false"
+                                class="fav-btn p-1 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
+                                title="즐겨찾기 추가">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                                         00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -174,6 +197,7 @@ const renderHospitalResults = (keyword, sorted) => {
         const list = document.getElementById('hospital-list');
         list.innerHTML = sorted.map((h, i) => renderHospitalCard(h, i === 0)).join('');
         showState(null);
+        loadFavoriteStates();
 
         // 지도 마커 — 핀 클릭 시 왼쪽 목록에서 카드 강조
         const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
@@ -192,10 +216,19 @@ const renderHospitalResults = (keyword, sorted) => {
 
 let _highlightedYkiho = null;
 
+const _defaultCardShadow = (card) => {
+    const isCheapest  = card.dataset.cheapest === 'true';
+    const isFavorited = card.querySelector('.fav-btn')?.dataset.favorited === 'true';
+    if (isCheapest && isFavorited) return '0 0 0 2px #2563EB, 0 0 0 4px rgba(245,158,11,0.4), 0 4px 16px rgba(37,99,235,0.18)';
+    if (isCheapest)  return '0 0 0 2px #2563EB, 0 4px 16px rgba(37,99,235,0.18)';
+    if (isFavorited) return '0 0 0 2px #F59E0B, 0 4px 16px rgba(245,158,11,0.18)';
+    return '0 2px 10px rgba(0,0,0,0.09)';
+};
+
 const clearHospitalHighlight = () => {
     if (!_highlightedYkiho) return;
-    const prev = document.querySelector(`[data-ykiho="${_highlightedYkiho}"]`);
-    if (prev) prev.style.boxShadow = '0 2px 10px rgba(0,0,0,0.09)';
+    const prev = document.querySelector(`.hospital-card[data-ykiho="${_highlightedYkiho}"]`);
+    if (prev) prev.style.boxShadow = _defaultCardShadow(prev);
     _highlightedYkiho = null;
 };
 
@@ -206,7 +239,7 @@ const highlightHospitalCard = (ykiho) => {
     // 이전 강조 제거
     clearHospitalHighlight();
 
-    const card = document.querySelector(`[data-ykiho="${ykiho}"]`);
+    const card = document.querySelector(`.hospital-card[data-ykiho="${ykiho}"]`);
     if (!card) return;
 
     _highlightedYkiho = ykiho;
@@ -424,6 +457,82 @@ const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
         } else {
             document.getElementById('pd-price-empty')?.classList.remove('hidden');
         }
+    }
+};
+
+// ── 즐겨찾기 버튼 ───────────────────────────────────────────────────────────────
+
+const updateFavBtn = (btnEl, isFav) => {
+    btnEl.dataset.favorited = isFav ? 'true' : 'false';
+    btnEl.title = isFav ? '즐겨찾기 해제' : '즐겨찾기 추가';
+    if (isFav) {
+        btnEl.classList.add('text-yellow-400');
+        btnEl.classList.remove('text-gray-300', 'hover:text-yellow-400', 'hover:bg-yellow-50');
+        btnEl.classList.add('hover:text-yellow-500', 'hover:bg-yellow-50');
+    } else {
+        btnEl.classList.remove('text-yellow-400', 'hover:text-yellow-500');
+        btnEl.classList.add('text-gray-300', 'hover:text-yellow-400', 'hover:bg-yellow-50');
+    }
+
+    // 카드 전체 강조
+    const card = btnEl.closest('.hospital-card');
+    if (!card) return;
+
+    const isCheapest = card.dataset.cheapest === 'true';
+    const badge = card.querySelector('.fav-badge');
+    if (badge) badge.classList.toggle('hidden', !isFav);
+
+    card.style.boxShadow = isCheapest
+        ? '0 0 0 2px #2563EB, 0 4px 16px rgba(37,99,235,0.18)'
+        : '0 2px 10px rgba(0,0,0,0.09)';
+};
+
+const handleFavoriteClick = async (ykiho, btnEl, event) => {
+    event.stopPropagation();
+
+    // 비로그인 → 구글 로그인으로
+    if (!isLoggedIn()) {
+        window.location.href = '/auth/oauth2/authorize/google';
+        return;
+    }
+
+    const isFav = btnEl.dataset.favorited === 'true';
+
+    // 낙관적 UI 업데이트 (즉시 반영)
+    updateFavBtn(btnEl, !isFav);
+    btnEl.disabled = true;
+
+    try {
+        if (isFav) {
+            await api.delete('/api/favorites/' + encodeURIComponent(ykiho));
+        } else {
+            await api.post('/api/favorites', { ykiho });
+        }
+    } catch {
+        // 실패 시 원상복구
+        updateFavBtn(btnEl, isFav);
+    } finally {
+        btnEl.disabled = false;
+    }
+};
+
+const loadFavoriteStates = async () => {
+    if (!isLoggedIn()) return;
+
+    try {
+        const data = await api.get('/api/favorites');
+        if (!data.success) return;
+
+        const favoriteYkihos = new Set((data.data ?? []).map(f => f.ykiho));
+
+        document.querySelectorAll('.fav-btn').forEach(btn => {
+            const ykiho = btn.dataset.ykiho;
+            if (ykiho) {
+                updateFavBtn(btn, favoriteYkihos.has(ykiho));
+            }
+        });
+    } catch {
+        // 즐겨찾기 상태 로드 실패는 무시 (UI에 영향 없음)
     }
 };
 
