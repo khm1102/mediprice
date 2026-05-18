@@ -101,14 +101,31 @@ public class AppConfig {
                 .build();
     }
 
-    /** 의료기관 상세 4개 API 병렬 호출 전용 풀. 동시에 4개 future 처리 가정. */
+    /** 의료기관 상세 5개 API 병렬 호출 전용 풀. 동시에 5개 future 처리 가정. */
     @Bean(name = "hiraDetailExecutor")
     public Executor hiraDetailExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(8);
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("hira-detail-");
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * BatchService.syncAll이 7개 SyncService를 동시에 dispatch 하는 전용 풀.
+     * <p>
+     * 각 SyncService 내부는 자체 워커 풀을 띄우므로 본 풀의 스레드는 sync() 호출이 끝날 때까지
+     * 점유. 7개 동시 + chain된 Price 1개 → corePool 8로 여유.
+     */
+    @Bean(name = "hiraBatchExecutor")
+    public Executor hiraBatchExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("hira-batch-");
         executor.initialize();
         return executor;
     }

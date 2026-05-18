@@ -2,12 +2,13 @@ package com.khm1102.mediprice.client;
 
 import com.khm1102.mediprice.client.hira.HiraBody;
 import com.khm1102.mediprice.client.hira.HiraResponse;
+import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
 import com.khm1102.mediprice.client.hira.HospBasisItem;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.dataformat.xml.XmlMapper;
 
@@ -26,18 +27,21 @@ public class HiraHospitalClient {
 
     private final RestClient restClient;
     private final XmlMapper xmlMapper;
-    private final String serviceKey;
+    private final HiraServiceKeyProvider keyProvider;
 
     public HiraHospitalClient(
-            @Value("${hira.api-key}") String serviceKey,
+            HiraServiceKeyProvider keyProvider,
             XmlMapper hiraXmlMapper) {
-        this.serviceKey = serviceKey;
+        this.keyProvider = keyProvider;
         this.xmlMapper = hiraXmlMapper;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
         factory.setReadTimeout(Duration.ofSeconds(90));
+        // URI_COMPONENT: base64 인증키의 +/= 문자가 query component에서 깨지지 않게 인코딩한다.
+        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(BASE_URL);
+        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
         this.restClient = RestClient.builder()
-                .baseUrl(BASE_URL)
+                .uriBuilderFactory(uriFactory)
                 .requestFactory(factory)
                 .build();
     }
@@ -52,6 +56,7 @@ public class HiraHospitalClient {
     public HiraBody<HospBasisItem> searchHospitals(String sidoCd, String sgguCd, int pageNo, int numOfRows) {
         Exception lastError = null;
         for (int attempt = 0; attempt <= RETRY_BACKOFF_MS.length; attempt++) {
+            String serviceKey = keyProvider.next();
             try {
                 byte[] xml = restClient.get()
                         .uri(b -> {

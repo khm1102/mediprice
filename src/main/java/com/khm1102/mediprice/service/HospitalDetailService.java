@@ -8,6 +8,7 @@ import com.khm1102.mediprice.dto.HospitalDetailDto;
 import com.khm1102.mediprice.client.HiraDetailClient;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
 import com.khm1102.mediprice.client.hira.DgsbjtItem;
+import com.khm1102.mediprice.client.hira.DtlInfoItem;
 import com.khm1102.mediprice.client.hira.MedOftItem;
 import com.khm1102.mediprice.client.hira.NonPayDtlItem;
 import com.khm1102.mediprice.client.hira.SpclDiagItem;
@@ -20,12 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * 병원 상세 — DB(Hospital + Price + NonPayItem 매핑) + 의료기관 상세 4개 API 병합.
- * 4개 API는 {@link HiraDetailClient#fetchAll}로 병렬 호출.
+ * 병원 상세 — DB(Hospital + Price + NonPayItem 매핑) + 의료기관 상세 5개 API 병합.
+ * 5개 API는 {@link HiraDetailClient#fetchAll}로 병렬 호출.
  */
 @Service
 @Transactional(readOnly = true)
@@ -77,7 +79,9 @@ public class HospitalDetailService {
                 priceItems,
                 toDgsbjtNames(bundle.dgsbjtList()),
                 toMedOftNames(bundle.medOftList()),
-                toTrnsprtInfo(bundle.trnsprt()),
+                toTransitList(bundle.trnsprtList()),
+                toParkingInfo(bundle.dtlInfo()),
+                toOperatingInfo(bundle.dtlInfo()),
                 toSpclDiagNames(bundle.spclDiagList())
         );
     }
@@ -85,27 +89,51 @@ public class HospitalDetailService {
     private List<String> toDgsbjtNames(List<DgsbjtItem> items) {
         return items.stream()
                 .map(DgsbjtItem::dgsbjtCdNm)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private List<String> toMedOftNames(List<MedOftItem> items) {
         return items.stream()
-                .map(MedOftItem::medOftCdNm)
-                .filter(java.util.Objects::nonNull)
+                .map(MedOftItem::oftCdNm)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private List<String> toSpclDiagNames(List<SpclDiagItem> items) {
         return items.stream()
-                .map(SpclDiagItem::srvTpCdNm)
-                .filter(java.util.Objects::nonNull)
+                .map(SpclDiagItem::srchCdNm)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private HospitalDetailDto.TrnsprtInfo toTrnsprtInfo(Optional<TrnsprtItem> opt) {
-        return opt.map(t -> new HospitalDetailDto.TrnsprtInfo(
-                t.parkYn(), t.parkXpnsYn(), t.parkEtc(), t.trafInfo(), t.parkQty()
-        )).orElse(null);
+    private List<HospitalDetailDto.TransitItem> toTransitList(List<TrnsprtItem> items) {
+        return items.stream()
+                .map(t -> new HospitalDetailDto.TransitItem(
+                        t.trafNm(), t.lineNo(), t.arivPlc(), t.dir(), t.dist()))
+                .collect(Collectors.toList());
+    }
+
+    private HospitalDetailDto.ParkingInfo toParkingInfo(Optional<DtlInfoItem> opt) {
+        return opt.map(d -> {
+            if (d.parkQty() == null && d.parkXpnsYn() == null && d.parkEtc() == null) {
+                return null;
+            }
+            return new HospitalDetailDto.ParkingInfo(d.parkQty(), d.parkXpnsYn(), d.parkEtc());
+        }).orElse(null);
+    }
+
+    private HospitalDetailDto.OperatingInfo toOperatingInfo(Optional<DtlInfoItem> opt) {
+        return opt.map(d -> {
+            if (d.rcvWeek() == null && d.rcvSat() == null && d.lunchWeek() == null
+                    && d.noTrmtSun() == null && d.noTrmtHoli() == null
+                    && d.emyDayYn() == null && d.emyNgtYn() == null) {
+                return null;
+            }
+            return new HospitalDetailDto.OperatingInfo(
+                    d.rcvWeek(), d.rcvSat(), d.lunchWeek(),
+                    d.noTrmtSun(), d.noTrmtHoli(),
+                    d.emyDayYn(), d.emyNgtYn());
+        }).orElse(null);
     }
 }

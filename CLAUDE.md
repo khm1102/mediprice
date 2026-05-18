@@ -162,12 +162,28 @@ DatabaseInitializer (@Component + @PostConstruct)
 
 ```
 batch/ 패키지 — 심평원 데이터 초기 적재 및 갱신
-  HospitalSyncService    병원 기본 정보
-  NonPayItemSyncService  비급여 항목 코드
-  PriceSyncService       비급여 가격
+  ├─ admin/          BatchAdminApiController
+  ├─ orchestrator/   BatchService
+  ├─ hospital/       HospitalSyncService + HospitalBatchWriter
+  ├─ item/           NonPayItem / NonPayItemDesc sync + writer
+  ├─ price/          PriceSyncService + PriceYkihoSyncService
+  ├─ summary/        PriceSummary sync + writer
+  ├─ stat/           ClcdStat / SidoStat sync + writer
+  └─ support/        SidoCode 등 공통 배치 코드
 
-BatchAdminApiController  /api/admin/batch/** → 수동 트리거 엔드포인트
+BatchAdminApiController  /api/internal/batch/sync{, /prices, /desc, /summary, /clcd-stat, /sido-stat}
   (운영 중 데이터 갱신 시 사용)
+
+전체 배치는 hiraBatchExecutor에서 병렬 dispatch한다.
+단, PriceSyncService는 getNonPaymentItemHospDtlList 호출에 Hospital.ykiho가 필요하므로
+Hospital 완료 뒤에 실행한다. 다음 개선 방향은 Hospital producer가 ykiho를 queue로 흘리고
+Price worker가 즉시 소비하는 파이프라인이다.
+
+각 SyncService는 외부 API 호출과 DB write 트랜잭션을 분리한다. 페이지/청크/ykiho writer에서
+REQUIRES_NEW로 저장하고 flush/clear하여 장시간 connection 점유를 피한다.
+
+다중 API 키: HiraServiceKeyProvider가 HIRA_API_KEYS(콤마 구분) + HIRA_API_KEY(fallback)을
+            라운드로빈으로 분배해 일일 호출 한도(키당 10,000건) 회피.
 ```
 
 ### 3.7 분산 추적
@@ -501,8 +517,10 @@ JWT_EXPIRATION=86400000
 # 네이버맵
 NAVER_MAP_KEY=your-naver-key
 
-# 심평원 API
+# 심평원 API — 단일 키 fallback
 HIRA_API_KEY=your-hira-key
+# 심평원 API — 다중 키 (콤마 구분, 라운드로빈). 일일 한도 10,000건/키 회피용.
+HIRA_API_KEYS=key1,key2,key3,key4,key5
 
 # 캐시
 CACHE_TTL_SECONDS=3600

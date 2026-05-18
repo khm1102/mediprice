@@ -27,7 +27,14 @@ naver:
   map-key: ${NAVER_MAP_KEY:}
 
 hira:
+  # 단일 키 fallback. 다중 키 운영 시 hira.api-keys 권장.
   api-key: ${HIRA_API_KEY:your-hira-key}
+  # 콤마 구분 다중 키. 일일 한도(키당 10,000건) 회피 목적. 비어있으면 api-key 단독 사용.
+  api-keys: ${HIRA_API_KEYS:}
+  # 의료기관별상세정보서비스 base URL — 테스트에서 WireMock 주소로 오버라이드 가능
+  detail-base-url: ${HIRA_DETAIL_BASE_URL:http://apis.data.go.kr/B551182/MadmDtlInfoService2.7}
+  # 비급여진료비정보서비스 base URL — 테스트에서 WireMock 주소로 오버라이드 가능
+  nonpay-base-url: ${HIRA_NONPAY_BASE_URL:http://apis.data.go.kr/B551182/nonPaymentDamtInfoService}
 
 cache:
   # 주의: ConcurrentMapCacheManager는 TTL 미지원. 이 값은 현재 적용되지 않음

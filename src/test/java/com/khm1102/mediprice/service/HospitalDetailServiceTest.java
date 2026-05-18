@@ -3,6 +3,7 @@ package com.khm1102.mediprice.service;
 import com.khm1102.mediprice.client.HiraDetailClient;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
 import com.khm1102.mediprice.client.hira.DgsbjtItem;
+import com.khm1102.mediprice.client.hira.DtlInfoItem;
 import com.khm1102.mediprice.client.hira.MedOftItem;
 import com.khm1102.mediprice.client.hira.SpclDiagItem;
 import com.khm1102.mediprice.client.hira.TrnsprtItem;
@@ -82,9 +83,9 @@ class HospitalDetailServiceTest {
                 .containsExactly("박피술", "N999");
     }
 
-    /** 4개 외부 API 결과 병합 — null cdNm 항목은 제거, trnsprt Optional은 record로 변환. */
+    /** 진료과목·의료장비·특수진료는 *CdNm null인 항목 제거. */
     @Test
-    void mergesBundleFiltersNullsAndConvertsTrnsprt() {
+    void filtersOutNullNamesFromCodeLists() {
         givenHospital();
         when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
@@ -92,7 +93,8 @@ class HospitalDetailServiceTest {
         HospitalDetailBundle bundle = new HospitalDetailBundle(
                 List.of(new DgsbjtItem("01", "내과", null), new DgsbjtItem("99", null, null)),
                 List.of(new MedOftItem("M1", "MRI", 1), new MedOftItem("M2", null, null)),
-                Optional.of(new TrnsprtItem("Y", "N", "주차2시간무료", "지하철 2호선", "20")),
+                List.of(),
+                Optional.empty(),
                 List.of(new SpclDiagItem("S1", "응급의료센터"), new SpclDiagItem("S2", null))
         );
         when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
@@ -102,14 +104,88 @@ class HospitalDetailServiceTest {
         assertThat(dto.dgsbjtList()).containsExactly("내과");
         assertThat(dto.medOftList()).containsExactly("MRI");
         assertThat(dto.spclDiagList()).containsExactly("응급의료센터");
-        assertThat(dto.trnsprtInfo()).isNotNull();
-        assertThat(dto.trnsprtInfo().parkYn()).isEqualTo("Y");
-        assertThat(dto.trnsprtInfo().trafInfo()).isEqualTo("지하철 2호선");
     }
 
-    /** 교통정보 응답 자체가 빈 경우 → trnsprtInfo는 null (응답에서 통째 생략됨). */
+    /** 교통 정보 복수 row를 그대로 TransitItem 리스트로 변환. */
     @Test
-    void leavesTrnsprtInfoNullWhenBundleHasNone() {
+    void mapsTrnsprtListToTransitItems() {
+        givenHospital();
+        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
+        when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
+
+        HospitalDetailBundle bundle = new HospitalDetailBundle(
+                List.of(), List.of(),
+                List.of(
+                        new TrnsprtItem("지하철", "5호선", "서대문역", "4번 출구", "도보 5분"),
+                        new TrnsprtItem("시내버스", "710", "병원 앞", "-", "50m")
+                ),
+                Optional.empty(), List.of()
+        );
+        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+
+        HospitalDetailDto dto = service.lookupDetail(YKIHO);
+
+        assertThat(dto.transitList()).hasSize(2);
+        assertThat(dto.transitList().get(0).trafNm()).isEqualTo("지하철");
+        assertThat(dto.transitList().get(0).lineNo()).isEqualTo("5호선");
+        assertThat(dto.transitList().get(1).trafNm()).isEqualTo("시내버스");
+    }
+
+    /** DtlInfo가 있으면 parkingInfo와 operatingInfo로 분리 매핑. */
+    @Test
+    void splitsDtlInfoIntoParkingAndOperating() {
+        givenHospital();
+        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
+        when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
+
+        DtlInfoItem dtl = new DtlInfoItem(
+                "298", "Y", "당일 8시간",
+                "08:00 ~ 17:00", "08:00 ~ 12:00", "12:30 ~ 13:30",
+                "휴진", "휴진", "Y", "Y"
+        );
+        HospitalDetailBundle bundle = new HospitalDetailBundle(
+                List.of(), List.of(), List.of(), Optional.of(dtl), List.of()
+        );
+        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+
+        HospitalDetailDto dto = service.lookupDetail(YKIHO);
+
+        assertThat(dto.parkingInfo()).isNotNull();
+        assertThat(dto.parkingInfo().parkQty()).isEqualTo("298");
+        assertThat(dto.parkingInfo().parkXpnsYn()).isEqualTo("Y");
+
+        assertThat(dto.operatingInfo()).isNotNull();
+        assertThat(dto.operatingInfo().rcvWeek()).isEqualTo("08:00 ~ 17:00");
+        assertThat(dto.operatingInfo().emyDayYn()).isEqualTo("Y");
+    }
+
+    /** 주차 필드 3개가 모두 null이면 ParkingInfo 자체를 null로 — 프론트가 섹션 통째로 숨길 수 있게. */
+    @Test
+    void parkingInfoIsNullWhenAllParkFieldsNull() {
+        givenHospital();
+        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
+        when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
+
+        DtlInfoItem dtl = new DtlInfoItem(
+                null, null, null,
+                "08:00 ~ 17:00", null, null,
+                null, null, null, null
+        );
+        HospitalDetailBundle bundle = new HospitalDetailBundle(
+                List.of(), List.of(), List.of(), Optional.of(dtl), List.of()
+        );
+        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+
+        HospitalDetailDto dto = service.lookupDetail(YKIHO);
+
+        assertThat(dto.parkingInfo()).isNull();
+        assertThat(dto.operatingInfo()).isNotNull();
+        assertThat(dto.operatingInfo().rcvWeek()).isEqualTo("08:00 ~ 17:00");
+    }
+
+    /** DtlInfo 응답 자체가 없으면 parkingInfo와 operatingInfo 모두 null. */
+    @Test
+    void parkingAndOperatingNullWhenDtlInfoMissing() {
         givenHospital();
         when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
@@ -117,7 +193,9 @@ class HospitalDetailServiceTest {
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
-        assertThat(dto.trnsprtInfo()).isNull();
+        assertThat(dto.parkingInfo()).isNull();
+        assertThat(dto.operatingInfo()).isNull();
+        assertThat(dto.transitList()).isEmpty();
     }
 
     private Hospital sampleHospital;
@@ -149,6 +227,6 @@ class HospitalDetailServiceTest {
     }
 
     private static HospitalDetailBundle emptyBundle() {
-        return new HospitalDetailBundle(List.of(), List.of(), Optional.empty(), List.of());
+        return new HospitalDetailBundle(List.of(), List.of(), List.of(), Optional.empty(), List.of());
     }
 }

@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * {@code GET /api/hospitals/{ykiho}} 응답.
  * <p>
- * DB(Hospital + Price + NonPayItem 매칭) + 의료기관 상세 4개 API 결과 병합.
+ * DB(Hospital + Price + NonPayItem 매칭) + 의료기관 상세 5개 API 결과 병합.
  */
 public record HospitalDetailDto(
         String ykiho,
@@ -18,13 +18,31 @@ public record HospitalDetailDto(
         List<PriceItem> prices,
         List<String> dgsbjtList,
         List<String> medOftList,
-        TrnsprtInfo trnsprtInfo,
+        List<TransitItem> transitList,
+        ParkingInfo parkingInfo,
+        OperatingInfo operatingInfo,
         List<String> spclDiagList
 ) {
 
     public record PriceItem(String npayCd, String npayKorNm, Long curAmt) {
     }
 
-    public record TrnsprtInfo(String parkYn, String parkXpnsYn, String parkEtc, String trafInfo, String parkQty) {
+    /** 대중교통 1건 (지하철/버스 노선). */
+    public record TransitItem(String trafNm, String lineNo, String arivPlc, String dir, String dist) {
+    }
+
+    /** 주차 정보 (모든 필드 null이면 DTO 자체가 null). */
+    public record ParkingInfo(String parkQty, String parkXpnsYn, String parkEtc) {
+    }
+
+    /** 진료시간 + 응급 운영 (모든 필드 null이면 DTO 자체가 null). */
+    public record OperatingInfo(
+            String rcvWeek,
+            String rcvSat,
+            String lunchWeek,
+            String noTrmtSun,
+            String noTrmtHoli,
+            String emyDayYn,
+            String emyNgtYn) {
     }
 }
