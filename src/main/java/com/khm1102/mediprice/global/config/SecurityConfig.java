@@ -3,6 +3,7 @@ package com.khm1102.mediprice.global.config;
 import com.khm1102.mediprice.global.common.ApiResponse;
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.filter.AuthAttributeNames;
+import com.khm1102.mediprice.global.filter.JwtAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
@@ -19,6 +20,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -48,12 +50,14 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JsonMapper jsonMapper;
+    private final JwtAuthFilter jwtAuthFilter;
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
-    public SecurityConfig(JsonMapper jsonMapper) {
+    public SecurityConfig(JsonMapper jsonMapper, JwtAuthFilter jwtAuthFilter) {
         this.jsonMapper = jsonMapper;
+        this.jwtAuthFilter = jwtAuthFilter;
     }
 
     /**
@@ -70,7 +74,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/token/guest",  // P2 비회원 토큰 발급용 (현 MVP 미구현)
+                                "/api/auth/token/guest",
+                                "/api/auth/logout",
                                 "/api/hospitals/**",
                                 "/api/items",
                                 "/api/health",
@@ -81,7 +86,8 @@ public class SecurityConfig {
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(apiAuthenticationEntryPoint())
                         .accessDeniedHandler(apiAccessDeniedHandler())
-                );
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
