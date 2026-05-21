@@ -40,7 +40,7 @@
         position: fixed;
         left: 0; right: 0; bottom: 0;
         top: 3.5rem;
-        z-index: 200;
+        z-index: 300;
         background: #F2F4F6;
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -4px 24px rgba(0,0,0,0.13);
@@ -55,7 +55,7 @@
         display: none;
         position: fixed; inset: 0;
         background: rgba(0,0,0,0.25);
-        z-index: 199;
+        z-index: 299;
     }
     #pd-backdrop.open { display: block; }
 
@@ -88,6 +88,7 @@
         }
         #panel-detail.open { transform: translateX(0); }
         #pd-backdrop { display: none !important; }
+        #panel-detail { z-index: 50; }
     }
 </style>
 
@@ -210,10 +211,10 @@
                         <span id="pd-distance" class="text-sm font-semibold text-[#2563EB] bg-blue-50 px-2.5 py-1 rounded-lg"></span>
                         <button id="pd-fav-btn"
                                 data-ykiho=""
-                                data-favorited="false"
-                                onclick="handleFavoriteClick(this.dataset.ykiho, this, event)"
-                                class="fav-btn p-1.5 rounded-xl transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
-                                title="즐겨찾기 추가">
+                                data-favorited="true"
+                                onclick="handleFavoritesRemove(this.dataset.ykiho, event)"
+                                class="fav-btn p-1.5 rounded-xl transition-colors text-yellow-400 hover:text-yellow-500 hover:bg-yellow-50"
+                                title="즐겨찾기 해제">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
                                          00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0

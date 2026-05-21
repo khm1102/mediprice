@@ -138,6 +138,27 @@ const highlightMarker = (ykiho) => {
     marker.setZIndex(20);
 };
 
+/** 개별 마커 제거 (즐겨찾기 해제 시 사용) */
+const removeMarkerByYkiho = (ykiho) => {
+    if (_highlightedMarkerYkiho === ykiho) {
+        _highlightedMarkerYkiho = null;
+    }
+    const marker = _markerByYkiho[ykiho];
+    if (!marker) return;
+    marker.setMap(null);
+    const idx = markers.indexOf(marker);
+    if (idx !== -1) markers.splice(idx, 1);
+    delete _markerByYkiho[ykiho];
+    delete _markerDataByYkiho[ykiho];
+
+    // 클러스터링 재빌드 (마커가 남아 있는 경우)
+    if (_markerClustering) {
+        _markerClustering.setMap(null);
+        _markerClustering = null;
+    }
+    if (markers.length > 0) initClustering();
+};
+
 /** 지도 중심 이동 + 확대 */
 const focusMapOnHospital = (lat, lng) => {
     if (!naverMap || !lat || !lng) return;

@@ -71,9 +71,9 @@ const renderFavoriteCard = (f) => {
                     <p class="text-xs text-gray-400 mt-1 truncate">${escapeHtml(f.address || '')}</p>
                     ${f.telNo ? `<p class="text-xs text-[#2563EB] mt-1">${escapeHtml(f.telNo)}</p>` : ''}
                 </div>
-                <button onclick="handleRemoveFavorite('${ykihoEsc}', event)"
-                        class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
-                        title="즐겨찾기 삭제">
+                <button onclick="handleFavoritesRemove('${ykihoEsc}', event)"
+                        class="flex-shrink-0 p-1.5 text-yellow-400 hover:text-yellow-500 transition-colors rounded-lg hover:bg-yellow-50"
+                        title="즐겨찾기 해제">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
                                  00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
@@ -110,14 +110,24 @@ const addFavoriteMarkers = (favorites) => {
     }
 };
 
-const handleRemoveFavorite = async (ykiho, event) => {
+// 즐겨찾기 해제 공통 처리 (카드 버튼 & 상세 패널 별 버튼 공용)
+const handleFavoritesRemove = async (ykiho, event) => {
     event.stopPropagation();
     if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
 
     try {
         await api.delete(`/api/favorites/${encodeURIComponent(ykiho)}`);
 
-        // 카드 제거 (애니메이션)
+        // 상세 패널이 해당 병원으로 열려 있으면 닫기
+        const pdFavBtn = document.getElementById('pd-fav-btn');
+        if (pdFavBtn?.dataset.ykiho === ykiho) {
+            showHospitalList();
+        }
+
+        // 지도 마커 제거
+        removeMarkerByYkiho?.(ykiho);
+
+        // 카드 제거 (fade-out 애니메이션)
         const card = document.querySelector(`.hospital-card[data-ykiho="${ykiho}"]`);
         if (card) {
             card.style.transition = 'opacity 0.2s';
@@ -133,7 +143,6 @@ const handleRemoveFavorite = async (ykiho, event) => {
                     listEl.classList.add('hidden');
                     countEl.classList.add('hidden');
                     document.getElementById('empty-state').classList.remove('hidden');
-                    showHospitalList();
                 } else {
                     countEl.textContent = `총 ${remaining}개`;
                 }
