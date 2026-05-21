@@ -130,4 +130,49 @@
     </div>
 </header>
 
+<%-- 쿠키 사용 동의 배너 (localStorage로 표시 여부 관리) --%>
+<div id="cookie-banner"
+     class="hidden fixed bottom-0 left-0 right-0 z-[200] px-4 py-3 bg-gray-900/95 backdrop-blur-sm"
+     style="border-top: 1px solid rgba(255,255,255,0.08);">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div class="flex items-start gap-2.5 flex-1 min-w-0">
+            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-xs text-gray-300 leading-relaxed">
+                MediPrice는 서비스 제공 및 보안을 위해 쿠키(JWT 인증 토큰)를 사용합니다.
+                자세한 내용은
+                <a href="/legal/privacy" class="text-blue-400 hover:underline">개인정보처리방침</a>을 참조하세요.
+            </p>
+        </div>
+        <button id="cookie-accept-btn"
+                onclick="acceptCookies()"
+                class="flex-shrink-0 text-xs font-semibold bg-[#2563EB] hover:bg-blue-700
+                       text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+            확인
+        </button>
+    </div>
+</div>
+
+<script>
+    (() => {
+        if (!localStorage.getItem('cookie_consent_accepted')) {
+            const banner = document.getElementById('cookie-banner');
+            if (banner) banner.classList.remove('hidden');
+        }
+    })();
+
+    const acceptCookies = () => {
+        localStorage.setItem('cookie_consent_accepted', '1');
+        const banner = document.getElementById('cookie-banner');
+        if (banner) {
+            banner.style.transition = 'opacity 0.3s, transform 0.3s';
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(8px)';
+            setTimeout(() => banner.remove(), 320);
+        }
+    };
+</script>
+
 <main class="flex-1">
