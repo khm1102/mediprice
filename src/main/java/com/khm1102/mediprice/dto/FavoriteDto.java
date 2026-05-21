@@ -6,6 +6,8 @@ public record FavoriteDto(
         String address,
         String clCdNm,
         String telNo,
-        long favoritedAt
+        long favoritedAt,
+        Double lat,
+        Double lng
 ) {
 }
