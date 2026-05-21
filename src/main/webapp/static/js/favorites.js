@@ -110,10 +110,51 @@ const addFavoriteMarkers = (favorites) => {
     }
 };
 
-// 즐겨찾기 해제 공통 처리 (카드 버튼 & 상세 패널 별 버튼 공용)
-const handleFavoritesRemove = async (ykiho, event) => {
+// ── 즐겨찾기 삭제 다이얼로그 ─────────────────────────────────────────────────
+
+let _pendingRemoveYkiho = null;
+
+const handleFavoritesRemove = (ykiho, event) => {
     event.stopPropagation();
-    if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
+    _pendingRemoveYkiho = ykiho;
+
+    // 병원명 표시 (_hospitalMap은 hospital.js에서 관리)
+    const name = _hospitalMap?.[ykiho]?.yadmNm ?? '';
+    const nameEl = document.getElementById('frd-name');
+    if (nameEl) nameEl.textContent = name;
+
+    const dialog = document.getElementById('fav-remove-dialog');
+    if (dialog) {
+        dialog.classList.add('open');
+    }
+};
+
+const closeFavRemoveDialog = () => {
+    _pendingRemoveYkiho = null;
+    const dialog = document.getElementById('fav-remove-dialog');
+    const card   = document.getElementById('frd-card');
+    if (!dialog) return;
+
+    // 카드 닫힘 애니메이션 후 숨기기
+    if (card) {
+        card.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+        card.style.transform  = 'scale(0.88) translateY(8px)';
+        card.style.opacity    = '0';
+    }
+    setTimeout(() => {
+        dialog.classList.remove('open');
+        if (card) {
+            card.style.transition = '';
+            card.style.transform  = '';
+            card.style.opacity    = '';
+        }
+    }, 180);
+};
+
+const confirmFavRemove = async () => {
+    const ykiho = _pendingRemoveYkiho;
+    closeFavRemoveDialog();
+    if (!ykiho) return;
 
     try {
         await api.delete(`/api/favorites/${encodeURIComponent(ykiho)}`);
@@ -127,17 +168,18 @@ const handleFavoritesRemove = async (ykiho, event) => {
         // 지도 마커 제거
         removeMarkerByYkiho?.(ykiho);
 
-        // 카드 제거 (fade-out 애니메이션)
+        // 카드 fade-out 후 제거
         const card = document.querySelector(`.hospital-card[data-ykiho="${ykiho}"]`);
         if (card) {
-            card.style.transition = 'opacity 0.2s';
-            card.style.opacity = '0';
+            card.style.transition = 'opacity 0.2s, transform 0.2s';
+            card.style.opacity    = '0';
+            card.style.transform  = 'scale(0.96)';
             setTimeout(() => {
                 card.remove();
 
                 const remaining = document.querySelectorAll('#favorites-list > div').length;
-                const listEl = document.getElementById('favorites-list');
-                const countEl = document.getElementById('favorite-count');
+                const listEl    = document.getElementById('favorites-list');
+                const countEl   = document.getElementById('favorite-count');
 
                 if (remaining === 0) {
                     listEl.classList.add('hidden');

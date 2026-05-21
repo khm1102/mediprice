@@ -69,12 +69,12 @@
         }
         .panel-left {
             position: relative;
-            z-index: 10;
+            z-index: 40;
             box-shadow: 4px 0 20px rgba(0,0,0,0.07);
         }
         .map-area { border-bottom: none; }
 
-        /* 상세 패널: 데스크탑 */
+        /* 상세 패널: 데스크탑 — 리스트(40)보다 낮아야 슬라이드 인 시 리스트 뒤를 통과 */
         #panel-detail {
             position: fixed;
             top: 3.5rem; left: 400px; bottom: 0;
@@ -88,8 +88,76 @@
         }
         #panel-detail.open { transform: translateX(0); }
         #pd-backdrop { display: none !important; }
-        #panel-detail { z-index: 50; }
     }
+
+    /* ── 즐겨찾기 삭제 확인 다이얼로그 ── */
+    #fav-remove-dialog {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    #fav-remove-dialog.open {
+        display: flex;
+    }
+    #frd-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        animation: frdFadeIn 0.2s ease;
+    }
+    #frd-card {
+        position: relative;
+        background: #fff;
+        border-radius: 24px;
+        padding: 32px 24px 24px;
+        width: 100%;
+        max-width: 308px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.08);
+        transform: scale(0.88) translateY(8px);
+        opacity: 0;
+        transition: transform 0.28s cubic-bezier(.34, 1.56, .64, 1), opacity 0.2s ease;
+    }
+    #fav-remove-dialog.open #frd-card {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+    @keyframes frdFadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    .frd-icon-wrap {
+        width: 60px; height: 60px;
+        background: #FFFBEB;
+        border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 18px;
+        box-shadow: 0 0 0 8px #FEF9C3;
+    }
+    .frd-btn-cancel {
+        flex: 1; height: 48px;
+        background: #F3F4F6;
+        border: none; border-radius: 14px;
+        font-size: 14px; font-weight: 600; color: #6B7280;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .frd-btn-cancel:hover { background: #E5E7EB; }
+    .frd-btn-delete {
+        flex: 1; height: 48px;
+        background: #EF4444;
+        border: none; border-radius: 14px;
+        font-size: 14px; font-weight: 600; color: #fff;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+    }
+    .frd-btn-delete:hover  { background: #DC2626; }
+    .frd-btn-delete:active { transform: scale(0.97); }
 </style>
 
 <div class="favorites-grid">
@@ -303,6 +371,40 @@
             </div>
 
         </div>
+    </div>
+</div>
+
+<%-- 즐겨찾기 삭제 확인 다이얼로그 --%>
+<div id="fav-remove-dialog">
+    <div id="frd-backdrop" onclick="closeFavRemoveDialog()"></div>
+    <div id="frd-card">
+
+        <%-- 별 아이콘 --%>
+        <div class="frd-icon-wrap">
+            <svg style="width:28px;height:28px;color:#EAB308;" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                         00.951-.69l1.519-4.674z"/>
+            </svg>
+        </div>
+
+        <%-- 텍스트 --%>
+        <p style="text-align:center;font-size:17px;font-weight:700;color:#111827;margin-bottom:6px;">즐겨찾기 삭제</p>
+        <p id="frd-name" style="text-align:center;font-size:14px;font-weight:600;color:#2563EB;margin-bottom:8px;
+                                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;"></p>
+        <p style="text-align:center;font-size:13px;color:#9CA3AF;line-height:1.6;">
+            즐겨찾기에서 삭제할까요?<br>언제든 다시 추가할 수 있어요.
+        </p>
+
+        <%-- 버튼 --%>
+        <div style="display:flex;gap:10px;margin-top:24px;">
+            <button class="frd-btn-cancel" onclick="closeFavRemoveDialog()">취소</button>
+            <button class="frd-btn-delete" onclick="confirmFavRemove()">삭제</button>
+        </div>
+
     </div>
 </div>
 
