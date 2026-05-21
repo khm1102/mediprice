@@ -10,6 +10,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.OffsetDateTime;
+
 @Entity
 @Table(name = "Member")
 @Getter
@@ -38,16 +40,22 @@ public class Member extends BaseEntity {
     @Column(name = "oauth_id", length = 255)
     private String oauthId;
 
+    /** 이용약관 동의 일시 (신규 가입 시 기록). */
+    @Column(name = "terms_agreed_at")
+    private OffsetDateTime termsAgreedAt;
+
     public enum Role { MEMBER, ADMIN }
 
     /** OAuth 회원 생성 (구글 등) */
-    public static Member createOAuth(String email, String name, String provider, String oauthId) {
+    public static Member createOAuth(String email, String name, String provider, String oauthId,
+                                     OffsetDateTime termsAgreedAt) {
         Member m = new Member();
         m.email = email;
         m.name = name;
         m.role = Role.MEMBER;
         m.oauthProvider = provider;
         m.oauthId = oauthId;
+        m.termsAgreedAt = termsAgreedAt;
         return m;
     }
 
@@ -56,5 +64,10 @@ public class Member extends BaseEntity {
         this.name = name;
         this.oauthProvider = provider;
         this.oauthId = oauthId;
+        // 이 기능 도입 전 생성된 계정은 termsAgreedAt 이 null 일 수 있음
+        // OAuth 최초 연결 시점을 동의 일시로 기록
+        if (this.termsAgreedAt == null) {
+            this.termsAgreedAt = OffsetDateTime.now();
+        }
     }
 }
