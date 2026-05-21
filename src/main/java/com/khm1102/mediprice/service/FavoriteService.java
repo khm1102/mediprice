@@ -39,13 +39,15 @@ public class FavoriteService {
                             h != null ? h.getAddr() : "",
                             h != null ? h.getClCdNm() : "",
                             h != null ? h.getTelNo() : "",
-                            f.getCreatedDttm().toEpochSecond()
+                            f.getCreatedDttm().toEpochSecond(),
+                            h != null ? h.getYPos() : null,
+                            h != null ? h.getXPos() : null
                     );
                 })
                 .toList();
     }
 
-    /** 즐겨찾기 추가 — 소프트 삭제 레코드가 있으면 복원, 없으면 신규 생성 */
+    /** 즐겨찾기 추가 */
     public void addFavorite(Long memberId, String ykiho) {
         favoriteRepository.findByMemberIdAndYkiho(memberId, ykiho).ifPresentOrElse(
                 existing -> {

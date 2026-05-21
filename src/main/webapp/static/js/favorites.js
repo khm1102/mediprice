@@ -16,11 +16,32 @@ const loadFavorites = async () => {
         }
 
         const favorites = data.data;
+
+        // 카운트 업데이트
         const countEl = document.getElementById('favorite-count');
         countEl.textContent = `총 ${favorites.length}개`;
         countEl.classList.remove('hidden');
 
+        // 카드 렌더링
         renderFavorites(favorites);
+
+        // _hospitalMap에 기본 정보 미리 채워두기
+        favorites.forEach(f => {
+            _hospitalMap[f.ykiho] = {
+                yadmNm: f.hospitalName,
+                addr:   f.address,
+                clCdNm: f.clCdNm,
+                lat:    f.lat ?? 0,
+                lng:    f.lng ?? 0,
+            };
+        });
+
+        // 지도 마커 추가
+        addFavoriteMarkers(favorites);
+
+        // 즐겨찾기 상태 로드
+        loadFavoriteStates();
+
     } catch {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('empty-state').classList.remove('hidden');
@@ -34,36 +55,26 @@ const renderFavorites = (favorites) => {
 };
 
 const renderFavoriteCard = (f) => {
-    const encodedYkiho = encodeURIComponent(f.ykiho);
+    const lat = f.lat ?? 0;
+    const lng = f.lng ?? 0;
+    const ykihoEsc = f.ykiho.replace(/'/g, "\\'");
+
     return `
-        <div class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-shadow"
-             id="card-${CSS.escape(f.ykiho)}">
-            <div class="flex items-start justify-between gap-4">
+        <div onclick="showHospitalInPanel('${ykihoEsc}', 0, '', ${lat}, ${lng})"
+             data-ykiho="${f.ykiho}"
+             class="hospital-card bg-white rounded-2xl p-4 cursor-pointer hover:opacity-90 transition-all"
+             style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
+            <div class="flex items-start justify-between gap-3">
                 <div class="flex-1 min-w-0">
-                    <a href="/hospitals/${encodedYkiho}"
-                       class="font-semibold text-gray-900 hover:text-[#2563EB] transition-colors text-base">
-                        ${escapeHtml(f.hospitalName)}
-                    </a>
-                    <p class="text-sm text-gray-500 mt-0.5">${escapeHtml(f.clCdNm || '')}</p>
-                    <p class="text-sm text-gray-400 mt-1 truncate">${escapeHtml(f.address || '')}</p>
-                    ${f.telNo ? `
-                        <a href="tel:${escapeHtml(f.telNo)}"
-                           class="inline-flex items-center gap-1 text-sm text-[#2563EB] mt-1 hover:underline">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0
-                                      01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1
-                                      1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716
-                                      21 3 14.284 3 6V5z"/>
-                            </svg>
-                            ${escapeHtml(f.telNo)}
-                        </a>` : ''}
+                    <p class="font-semibold text-gray-900 text-sm truncate">${escapeHtml(f.hospitalName)}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">${escapeHtml(f.clCdNm || '')}</p>
+                    <p class="text-xs text-gray-400 mt-1 truncate">${escapeHtml(f.address || '')}</p>
+                    ${f.telNo ? `<p class="text-xs text-[#2563EB] mt-1">${escapeHtml(f.telNo)}</p>` : ''}
                 </div>
-                <button onclick="handleRemoveFavorite('${f.ykiho.replace(/'/g, "\\'")}')"
-                        class="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                <button onclick="handleRemoveFavorite('${ykihoEsc}', event)"
+                        class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
                         title="즐겨찾기 삭제">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
                                  00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
                                  00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
@@ -77,28 +88,54 @@ const renderFavoriteCard = (f) => {
     `;
 };
 
-const handleRemoveFavorite = async (ykiho) => {
+// 즐겨찾기 목록 마커 지도에 추가
+const addFavoriteMarkers = (favorites) => {
+    clearMarkers?.();
+
+    let hasLocation = false;
+    favorites.forEach(f => {
+        if (!f.lat || !f.lng) return;
+        hasLocation = true;
+        addMarker?.(f.lat, f.lng, f.hospitalName, null, false, f.ykiho, () => {
+            showHospitalInPanel(f.ykiho, 0, '', f.lat, f.lng);
+        });
+    });
+
+    initClustering?.();
+
+    // 첫 번째 좌표가 있는 병원으로 지도 중심 이동
+    if (hasLocation) {
+        const first = favorites.find(f => f.lat && f.lng);
+        if (first) focusMapOnHospital?.(first.lat, first.lng);
+    }
+};
+
+const handleRemoveFavorite = async (ykiho, event) => {
+    event.stopPropagation();
     if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
 
     try {
         await api.delete(`/api/favorites/${encodeURIComponent(ykiho)}`);
 
         // 카드 제거 (애니메이션)
-        const card = document.getElementById(`card-${CSS.escape(ykiho)}`);
+        const card = document.querySelector(`.hospital-card[data-ykiho="${ykiho}"]`);
         if (card) {
             card.style.transition = 'opacity 0.2s';
             card.style.opacity = '0';
             setTimeout(() => {
                 card.remove();
 
-                // 남은 카드 수 업데이트
                 const remaining = document.querySelectorAll('#favorites-list > div').length;
+                const listEl = document.getElementById('favorites-list');
+                const countEl = document.getElementById('favorite-count');
+
                 if (remaining === 0) {
-                    document.getElementById('favorites-list').classList.add('hidden');
-                    document.getElementById('favorite-count').classList.add('hidden');
+                    listEl.classList.add('hidden');
+                    countEl.classList.add('hidden');
                     document.getElementById('empty-state').classList.remove('hidden');
+                    showHospitalList();
                 } else {
-                    document.getElementById('favorite-count').textContent = `총 ${remaining}개`;
+                    countEl.textContent = `총 ${remaining}개`;
                 }
             }, 200);
         }
@@ -112,41 +149,6 @@ const escapeHtml = (str) => {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-};
-
-const toggleFavorite = async (ykiho, btnEl) => {
-    if (!isLoggedIn()) {
-        window.location.href = '/auth/login';
-        return;
-    }
-
-    const isFav = btnEl.dataset.favorited === 'true';
-
-    try {
-        if (isFav) {
-            await api.delete(`/api/favorites/${encodeURIComponent(ykiho)}`);
-            btnEl.dataset.favorited = 'false';
-            updateFavoriteBtn(btnEl, false);
-        } else {
-            await api.post('/api/favorites', { ykiho });
-            btnEl.dataset.favorited = 'true';
-            updateFavoriteBtn(btnEl, true);
-        }
-    } catch {
-        showToast('즐겨찾기 처리 중 오류가 발생했습니다.', 'error');
-    }
-};
-
-const updateFavoriteBtn = (btnEl, isFav) => {
-    if (isFav) {
-        btnEl.classList.add('text-yellow-400');
-        btnEl.classList.remove('text-gray-300');
-        btnEl.title = '즐겨찾기 해제';
-    } else {
-        btnEl.classList.remove('text-yellow-400');
-        btnEl.classList.add('text-gray-300');
-        btnEl.title = '즐겨찾기 추가';
-    }
 };
 
 // 페이지 로드
