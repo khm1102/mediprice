@@ -139,18 +139,13 @@
 
     <div class="max-w-2xl mx-auto text-center w-full py-16 relative z-10">
 
-        <div class="inline-flex items-center gap-2 mb-6 hero-anim hero-anim-1">
-            <span class="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-600 font-semibold px-2.5 py-1 rounded-full border border-amber-200">
-                Beta
-            </span>
-            <span class="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-white rounded-full px-3.5 py-1.5 border border-blue-100" style="box-shadow: 0 1px 6px rgba(37,99,235,0.08);">
-                <svg class="w-3.5 h-3.5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                건강보험심사평가원 공식 데이터 기반
-            </span>
-        </div>
+        <span class="inline-flex items-center gap-1.5 text-xs text-blue-600 mb-6 bg-white rounded-full px-3.5 py-1.5 border border-blue-100 hero-anim hero-anim-1" style="box-shadow: 0 1px 6px rgba(37,99,235,0.08);">
+            <svg class="w-3.5 h-3.5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            건강보험심사평가원 공식 데이터 기반
+        </span>
 
         <h1 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight tracking-tight hero-anim hero-anim-2">
             비급여 진료비,<br>지금 바로 비교하세요
@@ -176,8 +171,7 @@
         </div>
 
         <p class="mt-6 text-[11px] text-gray-400 leading-relaxed hero-anim hero-anim-5">
-            ※ 현재 베타 서비스로, 일부 기능 및 데이터에 오류가 있을 수 있습니다.<br/>
-            2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
+            ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
             해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
         </p>
 

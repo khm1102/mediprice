@@ -41,7 +41,7 @@
         <%-- 로고 --%>
         <a href="<c:url value="/"/>" class="flex items-center gap-2">
             <span class="text-[#2563EB] font-bold text-xl tracking-tight">MediPrice</span>
-            <span class="text-[10px] bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full border border-amber-200 leading-none">Beta</span>
+            <span class="text-[10px] bg-blue-50 text-[#2563EB] font-semibold px-2 py-0.5 rounded-full leading-none">Beta</span>
         </a>
 
         <%-- 네비게이션 --%>
