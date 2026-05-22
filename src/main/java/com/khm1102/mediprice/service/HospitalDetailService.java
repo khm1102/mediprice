@@ -15,6 +15,7 @@ import com.khm1102.mediprice.client.hira.TrnsprtItem;
 import com.khm1102.mediprice.entity.Price;
 import com.khm1102.mediprice.global.exception.business.HospitalNotFoundException;
 import com.khm1102.mediprice.repository.PriceRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,7 @@ public class HospitalDetailService {
         this.detailClient = detailClient;
     }
 
+    @Cacheable(cacheNames = "hiraApiCache", key = "#ykiho")
     public HospitalDetailDto lookupDetail(String ykiho) {
         Hospital hospital = hospitalRepository.findById(ykiho)
                 .orElseThrow(HospitalNotFoundException::new);
