@@ -126,6 +126,7 @@ const fetchHospitals = async (keyword) => {
         return;
     }
 
+    hideReSearchBtn?.();
     showState('state-loading');
 
     try {
@@ -506,6 +507,44 @@ const loadFavoriteStates = async () => {
         });
     } catch {
         // 즐겨찾기 상태 로드 실패는 무시 (UI에 영향 없음)
+    }
+};
+
+// ── 지도 중심 기준 재검색 ───────────────────────────────────────────────────────
+
+const fetchHospitalsByLocation = async (lat, lng, keyword) => {
+    if (!keyword?.trim()) return;
+
+    hideReSearchBtn?.();
+    showState('state-loading');
+
+    try {
+        const npayCd = await resolveNpayCd(keyword);
+        if (!npayCd) {
+            showState('state-empty');
+            return;
+        }
+
+        const params = new URLSearchParams({ lat, lng, npayCd });
+        const data = await api.get('/api/hospitals?' + params.toString());
+
+        if (!data.success) {
+            showState('state-error');
+            return;
+        }
+        if (!data.data?.length) {
+            showState('state-empty');
+            return;
+        }
+
+        const sorted = [...data.data].sort((a, b) =>
+            (a.curAmt ?? Infinity) - (b.curAmt ?? Infinity)
+        );
+
+        renderHospitalResults(keyword, sorted);
+
+    } catch {
+        showState('state-error');
     }
 };
 
