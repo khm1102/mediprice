@@ -125,13 +125,8 @@
                             <span class="text-sm text-red-500">로그아웃</span>
                         </button>
                         <button onclick="openWithdrawDialog()"
-                                class="flex-1 flex items-center justify-center gap-2 px-4 py-3 hover:bg-gray-50 transition-colors
+                                class="flex-1 flex items-center justify-center px-4 py-3 hover:bg-gray-50 transition-colors
                                        border-l border-gray-100">
-                            <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor"
-                                 viewBox="0 0 24 24" stroke-width="1.8">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
-                            </svg>
                             <span class="text-sm text-gray-400">회원탈퇴</span>
                         </button>
                     </div>
