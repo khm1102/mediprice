@@ -122,7 +122,10 @@
                     </li>
                     <li>② 이용자는 위치정보 이용·제공에 대한 동의를 사후에도 언제든지 철회할 수 있습니다.</li>
                     <li>③ 위치정보 관련 문의 및 이의 제기는 아래 연락처로 접수하시기 바랍니다.
-                        <p class="mt-2 ml-4 font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                        <div class="mt-2 ml-4 space-y-0.5">
+                            <p class="font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                            <p class="font-medium text-[#2563EB]">전화: 010-5924-8764</p>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -149,6 +152,9 @@
                     <p><span class="text-gray-400 w-24 inline-block">서비스명</span> MediPrice</p>
                     <p><span class="text-gray-400 w-24 inline-block">이메일</span>
                         <a href="mailto:khaung228@gmail.com" class="text-[#2563EB] hover:underline">khaung228@gmail.com</a>
+                    </p>
+                    <p><span class="text-gray-400 w-24 inline-block">전화</span>
+                        <a href="tel:01059248764" class="text-[#2563EB] hover:underline">010-5924-8764</a>
                     </p>
                 </div>
             </div>
