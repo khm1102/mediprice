@@ -46,4 +46,9 @@ public abstract class BaseEntity {
     public void delete() {
         this.deletedDttm = OffsetDateTime.now();
     }
+
+    /** 논리 삭제 복원 */
+    public void restore() {
+        this.deletedDttm = null;
+    }
 }

@@ -16,6 +16,7 @@ import com.khm1102.mediprice.client.hira.TrnsprtItem;
 import com.khm1102.mediprice.entity.Price;
 import com.khm1102.mediprice.global.exception.business.HospitalNotFoundException;
 import com.khm1102.mediprice.repository.PriceRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,13 +49,13 @@ public class HospitalDetailService {
         this.detailClient = detailClient;
     }
 
+    @Cacheable(cacheNames = "hiraApiCache", key = "#ykiho")
     public HospitalDetailDto lookupDetail(String ykiho) {
         Hospital hospital = hospitalRepository.findById(ykiho)
                 .orElseThrow(HospitalNotFoundException::new);
 
-        List<Price> activePrices = priceRepository.findAllByYkiho(ykiho).stream()
-                .filter(p -> NonPayDtlItem.ACTIVE_END_DATE.equals(p.getAdtEndDd()))
-                .toList();
+        List<Price> activePrices = priceRepository
+                .findAllByYkihoAndAdtEndDd(ykiho, NonPayDtlItem.ACTIVE_END_DATE);
 
         Map<String, String> nameByCode = nonPayItemService.lookupNamesByCodes(
                 activePrices.stream().map(Price::getNpayCd).toList());
