@@ -4,6 +4,10 @@ let _markerClustering = null;
 const markers = [];
 let _pendingMarkers = [];
 
+const _markerByYkiho = {};
+const _markerDataByYkiho = {};
+let _highlightedMarkerYkiho = null;
+
 const initMap = (lat, lng) => {
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof naver === 'undefined') return;
@@ -35,6 +39,9 @@ const clearMarkers = () => {
     markers.forEach(m => m.setMap(null));
     markers.length = 0;
     _pendingMarkers = [];
+    Object.keys(_markerByYkiho).forEach(k => delete _markerByYkiho[k]);
+    Object.keys(_markerDataByYkiho).forEach(k => delete _markerDataByYkiho[k]);
+    _highlightedMarkerYkiho = null;
 };
 
 const addMarker = (lat, lng, name, price, isCheapest, ykiho, onHighlight) => {
@@ -56,6 +63,8 @@ const _addMarkerNow = (lat, lng, name, price, isCheapest, ykiho, onHighlight) =>
     naver.maps.Event.addListener(marker, 'click', () => onHighlight?.());
 
     markers.push(marker);
+    _markerByYkiho[ykiho] = marker;
+    _markerDataByYkiho[ykiho] = { name, price };
 };
 
 /** 클러스터링 인스턴스 생성 */
@@ -106,6 +115,49 @@ const _buildClusterIcon = (size) => ({
     size: new naver.maps.Size(size, size),
     anchor: new naver.maps.Point(size / 2, size / 2),
 });
+
+/** 선택된 병원 마커 파란색 강조 */
+const clearMarkerHighlight = () => {
+    if (!_highlightedMarkerYkiho) return;
+    const marker = _markerByYkiho[_highlightedMarkerYkiho];
+    const data   = _markerDataByYkiho[_highlightedMarkerYkiho];
+    if (marker && data) {
+        marker.setIcon({ content: buildPinHtml(data.name, data.price, false) });
+        marker.setZIndex(1);
+    }
+    _highlightedMarkerYkiho = null;
+};
+
+const highlightMarker = (ykiho) => {
+    clearMarkerHighlight();
+    const marker = _markerByYkiho[ykiho];
+    const data   = _markerDataByYkiho[ykiho];
+    if (!marker || !data) return;
+    _highlightedMarkerYkiho = ykiho;
+    marker.setIcon({ content: buildPinHtml(data.name, data.price, true) });
+    marker.setZIndex(20);
+};
+
+/** 개별 마커 제거 (즐겨찾기 해제 시 사용) */
+const removeMarkerByYkiho = (ykiho) => {
+    if (_highlightedMarkerYkiho === ykiho) {
+        _highlightedMarkerYkiho = null;
+    }
+    const marker = _markerByYkiho[ykiho];
+    if (!marker) return;
+    marker.setMap(null);
+    const idx = markers.indexOf(marker);
+    if (idx !== -1) markers.splice(idx, 1);
+    delete _markerByYkiho[ykiho];
+    delete _markerDataByYkiho[ykiho];
+
+    // 클러스터링 재빌드 (마커가 남아 있는 경우)
+    if (_markerClustering) {
+        _markerClustering.setMap(null);
+        _markerClustering = null;
+    }
+    if (markers.length > 0) initClustering();
+};
 
 /** 지도 중심 이동 + 확대 */
 const focusMapOnHospital = (lat, lng) => {

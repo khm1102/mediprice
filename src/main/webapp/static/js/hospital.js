@@ -71,38 +71,23 @@ const showState = (id) => {
 
 // ── 병원 목록 ─────────────────────────────────────────────────────────────────
 
-const renderHospitalCard = (hospital, isCheapest = false) => {
-    const shadowStyle = isCheapest
-        ? 'box-shadow: 0 0 0 2px #2563EB, 0 4px 16px rgba(37,99,235,0.18);'
-        : 'box-shadow: 0 2px 10px rgba(0,0,0,0.09);';
-
-    const cheapestBanner = isCheapest ? `
-        <div class="flex items-center gap-1.5 bg-[#2563EB] px-4 py-1.5 rounded-t-2xl">
-            <svg class="w-3 h-3 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-            </svg>
-            <p class="text-[11px] text-white font-semibold tracking-tight">이 지역에서 가장 저렴해요</p>
-        </div>` : '';
-
+const renderHospitalCard = (hospital) => {
     const priceText = hospital.curAmt != null
-        ? isCheapest
-            ? `<p class="text-sm text-[#2563EB] font-bold mt-2">${formatPrice(hospital.curAmt)}</p>`
-            : `<p class="text-xs text-[#2563EB] font-semibold mt-1.5">${formatPrice(hospital.curAmt)}</p>`
+        ? `<p class="text-xs text-[#2563EB] font-semibold mt-1.5">${formatPrice(hospital.curAmt)}</p>`
         : '';
 
-    const cardRadius = isCheapest ? 'rounded-b-2xl' : 'rounded-2xl';
     const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
     const lat = hospital.lat ?? 0;
     const lng = hospital.lng ?? 0;
     const onclick = `showHospitalInPanel('${hospital.ykiho}', ${hospital.distance ?? 0}, '${encodeURIComponent(_kw)}', ${lat}, ${lng})`;
+    const ykihoEsc = hospital.ykiho.replace(/'/g, "\\'");
 
     return `
         <div onclick="${onclick}"
            data-ykiho="${hospital.ykiho}"
-           class="block hover:opacity-90 transition-all cursor-pointer"
-           style="${shadowStyle}; border-radius: 1rem;">
-            ${cheapestBanner}
-            <div class="bg-white ${cardRadius} p-4 min-h-[76px]">
+           class="hospital-card block hover:opacity-90 transition-all cursor-pointer"
+           style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
+            <div class="bg-white rounded-2xl p-4 min-h-[76px]">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-900 text-sm truncate">${hospital.yadmNm ?? ''}</p>
@@ -110,9 +95,23 @@ const renderHospitalCard = (hospital, isCheapest = false) => {
                         <p class="text-xs text-gray-400 mt-1 truncate">${hospital.addr ?? ''}</p>
                         ${priceText}
                     </div>
-                    <span class="text-xs text-gray-400 font-medium flex-shrink-0 mt-0.5">
-                        ${formatDistance(hospital.distance)}
-                    </span>
+                    <div class="flex items-center gap-0.5 flex-shrink-0">
+                        <span class="text-xs text-gray-400 font-medium">${formatDistance(hospital.distance)}</span>
+                        <button onclick="handleFavoriteClick('${ykihoEsc}', this, event)"
+                                data-ykiho="${hospital.ykiho}"
+                                data-favorited="false"
+                                class="fav-btn p-1 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
+                                title="즐겨찾기 추가">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                                         00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -172,15 +171,16 @@ const renderHospitalResults = (keyword, sorted) => {
 
         // 카드 렌더링
         const list = document.getElementById('hospital-list');
-        list.innerHTML = sorted.map((h, i) => renderHospitalCard(h, i === 0)).join('');
+        list.innerHTML = sorted.map(h => renderHospitalCard(h)).join('');
         showState(null);
+        loadFavoriteStates();
 
         // 지도 마커 — 핀 클릭 시 왼쪽 목록에서 카드 강조
         const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
         clearMarkers?.();
-        sorted.forEach((h, i) => {
+        sorted.forEach(h => {
             if (h.lat && h.lng) {
-                addMarker?.(h.lat, h.lng, h.yadmNm, h.curAmt ?? null, i === 0, h.ykiho, () => {
+                addMarker?.(h.lat, h.lng, h.yadmNm, h.curAmt ?? null, false, h.ykiho, () => {
                     showHospitalInPanel(h.ykiho, h.distance ?? 0, encodeURIComponent(_kw), h.lat, h.lng);
                 });
             }
@@ -192,10 +192,12 @@ const renderHospitalResults = (keyword, sorted) => {
 
 let _highlightedYkiho = null;
 
+const _defaultCardShadow = () => '0 2px 10px rgba(0,0,0,0.09)';
+
 const clearHospitalHighlight = () => {
     if (!_highlightedYkiho) return;
-    const prev = document.querySelector(`[data-ykiho="${_highlightedYkiho}"]`);
-    if (prev) prev.style.boxShadow = '0 2px 10px rgba(0,0,0,0.09)';
+    const prev = document.querySelector(`.hospital-card[data-ykiho="${_highlightedYkiho}"]`);
+    if (prev) prev.style.boxShadow = _defaultCardShadow(prev);
     _highlightedYkiho = null;
 };
 
@@ -206,7 +208,7 @@ const highlightHospitalCard = (ykiho) => {
     // 이전 강조 제거
     clearHospitalHighlight();
 
-    const card = document.querySelector(`[data-ykiho="${ykiho}"]`);
+    const card = document.querySelector(`.hospital-card[data-ykiho="${ykiho}"]`);
     if (!card) return;
 
     _highlightedYkiho = ykiho;
@@ -234,6 +236,7 @@ const showHospitalList = () => {
     document.getElementById('panel-detail')?.classList.remove('open');
     document.getElementById('pd-backdrop')?.classList.remove('open');
     clearHospitalHighlight();
+    clearMarkerHighlight?.();
 };
 
 // ── 상세 패널 섹션 초기화  ────────────────────────────
@@ -379,6 +382,7 @@ const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
     pd.classList.add('open');
     document.getElementById('pd-backdrop')?.classList.add('open');
     clearHospitalHighlight();
+    highlightMarker?.(ykiho);
 
     if (lat && lng) focusMapOnHospital?.(parseFloat(lat), parseFloat(lng));
 
@@ -387,6 +391,14 @@ const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
     const pdContent = document.getElementById('pd-content');
 
     _resetDetailSections();
+
+    // 즐겨찾기 버튼 ykiho 설정 및 상태 로드
+    const pdFavBtn = document.getElementById('pd-fav-btn');
+    if (pdFavBtn) {
+        pdFavBtn.dataset.ykiho = ykiho;
+        updateFavBtn(pdFavBtn, false);
+    }
+    loadFavoriteStates();
 
     const kw     = keyword ? decodeURIComponent(keyword) : '';
     const cached = _hospitalMap[ykiho];
@@ -424,6 +436,76 @@ const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
         } else {
             document.getElementById('pd-price-empty')?.classList.remove('hidden');
         }
+    }
+};
+
+// ── 즐겨찾기 버튼 ───────────────────────────────────────────────────────────────
+
+const updateFavBtn = (btnEl, isFav) => {
+    btnEl.dataset.favorited = isFav ? 'true' : 'false';
+    btnEl.title = isFav ? '즐겨찾기 해제' : '즐겨찾기 추가';
+    if (isFav) {
+        btnEl.classList.add('text-yellow-400');
+        btnEl.classList.remove('text-gray-300', 'hover:text-yellow-400', 'hover:bg-yellow-50');
+        btnEl.classList.add('hover:text-yellow-500', 'hover:bg-yellow-50');
+    } else {
+        btnEl.classList.remove('text-yellow-400', 'hover:text-yellow-500');
+        btnEl.classList.add('text-gray-300', 'hover:text-yellow-400', 'hover:bg-yellow-50');
+    }
+
+    // 카드 전체 강조
+    const card = btnEl.closest('.hospital-card');
+    if (!card) return;
+
+    card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.09)';
+};
+
+const handleFavoriteClick = async (ykiho, btnEl, event) => {
+    event.stopPropagation();
+
+    // 비로그인 → 구글 로그인으로
+    if (!isLoggedIn()) {
+        window.location.href = '/auth/oauth2/authorize/google';
+        return;
+    }
+
+    const isFav = btnEl.dataset.favorited === 'true';
+
+    // 낙관적 UI 업데이트 (즉시 반영)
+    updateFavBtn(btnEl, !isFav);
+    btnEl.disabled = true;
+
+    try {
+        if (isFav) {
+            await api.delete('/api/favorites/' + encodeURIComponent(ykiho));
+        } else {
+            await api.post('/api/favorites', { ykiho });
+        }
+    } catch {
+        // 실패 시 원상복구
+        updateFavBtn(btnEl, isFav);
+    } finally {
+        btnEl.disabled = false;
+    }
+};
+
+const loadFavoriteStates = async () => {
+    if (!isLoggedIn()) return;
+
+    try {
+        const data = await api.get('/api/favorites');
+        if (!data.success) return;
+
+        const favoriteYkihos = new Set((data.data ?? []).map(f => f.ykiho));
+
+        document.querySelectorAll('.fav-btn').forEach(btn => {
+            const ykiho = btn.dataset.ykiho;
+            if (ykiho) {
+                updateFavBtn(btn, favoriteYkihos.has(ykiho));
+            }
+        });
+    } catch {
+        // 즐겨찾기 상태 로드 실패는 무시 (UI에 영향 없음)
     }
 };
 
@@ -585,6 +667,11 @@ const fetchHospitalDetail = async (ykiho) => {
             tbody.innerHTML = rows.join('');
             document.getElementById('price-table').classList.remove('hidden');
         }
+
+        // 즐겨찾기 버튼 초기화
+        const detailFavBtn = document.getElementById('detail-fav-btn');
+        if (detailFavBtn) detailFavBtn.dataset.ykiho = ykiho;
+        loadFavoriteStates();
 
         showState('state-content');
     } catch {
