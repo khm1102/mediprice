@@ -16,13 +16,13 @@
                     건강보험심사평가원 공개 데이터 기반<br>비급여 진료비 비교 플랫폼
                 </p>
                 <div class="space-y-1.5">
-                    <a href="mailto:khaung228@gmail.com"
+                    <a href="mailto:kmj228@tukorea.ac.kr"
                        class="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#2563EB] transition-colors">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                   d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
-                        khaung228@gmail.com
+                        kmj228@tukorea.ac.kr
                     </a>
                     <a href="tel:01059248764"
                        class="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#2563EB] transition-colors">
