@@ -137,7 +137,6 @@
         border-radius: 18px;
         display: flex; align-items: center; justify-content: center;
         margin: 0 auto 18px;
-        box-shadow: 0 0 0 8px #FEF9C3;
     }
     .frd-btn-cancel {
         flex: 1; height: 48px;
