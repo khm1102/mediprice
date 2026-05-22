@@ -99,7 +99,7 @@
 
                     <%-- 즐겨찾기 링크 --%>
                     <a href="<c:url value='/favorites'/>"
-                       class="flex items-center justify-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                       class="flex items-center gap-2 pl-6 pr-4 py-3 hover:bg-gray-50 transition-colors">
                         <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor"
                              viewBox="0 0 24 24" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round"
