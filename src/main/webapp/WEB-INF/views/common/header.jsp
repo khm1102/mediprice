@@ -115,7 +115,7 @@
                     <%-- 로그아웃 --%>
                     <button onclick="handleLogout()"
                             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors
-                                   border-t border-gray-100 rounded-b-2xl">
+                                   border-t border-gray-100">
                         <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor"
                              viewBox="0 0 24 24" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -123,12 +123,59 @@
                         </svg>
                         <span class="text-sm text-red-500">로그아웃</span>
                     </button>
+
+                    <%-- 회원탈퇴 --%>
+                    <button onclick="openWithdrawDialog()"
+                            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors
+                                   border-t border-gray-100 rounded-b-2xl">
+                        <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor"
+                             viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
+                        </svg>
+                        <span class="text-sm text-gray-400">회원탈퇴</span>
+                    </button>
                 </div>
             </div>
         </nav>
 
     </div>
 </header>
+
+<%-- 회원탈퇴 확인 다이얼로그 --%>
+<div id="withdraw-dialog"
+     class="hidden fixed inset-0 z-[500] flex items-center justify-center px-4">
+    <div id="withdraw-backdrop"
+         class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+         onclick="closeWithdrawDialog()"></div>
+    <div id="withdraw-card"
+         class="relative bg-white rounded-2xl p-6 w-full max-w-xs text-center"
+         style="box-shadow:0 24px 64px rgba(0,0,0,0.18);">
+        <%-- 아이콘 --%>
+        <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
+            </svg>
+        </div>
+        <p class="text-base font-bold text-gray-900 mb-1">정말 탈퇴하시겠어요?</p>
+        <p class="text-xs text-gray-400 leading-relaxed mb-6">
+            탈퇴하면 즐겨찾기 등 모든 데이터가 삭제되며<br>복구할 수 없습니다.
+        </p>
+        <div class="flex gap-2">
+            <button onclick="closeWithdrawDialog()"
+                    class="flex-1 h-11 rounded-xl bg-gray-100 text-sm font-semibold text-gray-600
+                           hover:bg-gray-200 transition-colors">
+                취소
+            </button>
+            <button onclick="confirmWithdraw()"
+                    class="flex-1 h-11 rounded-xl bg-red-500 text-sm font-semibold text-white
+                           hover:bg-red-600 transition-colors">
+                탈퇴하기
+            </button>
+        </div>
+    </div>
+</div>
 
 <%-- 쿠키 사용 동의 배너 (localStorage로 표시 여부 관리) --%>
 <div id="cookie-banner"

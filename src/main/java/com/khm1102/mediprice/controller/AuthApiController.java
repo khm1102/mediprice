@@ -7,6 +7,7 @@ import com.khm1102.mediprice.util.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,5 +53,16 @@ public class AuthApiController {
                 "email", principal.email(),
                 "role", principal.role()
         ));
+    }
+
+    @DeleteMapping("/me")
+    public ApiResponse<Void> withdraw(@AuthenticationPrincipal MemberPrincipal principal,
+                                      HttpServletResponse response) {
+        authService.withdraw(principal.memberId());
+        Cookie cookie = new Cookie("mp_token", "");
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+        return ApiResponse.success(null);
     }
 }

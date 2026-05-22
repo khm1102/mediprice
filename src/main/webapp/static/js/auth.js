@@ -41,6 +41,32 @@ const handleLogout = async () => {
     window.location.href = '/';
 };
 
+const openWithdrawDialog = () => {
+    const menu = document.getElementById('profile-menu');
+    if (menu) menu.classList.add('hidden');
+    const dialog = document.getElementById('withdraw-dialog');
+    if (dialog) dialog.classList.remove('hidden');
+};
+
+const closeWithdrawDialog = () => {
+    const dialog = document.getElementById('withdraw-dialog');
+    if (dialog) dialog.classList.add('hidden');
+};
+
+const confirmWithdraw = async () => {
+    const btn = document.querySelector('#withdraw-card button:last-child');
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+    try {
+        const res = await fetch('/api/auth/me', { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        document.cookie = 'mp_token=; Max-Age=0; path=/';
+        window.location.href = '/';
+    } catch {
+        if (btn) { btn.disabled = false; btn.textContent = '탈퇴하기'; }
+        alert('탈퇴 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+};
+
 // ── 페이지 로드 시 로그인 상태에 따라 네비게이션 전환 ────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
