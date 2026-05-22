@@ -15,14 +15,24 @@
                 <p class="text-[12px] text-gray-400 leading-relaxed mb-4">
                     건강보험심사평가원 공개 데이터 기반<br>비급여 진료비 비교 플랫폼
                 </p>
-                <a href="mailto:khaung228@gmail.com"
-                   class="inline-flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#2563EB] transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                    khaung228@gmail.com
-                </a>
+                <div class="space-y-1.5">
+                    <a href="mailto:khaung228@gmail.com"
+                       class="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#2563EB] transition-colors">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        khaung228@gmail.com
+                    </a>
+                    <a href="tel:01059248764"
+                       class="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#2563EB] transition-colors">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                        010-5924-8764
+                    </a>
+                </div>
             </div>
 
             <%-- 약관 --%>
@@ -78,17 +88,6 @@
                 </ul>
             </div>
 
-        </div>
-
-        <%-- 면책 고지 --%>
-        <div class="py-4 border-b border-gray-100">
-            <p class="text-[11px] text-gray-400 leading-relaxed">
-                <span class="font-semibold text-gray-500">⚠ 면책 고지</span>&nbsp;&nbsp;
-                본 서비스는 비영리·비상업적으로 운영되며, 건강보험심사평가원 공개 데이터를 기반으로 비급여 진료비 정보를 제공합니다.<br>
-                표시된 가격은 참고용 정보로, 실제 의료기관에서 청구되는 금액과 다를 수 있습니다.<br>
-                서비스는 가격 차이로 인해 발생하는 손해에 대해 책임을 지지 않으며, 의료 결정 전 해당 의료기관에 직접 확인하시기 바랍니다.<br>
-                자세한 내용은 <a href="/legal/terms" class="underline hover:text-[#2563EB] transition-colors">이용약관 제6조</a>를 참조하십시오.
-            </p>
         </div>
 
         <%-- 저작권 --%>
