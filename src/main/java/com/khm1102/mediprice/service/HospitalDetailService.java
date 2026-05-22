@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -50,9 +51,8 @@ public class HospitalDetailService {
         Hospital hospital = hospitalRepository.findById(ykiho)
                 .orElseThrow(HospitalNotFoundException::new);
 
-        List<Price> activePrices = priceRepository.findAllByYkiho(ykiho).stream()
-                .filter(p -> NonPayDtlItem.ACTIVE_END_DATE.equals(p.getAdtEndDd()))
-                .toList();
+        List<Price> activePrices = priceRepository
+                .findAllByYkihoAndAdtEndDd(ykiho, NonPayDtlItem.ACTIVE_END_DATE);
 
         Map<String, String> nameByCode = nonPayItemService.lookupNamesByCodes(
                 activePrices.stream().map(Price::getNpayCd).toList());
@@ -85,21 +85,21 @@ public class HospitalDetailService {
     private List<String> toDgsbjtNames(List<DgsbjtItem> items) {
         return items.stream()
                 .map(DgsbjtItem::dgsbjtCdNm)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private List<String> toMedOftNames(List<MedOftItem> items) {
         return items.stream()
                 .map(MedOftItem::medOftCdNm)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private List<String> toSpclDiagNames(List<SpclDiagItem> items) {
         return items.stream()
                 .map(SpclDiagItem::srvTpCdNm)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

@@ -9,6 +9,6 @@ import java.util.List;
 
 public interface PriceRepository extends JpaRepository<Price, PriceId> {
 
-    /** 병원 상세에서 사용. adt_end_dd = '99991231' 필터는 Service 레이어에서. */
-    List<Price> findAllByYkiho(String ykiho);
+    /** 병원 상세에서 사용 — DB 레벨에서 adt_end_dd 필터링. */
+    List<Price> findAllByYkihoAndAdtEndDd(String ykiho, String adtEndDd);
 }
