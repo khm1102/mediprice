@@ -1,12 +1,15 @@
 package com.khm1102.mediprice.service;
 
+import com.khm1102.mediprice.entity.Favorite;
 import com.khm1102.mediprice.entity.Member;
+import com.khm1102.mediprice.repository.FavoriteRepository;
 import com.khm1102.mediprice.repository.MemberRepository;
 import com.khm1102.mediprice.util.JwtUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,10 +18,14 @@ import java.util.UUID;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    private final FavoriteRepository favoriteRepository;
     private final JwtUtil jwtUtil;
 
-    public AuthService(MemberRepository memberRepository, JwtUtil jwtUtil) {
+    public AuthService(MemberRepository memberRepository,
+                       FavoriteRepository favoriteRepository,
+                       JwtUtil jwtUtil) {
         this.memberRepository = memberRepository;
+        this.favoriteRepository = favoriteRepository;
         this.jwtUtil = jwtUtil;
     }
 
@@ -51,6 +58,16 @@ public class AuthService {
 
         // 3. 신규 사용자 → null 반환 (약관 동의 후 registerNewMember 호출)
         return null;
+    }
+
+    /**
+     * 회원 탈퇴 — 즐겨찾기 논리 삭제 후 회원 논리 삭제.
+     */
+    public void withdraw(Long memberId) {
+        List<Favorite> favorites = favoriteRepository.findByMemberIdAndDeletedDttmIsNull(memberId);
+        favorites.forEach(Favorite::delete);
+
+        memberRepository.findById(memberId).ifPresent(Member::delete);
     }
 
     /**
