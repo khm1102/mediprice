@@ -160,8 +160,15 @@
                         해당 개인정보를 지체 없이 파기합니다.
                     </li>
                     <li>② 전자적 파일 형태의 개인정보는 복구 및 재생이 불가능한 방법으로 영구 삭제합니다.</li>
-                    <li>③ 회원 탈퇴를 원하시는 경우 아래 연락처로 요청하시면 처리해 드립니다.
-                        <p class="mt-2 ml-4 font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                    <li>
+                        ③ 회원은 서비스 내 프로필 메뉴의 <strong class="text-gray-700">회원탈퇴</strong> 기능을 통해<br>
+                        직접 계정 및 관련 개인정보(즐겨찾기 포함)를 즉시 삭제할 수 있습니다.
+                    </li>
+                    <li>④ 탈퇴가 어려운 경우 아래 연락처로 요청하시면 지체 없이 처리해 드립니다.
+                        <div class="mt-2 ml-4 space-y-0.5">
+                            <p class="font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                            <p class="font-medium text-[#2563EB]">전화: 010-5924-8764</p>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -172,7 +179,10 @@
                 <ul class="space-y-2 text-sm text-gray-600 leading-relaxed">
                     <li>① 이용자는 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제를 요청할 수 있습니다.</li>
                     <li>② 개인정보 관련 요청은 아래 연락처를 통해 접수하며, 서비스는 지체 없이 조치합니다.
-                        <p class="mt-2 ml-4 font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                        <div class="mt-2 ml-4 space-y-0.5">
+                            <p class="font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                            <p class="font-medium text-[#2563EB]">전화: 010-5924-8764</p>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -184,6 +194,9 @@
                     <p><span class="text-gray-400 w-24 inline-block">서비스명</span> MediPrice</p>
                     <p><span class="text-gray-400 w-24 inline-block">이메일</span>
                         <a href="mailto:khaung228@gmail.com" class="text-[#2563EB] hover:underline">khaung228@gmail.com</a>
+                    </p>
+                    <p><span class="text-gray-400 w-24 inline-block">전화</span>
+                        <a href="tel:01059248764" class="text-[#2563EB] hover:underline">010-5924-8764</a>
                     </p>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 leading-relaxed">
