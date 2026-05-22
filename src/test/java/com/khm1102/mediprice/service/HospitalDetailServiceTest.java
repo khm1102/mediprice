@@ -4,6 +4,7 @@ import com.khm1102.mediprice.client.HiraDetailClient;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
 import com.khm1102.mediprice.client.hira.DgsbjtItem;
 import com.khm1102.mediprice.client.hira.MedOftItem;
+import com.khm1102.mediprice.client.hira.NonPayDtlItem;
 import com.khm1102.mediprice.client.hira.SpclDiagItem;
 import com.khm1102.mediprice.client.hira.TrnsprtItem;
 import com.khm1102.mediprice.dto.HospitalDetailDto;
@@ -49,13 +50,13 @@ class HospitalDetailServiceTest {
                 .isInstanceOf(HospitalNotFoundException.class);
     }
 
-    /** Price는 99991231짜리만 노출. 만료된 가격이 화면에 새는 게 가장 무서운 버그. */
+    /** DB 레벨에서 adt_end_dd = '99991231' 필터링 — 활성 가격만 서비스로 올라옴. */
     @Test
     void filtersOutInactivePricesByAdtEndDd() {
         givenHospital();
         Price active = price("N001", 50_000L, "99991231");
-        Price expired = price("N002", 99_999L, "20231231");
-        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of(active, expired));
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of(active));
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
         when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
 
@@ -71,7 +72,8 @@ class HospitalDetailServiceTest {
         givenHospital();
         Price mapped = price("N001", 50_000L, "99991231");
         Price unmapped = price("N999", 30_000L, "99991231");
-        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of(mapped, unmapped));
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of(mapped, unmapped));
         when(nonPayItemService.lookupNamesByCodes(List.of("N001", "N999")))
                 .thenReturn(Map.of("N001", "박피술"));
         when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
@@ -86,7 +88,8 @@ class HospitalDetailServiceTest {
     @Test
     void mergesBundleFiltersNullsAndConvertsTrnsprt() {
         givenHospital();
-        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of());
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
 
         HospitalDetailBundle bundle = new HospitalDetailBundle(
@@ -111,7 +114,8 @@ class HospitalDetailServiceTest {
     @Test
     void leavesTrnsprtInfoNullWhenBundleHasNone() {
         givenHospital();
-        when(priceRepository.findAllByYkiho(YKIHO)).thenReturn(List.of());
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of());
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
         when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
 
