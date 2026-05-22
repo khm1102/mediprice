@@ -71,10 +71,15 @@ public class AuthService {
     }
 
     /**
-     * 약관 동의 완료 후 신규 회원을 생성하고 JWT 토큰을 반환한다.
+     * 약관 동의 완료 후 회원을 등록하고 JWT 토큰을 반환한다.
+     * <p>
+     * 처리 순서:
+     * 1. 동일 OAuth ID의 활성 계정 존재 → 토큰만 재발급 (동시 가입 방어)
+     * 2. 동일 OAuth ID의 탈퇴 계정 존재 → soft-deleted 레코드 재활성화 (unique 제약 우회)
+     * 3. 완전 신규 → INSERT
      */
     public String registerNewMember(String email, String name, String provider, String oauthId) {
-        // 동시 가입 방어: 동일 OAuth ID로 이미 생성된 경우 기존 토큰 반환
+        // 1. 동시 가입 방어: 활성 계정이 이미 있으면 기존 토큰 반환
         Optional<Member> existing = memberRepository
                 .findByOauthProviderAndOauthIdAndDeletedDttmIsNull(provider, oauthId);
         if (existing.isPresent()) {
@@ -82,6 +87,16 @@ public class AuthService {
             return jwtUtil.generateMemberToken(m.getId(), m.getEmail(), m.getRole().name(), m.getName());
         }
 
+        // 2. 탈퇴한 계정 재가입 — 새 INSERT 대신 기존 레코드 재활성화
+        //    (email 컬럼 unique 제약이 있어 INSERT하면 constraint violation 발생)
+        Optional<Member> deleted = memberRepository.findByOauthProviderAndOauthId(provider, oauthId);
+        if (deleted.isPresent()) {
+            Member m = deleted.get();
+            m.reactivate(name, OffsetDateTime.now());
+            return jwtUtil.generateMemberToken(m.getId(), m.getEmail(), m.getRole().name(), m.getName());
+        }
+
+        // 3. 완전 신규 가입
         Member newMember = Member.createOAuth(email, name, provider, oauthId, OffsetDateTime.now());
         memberRepository.save(newMember);
         return jwtUtil.generateMemberToken(newMember.getId(), newMember.getEmail(),

@@ -59,6 +59,16 @@ public class Member extends BaseEntity {
         return m;
     }
 
+    /**
+     * 탈퇴한 계정 재활성화 — soft-deleted 레코드를 복원하고 약관 동의 일시를 갱신한다.
+     * BaseEntity.restore()로 deletedDttm을 null로 초기화한 뒤 최신 이름·동의 일시를 반영.
+     */
+    public void reactivate(String name, OffsetDateTime termsAgreedAt) {
+        restore();
+        this.name = name;
+        this.termsAgreedAt = termsAgreedAt;
+    }
+
     /** 기존 계정에 OAuth 연결 또는 OAuth 정보 업데이트 */
     public void updateOAuthInfo(String name, String provider, String oauthId) {
         this.name = name;
