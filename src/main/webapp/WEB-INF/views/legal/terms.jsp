@@ -175,7 +175,7 @@
                     </li>
                     <li>③ 서비스 이용 관련 문의 및 분쟁 신고는 아래 연락처로 접수하시기 바랍니다.
                         <div class="mt-2 ml-4 space-y-0.5">
-                            <p class="font-medium text-[#2563EB]">이메일: khaung228@gmail.com</p>
+                            <p class="font-medium text-[#2563EB]">이메일: kmj228@tukorea.ac.kr</p>
                             <p class="font-medium text-[#2563EB]">전화: 010-5924-8764</p>
                         </div>
                     </li>
