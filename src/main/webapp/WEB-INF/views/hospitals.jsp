@@ -107,6 +107,24 @@
     <%-- 지도 --%>
     <div style="grid-area: map;" class="map-area relative">
         <div id="map" class="w-full h-full" style="background: #e8edf5;"></div>
+
+        <%-- 이 지역에서 재검색 버튼 --%>
+        <div id="map-research-btn"
+             class="hidden absolute top-3 z-10 pointer-events-none"
+             style="left: 50%; transform: translateX(-50%);">
+            <button onclick="handleReSearch()"
+                class="pointer-events-auto bg-white text-sm font-semibold text-gray-700 px-4 py-2 rounded-full
+                       flex items-center gap-1.5 hover:bg-gray-50 active:bg-gray-100 transition-colors select-none whitespace-nowrap"
+                style="box-shadow: 0 2px 16px rgba(0,0,0,0.18);">
+                <svg class="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                이 지역에서 재검색
+            </button>
+        </div>
+
+        <%-- 현재 위치로 이동 버튼 --%>
         <button onclick="recenterMap()"
             title="현재 위치로 이동"
             class="absolute bottom-4 right-4 z-10 bg-white rounded-full w-11 h-11 flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -341,6 +359,21 @@
             }
         }).observe(pd, { attributes: true, attributeFilter: ['style'] });
     });
+
+    // ── 이 지역에서 재검색 ──
+    const showReSearchBtn = () => {
+        document.getElementById('map-research-btn')?.classList.remove('hidden');
+    };
+    const hideReSearchBtn = () => {
+        document.getElementById('map-research-btn')?.classList.add('hidden');
+    };
+    const handleReSearch = () => {
+        const center = getMapCenter?.();
+        if (!center) return;
+        const keyword = document.getElementById('search-input').value.trim();
+        if (!keyword) return;
+        fetchHospitalsByLocation(center.lat, center.lng, keyword);
+    };
 
     // ── 검색 ──
     const handleSearch = () => {

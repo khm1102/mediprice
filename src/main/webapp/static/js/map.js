@@ -23,6 +23,12 @@ const initMap = (lat, lng) => {
         mapDataControl: false,
     });
 
+    // 지도 드래그 끝 → 검색 결과가 있으면 '이 지역에서 재검색' 버튼 표시
+    naver.maps.Event.addListener(naverMap, 'dragend', () => {
+        const keyword = document.getElementById('search-input')?.value?.trim();
+        if (keyword) showReSearchBtn?.();
+    });
+
     // 지도 준비 완료 후 대기 중인 마커 일괄 추가 후 클러스터링
     if (_pendingMarkers.length > 0) {
         _pendingMarkers.forEach(args => _addMarkerNow(...args));
@@ -182,6 +188,13 @@ const buildPinHtml = (name, price, isCheapest) => {
         <div style="width:2px;height:5px;background:${stemColor};"></div>
         <div style="width:5px;height:5px;border-radius:50%;background:${stemColor};"></div>
     </div>`;
+};
+
+/** 현재 지도 중심 좌표 반환 */
+const getMapCenter = () => {
+    if (!naverMap) return null;
+    const c = naverMap.getCenter();
+    return { lat: c.lat(), lng: c.lng() };
 };
 
 const recenterMap = () => {
