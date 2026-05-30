@@ -205,6 +205,3 @@ GUEST_SEARCH_LIMIT=3
 - `TODO.md` — 남은 작업과 결정 보류 사항
 - `CLAUDE.md` / `AGENTS.md` — 작업 규칙과 코드 컨벤션
 
-<div align="center">
-  <sub>한국공학대학교 AI소프트웨어학과 · 김민재(kmj228) · 김현민(khm1102)</sub>
-</div>
