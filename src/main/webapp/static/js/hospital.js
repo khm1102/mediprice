@@ -57,6 +57,42 @@ const resolveNpayCd = async (keyword) => {
     return items.find(item => item.npayKorNm.toLowerCase().includes(lowerKw))?.npayCd ?? null;
 };
 
+// keyword → 매칭되는 모든 npayCd 목록 반환 (최대 10개)
+const resolveNpayCds = async (keyword) => {
+    const items = await fetchItemsCache();
+    const lowerKw = keyword.trim().toLowerCase();
+    return items
+        .filter(item => item.npayKorNm.toLowerCase().includes(lowerKw))
+        .map(item => item.npayCd)
+        .slice(0, 10);
+};
+
+// 여러 npayCd로 병렬 검색 후 병원별 최저가로 병합
+const searchByMultipleNpayCds = async (npayCds, lat, lng) => {
+    const results = await Promise.allSettled(
+        npayCds.map(npayCd => {
+            const params = new URLSearchParams({ lat, lng, npayCd });
+            return api.get('/api/hospitals?' + params.toString());
+        })
+    );
+
+    // 병원 ykiho 기준으로 최저가 병합
+    const map = new Map();
+    results.forEach(result => {
+        if (result.status !== 'fulfilled' || !result.value?.success) return;
+        (result.value.data ?? []).forEach(h => {
+            const existing = map.get(h.ykiho);
+            if (!existing) {
+                map.set(h.ykiho, { ...h });
+            } else if (h.curAmt != null && (existing.curAmt == null || h.curAmt < existing.curAmt)) {
+                map.set(h.ykiho, { ...h });
+            }
+        });
+    });
+
+    return [...map.values()];
+};
+
 // ── 상태 표시 ─────────────────────────────────────────────────────────────────
 
 const showState = (id) => {
@@ -133,28 +169,23 @@ const fetchHospitals = async (keyword) => {
         // 1. 위치 취득
         const { lat, lng } = await getCurrentPosition();
 
-        // 2. keyword → npayCd 변환
-        const npayCd = await resolveNpayCd(keyword);
-        if (!npayCd) {
+        // 2. keyword → npayCd 목록 변환
+        const npayCds = await resolveNpayCds(keyword);
+        if (!npayCds.length) {
             showState('state-empty');
             return;
         }
 
-        // 3. 병원 검색 API
-        const params = new URLSearchParams({ lat, lng, npayCd });
-        const data = await api.get('/api/hospitals?' + params.toString());
+        // 3. 병원 검색 API (다중 코드 병렬 요청 후 병합)
+        const merged = await searchByMultipleNpayCds(npayCds, lat, lng);
 
-        if (!data.success) {
-            showState('state-error');
-            return;
-        }
-        if (!data.data?.length) {
+        if (!merged.length) {
             showState('state-empty');
             return;
         }
 
         // 4. 가격 오름차순 정렬 (curAmt 기준, null은 마지막)
-        const sorted = [...data.data].sort((a, b) =>
+        const sorted = merged.sort((a, b) =>
             (a.curAmt ?? Infinity) - (b.curAmt ?? Infinity)
         );
 
@@ -519,25 +550,20 @@ const fetchHospitalsByLocation = async (lat, lng, keyword) => {
     showState('state-loading');
 
     try {
-        const npayCd = await resolveNpayCd(keyword);
-        if (!npayCd) {
+        const npayCds = await resolveNpayCds(keyword);
+        if (!npayCds.length) {
             showState('state-empty');
             return;
         }
 
-        const params = new URLSearchParams({ lat, lng, npayCd });
-        const data = await api.get('/api/hospitals?' + params.toString());
+        const merged = await searchByMultipleNpayCds(npayCds, lat, lng);
 
-        if (!data.success) {
-            showState('state-error');
-            return;
-        }
-        if (!data.data?.length) {
+        if (!merged.length) {
             showState('state-empty');
             return;
         }
 
-        const sorted = [...data.data].sort((a, b) =>
+        const sorted = merged.sort((a, b) =>
             (a.curAmt ?? Infinity) - (b.curAmt ?? Infinity)
         );
 
