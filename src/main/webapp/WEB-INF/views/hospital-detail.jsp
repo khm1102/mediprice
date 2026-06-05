@@ -7,7 +7,7 @@
     html, body { background-color: #F2F4F6; }
 </style>
 
-<script defer src="<c:url value="/static/js/hospital.js"/>"></script>
+<script defer src="<c:url value="/static/js/hospital.js"/>?v=2"></script>
 
 <div class="bg-[#F2F4F6] min-h-full">
 <div class="max-w-xl mx-auto px-4 py-6">

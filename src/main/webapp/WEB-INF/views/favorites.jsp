@@ -7,7 +7,7 @@
     src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKey}"></script>
 <script src="<c:url value="/static/js/MarkerClustering.js"/>"></script>
 <script defer src="<c:url value="/static/js/map.js"/>"></script>
-<script defer src="<c:url value="/static/js/hospital.js"/>"></script>
+<script defer src="<c:url value="/static/js/hospital.js"/>?v=2"></script>
 <script defer src="<c:url value="/static/js/favorites.js"/>"></script>
 
 <style>
