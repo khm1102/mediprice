@@ -10,6 +10,7 @@ const getCurrentPosition = () => {
             _geoCache = { lat: 37.5665, lng: 126.9780 };
             resolve(_geoCache);
             return;
+
         }
         navigator.geolocation.getCurrentPosition(
             (pos) => {
