@@ -204,4 +204,5 @@ GUEST_SEARCH_LIMIT=3
 - `docs/troubleshooting.md` — 배치/인코딩/통계 코드 장애 이력
 - `TODO.md` — 남은 작업과 결정 보류 사항
 - `CLAUDE.md` / `AGENTS.md` — 작업 규칙과 코드 컨벤션
+- 
 
