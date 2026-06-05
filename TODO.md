@@ -167,6 +167,7 @@
 
 ---
 
+
 ## 📅 검증 미완 (부팅 후 실측 필요)
 
 - **V1.** `WebMvcConfig.configureMessageConverters(ServerBuilder)` 실제 호출 여부 — P1 첫 DTO 응답에서 `OffsetDateTime` 직렬화로 확인
