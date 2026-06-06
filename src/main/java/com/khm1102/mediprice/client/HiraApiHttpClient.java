@@ -31,6 +31,7 @@ final class HiraApiHttpClient {
 
     private final HttpClient httpClient;
     private final DefaultUriBuilderFactory uriFactory;
+    private final URI trustedBaseUri;
 
     HiraApiHttpClient(String baseUrl) {
         this.httpClient = HttpClient.newBuilder()
@@ -39,10 +40,12 @@ final class HiraApiHttpClient {
                 .build();
         this.uriFactory = new DefaultUriBuilderFactory(baseUrl);
         this.uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
+        this.trustedBaseUri = URI.create(baseUrl);
     }
 
     byte[] get(UnaryOperator<UriBuilder> uriBuilder) throws IOException, InterruptedException {
         URI uri = encodeQueryPlus(uriBuilder.apply(uriFactory.builder()).build());
+        validateRequestUri(uri);
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(REQUEST_TIMEOUT)
                 .GET()
@@ -75,6 +78,45 @@ final class HiraApiHttpClient {
             TypeReference<HiraResponse<T>> typeRef,
             XmlMapper xmlMapper) throws IOException, InterruptedException {
         return xmlMapper.readValue(get(uriBuilder), typeRef);
+    }
+
+    /**
+     * scheme/host/port가 생성자에서 받은 base URL과 일치하는지 강제한다.
+     * {@link DefaultUriBuilderFactory}의 builder는 caller가 host/scheme을 갈아치울 수 있어
+     * 외부 입력이 흘러들어올 때 SSRF 방어선이 필요하다.
+     */
+    private void validateRequestUri(URI uri) {
+        if (uri == null) {
+            throw new IllegalArgumentException("Request URI must not be null");
+        }
+        String scheme = uri.getScheme();
+        String trustedScheme = trustedBaseUri.getScheme();
+        if (scheme == null || trustedScheme == null || !trustedScheme.equalsIgnoreCase(scheme)) {
+            throw new IllegalArgumentException("Unexpected URI scheme: " + uri);
+        }
+        String host = uri.getHost();
+        String trustedHost = trustedBaseUri.getHost();
+        if (host == null || trustedHost == null || !trustedHost.equalsIgnoreCase(host)) {
+            throw new IllegalArgumentException("Unexpected URI host: " + uri);
+        }
+        if (normalizedPort(uri) != normalizedPort(trustedBaseUri)) {
+            throw new IllegalArgumentException("Unexpected URI port: " + uri);
+        }
+    }
+
+    private static int normalizedPort(URI uri) {
+        int port = uri.getPort();
+        if (port != -1) {
+            return port;
+        }
+        String scheme = uri.getScheme();
+        if ("https".equalsIgnoreCase(scheme)) {
+            return 443;
+        }
+        if ("http".equalsIgnoreCase(scheme)) {
+            return 80;
+        }
+        return -1;
     }
 
     private static URI encodeQueryPlus(URI uri) {
