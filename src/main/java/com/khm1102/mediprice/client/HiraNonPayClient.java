@@ -1,25 +1,20 @@
 package com.khm1102.mediprice.client;
 
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.HiraHeader;
-import com.khm1102.mediprice.client.hira.HiraResponse;
-import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
-import com.khm1102.mediprice.client.hira.NonPayClcdStatItem;
-import com.khm1102.mediprice.client.hira.NonPayCodeItem;
-import com.khm1102.mediprice.client.hira.NonPayDescItem;
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
-import com.khm1102.mediprice.client.hira.NonPayHospSummaryItem;
-import com.khm1102.mediprice.client.hira.NonPaySidoStatItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.common.HiraResponse;
+import com.khm1102.mediprice.client.hira.auth.HiraServiceKeyProvider;
+import com.khm1102.mediprice.client.hira.stat.NonPayClcdStatItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayCodeItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDescItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayHospSummaryItem;
+import com.khm1102.mediprice.client.hira.stat.NonPaySidoStatItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.util.DefaultUriBuilderFactory;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.dataformat.xml.XmlMapper;
 
-import java.time.Duration;
 import java.util.function.UnaryOperator;
 
 import org.jspecify.annotations.Nullable;
@@ -40,26 +35,17 @@ import org.springframework.web.util.UriBuilder;
 @Component
 public class HiraNonPayClient {
 
-    private final RestClient restClient;
+    private final HiraApiHttpClient httpClient;
     private final XmlMapper xmlMapper;
     private final HiraServiceKeyProvider keyProvider;
 
     public HiraNonPayClient(
             HiraServiceKeyProvider keyProvider,
-            @Value("${hira.nonpay-base-url:http://apis.data.go.kr/B551182/nonPaymentDamtInfoService}") String baseUrl,
+            @Value("${hira.nonpay-base-url:https://apis.data.go.kr/B551182/nonPaymentDamtInfoService}") String baseUrl,
             XmlMapper hiraXmlMapper) {
         this.keyProvider = keyProvider;
         this.xmlMapper = hiraXmlMapper;
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(10));
-        factory.setReadTimeout(Duration.ofSeconds(90));
-        // URI_COMPONENT: base64 인증키의 +/= 문자가 query component에서 깨지지 않게 인코딩한다.
-        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(baseUrl);
-        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
-        this.restClient = RestClient.builder()
-                .uriBuilderFactory(uriFactory)
-                .requestFactory(factory)
-                .build();
+        this.httpClient = new HiraApiHttpClient(baseUrl);
     }
 
     public HiraBody<NonPayCodeItem> searchItemCodes(int pageNo, int numOfRows) {
@@ -136,14 +122,10 @@ public class HiraNonPayClient {
         for (int attempt = 0; attempt <= RETRY_BACKOFF_MS.length; attempt++) {
             String serviceKey = keyProvider.next();
             try {
-                byte[] xml = restClient.get()
-                        .uri(b -> queryAdder.apply(
-                                b.path(path).queryParam("ServiceKey", serviceKey)
-                        ).build())
-                        .retrieve()
-                        .body(byte[].class);
-                HiraResponse<T> response = xmlMapper.readValue(xml, typeRef);
-                return classify(response, path, pageNo);
+                HiraResponse<T> response = httpClient.getXml(b -> queryAdder.apply(
+                        b.path(path).queryParam("ServiceKey", serviceKey)
+                ), typeRef, xmlMapper);
+                return HiraResponseClassifier.classify(response, path, pageNo, "pageNo=" + pageNo, log);
             } catch (Exception e) {
                 lastError = e;
                 if (attempt < RETRY_BACKOFF_MS.length) {
@@ -158,35 +140,6 @@ public class HiraNonPayClient {
         }
         log.warn("{} 최종 실패 (pageNo={}): {}",
                 path, pageNo, lastError == null ? "unknown" : lastError.getMessage());
-        return HiraBody.failed(pageNo);
-    }
-
-    /**
-     * resultCode 기반으로 NORMAL / NODATA / FAILED를 구분한다.
-     * <p>
-     * header를 body null보다 먼저 검사한다. HIRA가 NODATA(resultCode=03)일 때 body 자체를 비워 보내는 경우가 있어,
-     * body null 단계에서 FAILED로 떨어지면 배치가 진짜 NODATA를 외부 호출 실패로 오인해 페이지 누락을 일으킨다.
-     */
-    private <T> HiraBody<T> classify(HiraResponse<T> response, String path, int pageNo) {
-        if (response == null) {
-            log.warn("{} response null (pageNo={})", path, pageNo);
-            return HiraBody.failed(pageNo);
-        }
-        HiraHeader header = response.header();
-        if (header != null && header.isNoData()) {
-            return HiraBody.noData(pageNo);
-        }
-        if (response.body() == null) {
-            log.warn("{} body null (pageNo={}, resultCode={})",
-                    path, pageNo, header == null ? "null" : header.resultCode());
-            return HiraBody.failed(pageNo);
-        }
-        if (header == null || header.isSuccess()) {
-            response.body().setStatus(HiraBody.Status.NORMAL);
-            return response.body();
-        }
-        log.warn("{} resultCode={} resultMsg={} (pageNo={})",
-                path, header.resultCode(), header.resultMsg(), pageNo);
         return HiraBody.failed(pageNo);
     }
 }

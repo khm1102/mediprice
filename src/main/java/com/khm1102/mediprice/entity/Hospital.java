@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 병원 기본정보 — 심평원 {@code getHospBasisList1} 응답을 영속화.
+ * 병원 기본정보 — 심평원 {@code getHospBasisList} 응답을 영속화.
  * <p>
  * PK는 암호화 요양기호 {@code ykiho}. 위치는 {@code location GEOGRAPHY(POINT, 4326)} 컬럼이지만
  * JPA에 매핑하지 않고 {@link HospitalRepository#updateLocation}로 native UPDATE한다

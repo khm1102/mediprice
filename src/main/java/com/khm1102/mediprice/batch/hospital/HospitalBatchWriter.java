@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.hospital;
 
-import com.khm1102.mediprice.client.hira.HospBasisItem;
+import com.khm1102.mediprice.client.hira.hospital.HospBasisItem;
 import com.khm1102.mediprice.entity.Hospital;
 import com.khm1102.mediprice.repository.HospitalRepository;
 import jakarta.persistence.EntityManager;

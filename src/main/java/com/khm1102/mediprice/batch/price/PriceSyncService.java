@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.price;
 
-import com.khm1102.mediprice.client.hira.HiraBody;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
 import com.khm1102.mediprice.repository.HospitalRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

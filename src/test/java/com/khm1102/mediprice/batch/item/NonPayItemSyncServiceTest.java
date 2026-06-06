@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.item;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayCodeItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayCodeItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -79,6 +79,34 @@ class NonPayItemSyncServiceTest {
         assertThat(saved).isEqualTo(100);
         verify(client, times(1)).searchItemCodes(anyInt(), anyInt());
         verify(writer, times(1)).saveBatch(any());
+    }
+
+    @Test
+    void failedFirstPageIsNotMistakenForSuccessfulEmptyDataset() {
+        HiraBody<NonPayCodeItem> failed = HiraBody.failed(1);
+        when(client.searchItemCodes(eq(1), anyInt())).thenReturn(failed);
+
+        int saved = service.sync();
+
+        assertThat(saved).isZero();
+        assertThat(failed.isFailed()).isTrue();
+        verify(writer, never()).saveBatch(any());
+        verify(client, times(1)).searchItemCodes(eq(1), anyInt());
+    }
+
+    @Test
+    void workerPageFailureDoesNotDiscardFirstPageRows() {
+        when(client.searchItemCodes(eq(1), anyInt())).thenReturn(body(900, 300));
+        when(client.searchItemCodes(eq(2), anyInt())).thenThrow(new RuntimeException("page 2 timeout"));
+        when(client.searchItemCodes(eq(3), anyInt())).thenReturn(body(900, 300));
+        when(writer.saveBatch(any())).thenAnswer(inv -> ((List<?>) inv.getArgument(0)).size());
+
+        int saved = service.sync();
+
+        assertThat(saved).isEqualTo(600);
+        verify(client).searchItemCodes(eq(2), anyInt());
+        verify(client).searchItemCodes(eq(3), anyInt());
+        verify(writer, times(2)).saveBatch(any());
     }
 
     private static HiraBody<NonPayCodeItem> body(int totalCount, int itemCount) {

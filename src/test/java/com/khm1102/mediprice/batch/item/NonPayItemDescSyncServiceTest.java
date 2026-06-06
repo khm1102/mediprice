@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.item;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayDescItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDescItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -69,6 +69,34 @@ class NonPayItemDescSyncServiceTest {
 
         assertThat(saved).isZero();
         verify(writer, never()).saveBatch(any());
+    }
+
+    @Test
+    void failedFirstPageDoesNotCallWriter() {
+        HiraBody<NonPayDescItem> failed = HiraBody.failed(1);
+        when(client.searchItemDescList(eq(1), anyInt())).thenReturn(failed);
+
+        int saved = service.sync();
+
+        assertThat(saved).isZero();
+        assertThat(failed.isFailed()).isTrue();
+        verify(writer, never()).saveBatch(any());
+        verify(client, times(1)).searchItemDescList(eq(1), anyInt());
+    }
+
+    @Test
+    void workerPageExceptionKeepsAlreadySavedRows() {
+        when(client.searchItemDescList(eq(1), anyInt())).thenReturn(body(250, 100));
+        when(client.searchItemDescList(eq(2), anyInt())).thenThrow(new RuntimeException("page 2 parse error"));
+        when(client.searchItemDescList(eq(3), anyInt())).thenReturn(body(250, 50));
+        when(writer.saveBatch(any())).thenAnswer(inv -> ((List<?>) inv.getArgument(0)).size());
+
+        int saved = service.sync();
+
+        assertThat(saved).isEqualTo(150);
+        verify(client).searchItemDescList(eq(2), anyInt());
+        verify(client).searchItemDescList(eq(3), anyInt());
+        verify(writer, times(2)).saveBatch(any());
     }
 
     private static HiraBody<NonPayDescItem> body(int totalCount, int itemCount) {

@@ -5,7 +5,7 @@ import com.khm1102.mediprice.global.config.CacheConfig;
 import com.khm1102.mediprice.repository.NonPayItemRepository;
 import com.khm1102.mediprice.dto.NonPayItemGroupDto;
 
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

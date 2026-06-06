@@ -1,18 +1,22 @@
 package com.khm1102.mediprice.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.auth.HiraServiceKeyProvider;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.dataformat.xml.XmlMapper;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -124,8 +128,60 @@ class HiraNonPayClientTest {
         wireMock.verify(
                 com.github.tomakehurst.wiremock.client.WireMock
                         .getRequestedFor(urlPathEqualTo("/getNonPaymentItemHospList2"))
-                        .withQueryParam("sidoCd",
-                                com.github.tomakehurst.wiremock.client.WireMock.equalTo("110000")));
+                        .withQueryParam("sidoCd", equalTo("110000")));
+    }
+
+    @Test
+    void transientHttpFailureRetriesWithNextServiceKeyAndKeepsSuccessfulResult() {
+        wireMock.resetAll();
+        wireMock.stubFor(get(urlPathEqualTo("/getNonPaymentItemHospDtlList"))
+                .inScenario("nonpay-retry")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(aResponse().withStatus(500))
+                .willSetStateTo("recovered"));
+        wireMock.stubFor(get(urlPathEqualTo("/getNonPaymentItemHospDtlList"))
+                .inScenario("nonpay-retry")
+                .whenScenarioStateIs("recovered")
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/xml; charset=UTF-8")
+                        .withBody("""
+                                <response><header><resultCode>00</resultCode></header>
+                                <body><items>
+                                  <item><ykiho>YK1</ykiho><npayCd>N002</npayCd><curAmt>25000</curAmt>
+                                        <adtFrDd>20240101</adtFrDd><adtEndDd>99991231</adtEndDd></item>
+                                </items><numOfRows>10</numOfRows><pageNo>3</pageNo><totalCount>1</totalCount></body></response>
+                                """)));
+        HiraNonPayClient retryingClient = new HiraNonPayClient(
+                new HiraServiceKeyProvider("first-key,second-key", ""),
+                wireMock.baseUrl(),
+                XmlMapper.builder().findAndAddModules().build());
+
+        HiraBody<NonPayDtlItem> body = retryingClient.searchHospPriceDetail("YK1", 3, 10);
+
+        assertThat(body.isNormal()).isTrue();
+        assertThat(body.getPageNo()).isEqualTo(3);
+        assertThat(body.safeItems()).extracting(NonPayDtlItem::npayCd).containsExactly("N002");
+        wireMock.verify(1, getRequestedFor(urlPathEqualTo("/getNonPaymentItemHospDtlList"))
+                .withQueryParam("ServiceKey", equalTo("first-key")));
+        wireMock.verify(1, getRequestedFor(urlPathEqualTo("/getNonPaymentItemHospDtlList"))
+                .withQueryParam("ServiceKey", equalTo("second-key")));
+    }
+
+    @Test
+    void summaryWithoutSidoCdDoesNotSendBlankSidoCdParameter() {
+        stubXml("/getNonPaymentItemHospList2", """
+                <response><header><resultCode>03</resultCode></header>
+                <body><numOfRows>10</numOfRows><pageNo>1</pageNo><totalCount>0</totalCount></body></response>
+                """);
+
+        client.searchHospPriceSummary(" ", 1, 10);
+
+        wireMock.verify(1, getRequestedFor(urlPathEqualTo("/getNonPaymentItemHospList2"))
+                .withQueryParam("pageNo", equalTo("1"))
+                .withoutQueryParam("sidoCd"));
+        wireMock.verify(0, getRequestedFor(urlPathEqualTo("/getNonPaymentItemHospList2"))
+                .withQueryParam("sidoCd", matching(".*")));
     }
 
     private void stubXml(String path, String body) {
