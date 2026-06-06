@@ -51,6 +51,30 @@ class FavoriteApiControllerTest {
                 .addFavorite(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
     }
 
+    @Test
+    void rejectsGuestPrincipalOnStatusLookup() {
+        FavoriteApiController c = controller();
+
+        assertThatThrownBy(() -> c.getFavoriteStatus(GUEST, "YK1"))
+                .isInstanceOf(AuthenticationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+
+        verify(favoriteService, never())
+                .existsFavorite(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void rejectsNullPrincipalOnRemove() {
+        FavoriteApiController c = controller();
+
+        assertThatThrownBy(() -> c.removeFavorite(null, "YK1"))
+                .isInstanceOf(AuthenticationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+
+        verify(favoriteService, never())
+                .removeFavorite(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
     /** memberId가 null인 비정상 principal도 차단. */
     @Test
     void rejectsMemberPrincipalWithoutMemberId() {
@@ -72,5 +96,18 @@ class FavoriteApiControllerTest {
         assertThat(response.success()).isTrue();
         assertThat(response.data()).containsEntry("isFavorite", true);
         verify(favoriteService).existsFavorite(42L, "YK1");
+    }
+
+    @Test
+    void memberAddAndRemoveDelegateExactMemberIdAndYkiho() {
+        FavoriteApiController c = controller();
+
+        ApiResponse<Void> add = c.addFavorite(MEMBER, Map.of("ykiho", "YK1"));
+        ApiResponse<Void> remove = c.removeFavorite(MEMBER, "YK1");
+
+        assertThat(add.success()).isTrue();
+        assertThat(remove.success()).isTrue();
+        verify(favoriteService).addFavorite(42L, "YK1");
+        verify(favoriteService).removeFavorite(42L, "YK1");
     }
 }

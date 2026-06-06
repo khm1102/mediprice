@@ -7,6 +7,7 @@ import com.khm1102.mediprice.batch.price.PriceSyncService;
 import com.khm1102.mediprice.batch.stat.NonPayItemClcdStatSyncService;
 import com.khm1102.mediprice.batch.stat.NonPayItemSidoStatSyncService;
 import com.khm1102.mediprice.batch.summary.PriceSummarySyncService;
+import com.khm1102.mediprice.global.config.CacheConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
 import java.util.concurrent.CountDownLatch;
@@ -42,6 +44,8 @@ class BatchServiceTest {
     @Mock NonPayItemClcdStatSyncService clcdStatSyncService;
     @Mock NonPayItemSidoStatSyncService sidoStatSyncService;
     @Mock CacheManager cacheManager;
+    @Mock Cache nonPayItemGroupsCache;
+    @Mock Cache hospitalDetailHiraCache;
 
     @InjectMocks BatchService batchService;
 
@@ -158,6 +162,44 @@ class BatchServiceTest {
         verify(sidoStatSyncService).sync();
     }
 
+    @Test
+    void syncAllEvictsUserFacingCachesOnSuccess() {
+        Executor pool = Runnable::run;
+        injectExecutor(batchService, pool);
+        stubCacheLookup();
+        when(nonPayItemSyncService.sync()).thenReturn(100);
+        when(hospitalSyncService.sync()).thenReturn(200);
+        when(priceSyncService.sync()).thenReturn(300);
+        when(descSyncService.sync()).thenReturn(50);
+        when(summarySyncService.sync()).thenReturn(1000);
+        when(clcdStatSyncService.sync()).thenReturn(60);
+        when(sidoStatSyncService.sync()).thenReturn(70);
+
+        batchService.syncAll();
+
+        verify(nonPayItemGroupsCache).clear();
+        verify(hospitalDetailHiraCache).clear();
+    }
+
+    @Test
+    void syncAllEvictsUserFacingCachesEvenWhenAStepThrows() {
+        Executor pool = Runnable::run;
+        injectExecutor(batchService, pool);
+        stubCacheLookup();
+        when(nonPayItemSyncService.sync()).thenThrow(new RuntimeException("quota exceeded"));
+        when(hospitalSyncService.sync()).thenReturn(200);
+        when(priceSyncService.sync()).thenReturn(300);
+        when(descSyncService.sync()).thenReturn(50);
+        when(summarySyncService.sync()).thenReturn(1000);
+        when(clcdStatSyncService.sync()).thenReturn(60);
+        when(sidoStatSyncService.sync()).thenReturn(70);
+
+        batchService.syncAll();
+
+        verify(nonPayItemGroupsCache).clear();
+        verify(hospitalDetailHiraCache).clear();
+    }
+
     private static void injectExecutor(BatchService service, Executor executor) {
         try {
             var field = BatchService.class.getDeclaredField("batchExecutor");
@@ -166,5 +208,10 @@ class BatchServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void stubCacheLookup() {
+        when(cacheManager.getCache(CacheConfig.NON_PAY_ITEM_GROUPS_CACHE)).thenReturn(nonPayItemGroupsCache);
+        when(cacheManager.getCache(CacheConfig.HOSPITAL_DETAIL_HIRA_CACHE)).thenReturn(hospitalDetailHiraCache);
     }
 }

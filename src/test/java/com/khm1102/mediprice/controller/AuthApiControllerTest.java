@@ -51,6 +51,15 @@ class AuthApiControllerTest {
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
     }
 
+    @Test
+    void rejectsMemberRoleWithoutMemberIdOnMe() {
+        MemberPrincipal broken = new MemberPrincipal(null, "u@x", "MEMBER", "Name");
+
+        assertThatThrownBy(() -> controller().me(broken))
+                .isInstanceOf(AuthenticationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
+    }
+
     /** MEMBER principal은 me() 통과. */
     @Test
     void allowsMemberOnMe() {
@@ -70,6 +79,19 @@ class AuthApiControllerTest {
 
         assertThatThrownBy(() -> controller().withdraw(GUEST, response))
                 .isInstanceOf(AuthenticationException.class);
+
+        verify(authService, never()).withdraw(org.mockito.ArgumentMatchers.anyLong());
+        verify(cookieFactory, never()).clearToken(response);
+    }
+
+    @Test
+    void rejectsMemberRoleWithoutMemberIdOnWithdrawAndKeepsCookie() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MemberPrincipal broken = new MemberPrincipal(null, "u@x", "MEMBER", "Name");
+
+        assertThatThrownBy(() -> controller().withdraw(broken, response))
+                .isInstanceOf(AuthenticationException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED);
 
         verify(authService, never()).withdraw(org.mockito.ArgumentMatchers.anyLong());
         verify(cookieFactory, never()).clearToken(response);
