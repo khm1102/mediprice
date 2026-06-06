@@ -27,4 +27,15 @@ public interface PriceRepository extends JpaRepository<Price, PriceId> {
     @Query("delete from Price p where p.ykiho = :ykiho and p.npayCd not in :activeCodes")
     int removeStaleByYkiho(@Param("ykiho") String ykiho,
                            @Param("activeCodes") Collection<String> activeCodes);
+
+    /**
+     * 특정 ykiho의 활성 가격(adt_end_dd='99991231') 전체를 물리 삭제한다.
+     * <p>
+     * HIRA가 ykiho에 대해 명시적으로 NODATA(첫 페이지) 응답한 경우에만 호출해야 한다.
+     * 응답 실패/중간 페이지 누락 상황에서 호출하면 정상 가격 데이터를 잃는다.
+     * 만료된(end_dd!=99991231) row는 그대로 두어 이력 보존.
+     */
+    @Modifying
+    @Query("delete from Price p where p.ykiho = :ykiho and p.adtEndDd = '99991231'")
+    int removeAllActiveByYkiho(@Param("ykiho") String ykiho);
 }

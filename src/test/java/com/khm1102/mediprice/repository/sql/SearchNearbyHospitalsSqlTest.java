@@ -85,6 +85,26 @@ class SearchNearbyHospitalsSqlTest {
                 .isTrue();
     }
 
+    /**
+     * 회귀 방지 — 옛 SQL은 빈/null 배열을 "전체 Price 검색"으로 폴백했다.
+     * 내부 호출 하나가 반경 내 모든 Price를 끌어오는 사고를 막기 위해 SQL도 명시적 가드.
+     */
+    @Test
+    void v2DoesNotFallBackToFullScanOnEmptyArray() throws IOException {
+        String sql = readSql();
+        // 폴백 패턴이 다시 들어오면 fail.
+        assertThat(sql)
+                .as("array_length IS NULL 폴백은 전체 Price 스캔이라 다시 들어오면 안 된다")
+                .doesNotContain("array_length(p_npay_cds, 1) IS NULL");
+        // 명시적 가드 패턴
+        Pattern guard = Pattern.compile(
+                "p_npay_cds\\s+IS\\s+NOT\\s+NULL[\\s\\S]+array_length\\s*\\(\\s*p_npay_cds\\s*,\\s*1\\s*\\)\\s*>\\s*0",
+                Pattern.CASE_INSENSITIVE);
+        assertThat(guard.matcher(sql).find())
+                .as("p_npay_cds IS NOT NULL AND array_length(...) > 0 가드가 있어야 한다")
+                .isTrue();
+    }
+
     /** 외부 ORDER BY가 모드별 분기(distance/price/mixed)를 갖고 tie-breaker로 (distance, ykiho)를 포함. */
     @Test
     void v2OuterOrderBranchesBySortAndKeepsTieBreaker() throws IOException {
