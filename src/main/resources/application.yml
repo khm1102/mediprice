@@ -33,6 +33,10 @@ security:
 batch:
   # 기본값 false. 운영에서는 BATCH_ADMIN_ENABLED=true로 명시적으로 켜야 /api/internal/batch/** 가 동작.
   admin-enabled: ${BATCH_ADMIN_ENABLED:false}
+  # /api/internal/batch/**의 X-Batch-Admin-Secret 헤더와 정확히 일치해야 통과.
+  # 기본값 빈 문자열 = 어떤 요청도 통과 X. 운영에서 32+ 문자 랜덤(예: openssl rand -base64 48)으로 설정.
+  # admin-enabled=true 만 켜고 secret 미설정 시에도 모든 요청 403 (fail-closed).
+  admin-secret: ${BATCH_ADMIN_SECRET:}
 
 naver:
   map-key: ${NAVER_MAP_KEY:}

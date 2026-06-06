@@ -234,7 +234,8 @@ GET    /api/auth/token/guest               비회원 임시 Guest JWT 발급
 GET    /api/auth/me                        현재 회원 정보 (회원)
 DELETE /api/auth/me                        회원 탈퇴 (회원)
 
-# 운영/디버그 (현재 비인증 공개 — TODO.md N1: 운영 보호 필요)
+# 운영/디버그 — BatchAdminGuard 가드 (BATCH_ADMIN_ENABLED=true + X-Batch-Admin-Secret 일치 필수)
+# 기본 fail-closed (admin-enabled=false / admin-secret=빈문자 → 모든 요청 403 B001/B003)
 POST   /api/internal/batch/sync            전체 배치 트리거
 POST   /api/internal/batch/sync/prices     Price 단독
 POST   /api/internal/batch/sync/desc       NonPayItemDesc 단독

@@ -21,6 +21,7 @@ public enum ErrorCode {
     // 배치 (B)
     BATCH_ADMIN_DISABLED("B001", "배치 수동 실행이 비활성화되어 있습니다.", HttpStatus.FORBIDDEN),
     BATCH_ALREADY_RUNNING("B002", "이미 실행 중인 배치가 있습니다.", HttpStatus.CONFLICT),
+    BATCH_ADMIN_FORBIDDEN("B003", "배치 관리자 인증에 실패했습니다.", HttpStatus.FORBIDDEN),
 
     // 비즈니스 — 병원 (H)
     HOSPITAL_NOT_FOUND("H001", "병원 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),

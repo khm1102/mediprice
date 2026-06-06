@@ -6,13 +6,10 @@
 
 ## 🚧 P1 진행 중 추가된 항목
 
-### N1. `/api/internal/batch/**` 권한 보호
-- **현황:** 인증 없이 누구나 호출 가능 — `BatchAdminApiController` MVP 검증용
-- **방향:** 운영 배포 전 다음 중 하나:
-  - (a) 운영 빌드에서 컨트롤러 자체 제거 (Spring profile 분리)
-  - (b) admin 권한 보호 (`hasRole('ADMIN')`)
-  - (c) 인프라 단(nginx/Cloudflare)에서 IP 제한
-- **결정 시점:** 운영 배포 직전
+### N1. `/api/internal/batch/**` 권한 보호 — ✅ 1차 적용 (BatchAdminGuard)
+- **적용:** `BatchAdminGuard`가 두 단계 가드. ① `batch.admin-enabled` (기본 false) → B001. ② `batch.admin-secret` 설정 + 요청 `X-Batch-Admin-Secret` 헤더 정확 일치 → 불일치/누락/blank 시 B003. 상수시간 비교, trim 금지.
+- **운영 설정:** `BATCH_ADMIN_ENABLED=true` + `BATCH_ADMIN_SECRET=<openssl rand -base64 48 결과>` 둘 다 필요. 한쪽만 켜면 fail-closed로 모든 요청 403.
+- **잔여(이중 방어 권장):** SecurityConfig 단에서 `/api/internal/**`에 `hasRole('ADMIN')` 추가 또는 인프라(nginx/Cloudflare) IP 제한. 현재는 컨트롤러 가드만 신뢰.
 
 ### N2. 배치 cron 주기 조정 — ✅ 적용됨
 - 매일 → **매월 1일 새벽 0시** (`@Scheduled(cron = "0 0 0 1 * *")`)로 변경. 비급여 데이터 갱신주기와 정렬

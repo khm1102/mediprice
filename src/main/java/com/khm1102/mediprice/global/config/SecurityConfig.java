@@ -79,7 +79,7 @@ public class SecurityConfig {
                                 "/api/hospitals/**",
                                 "/api/items",
                                 "/api/health",
-                                "/api/internal/**"        // 배치 디버그 — 컨트롤러 단에서 batch.admin-enabled로 가드 (TODO.md N1)
+                                "/api/internal/**"        // 배치 디버그 — BatchAdminGuard enabled + secret 헤더 가드 (TODO.md N1)
                         ).permitAll()
                         // 회원 전용 API — GUEST JWT 차단. MemberPrincipal.getAuthorities()가 ROLE_MEMBER/ROLE_GUEST를 부여한다.
                         .requestMatchers("/api/favorites/**", "/api/auth/me").hasRole("MEMBER")

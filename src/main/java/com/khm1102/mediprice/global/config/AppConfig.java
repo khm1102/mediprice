@@ -129,4 +129,22 @@ public class AppConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * BatchAdminApiController가 수동 트리거를 백그라운드로 던질 때 사용하는 전용 풀.
+     * <p>
+     * RUNNING AtomicBoolean으로 한 번에 1건만 직렬 실행되므로 single-thread로 충분.
+     * 별도 풀을 두는 이유는 (1) hiraBatchExecutor와 책임 분리, (2) 컨트롤러 테스트에서
+     * direct executor({@code Runnable::run})를 주입해 동기 실행으로 만들기 위한 seam 제공.
+     */
+    @Bean(name = "batchAdminExecutor")
+    public Executor batchAdminExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(8);
+        executor.setThreadNamePrefix("batch-admin-");
+        executor.initialize();
+        return executor;
+    }
 }

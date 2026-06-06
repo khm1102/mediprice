@@ -249,6 +249,8 @@ BatchService.syncAll()
 - 개별 항목·페이지 실패는 `log.warn` 후 계속 진행한다.
 - DB write는 페이지/청크/ykiho 단위 트랜잭션으로 분리한다.
 - 수동 트리거: `POST /api/internal/batch/sync`
+  - 기본 비활성화 (`BATCH_ADMIN_ENABLED=false`)
+  - 운영에서 `BATCH_ADMIN_ENABLED=true`와 `X-Batch-Admin-Secret` 헤더가 모두 맞아야 실행
 
 ### 6.3 병원 상세 — 실시간 외부 API 병렬 호출
 
@@ -355,9 +357,9 @@ Spring Boot가 아니므로 Root Context와 Servlet Context가 분리됩니다.
 |---|---|---|
 | 캐시 TTL 없음 | `ConcurrentMapCache`는 만료 정책 미지원 — 서버 재시작 시 초기화 | Caffeine Cache 도입 (단, 현재 금지) / 배치 주기와 일치하도록 수동 evict |
 | 테스트 커버리지 공백 | 단위 테스트 94개는 통과, PostGIS/배치 통합 테스트는 부족 | Testcontainers + WireMock 도입 |
-| 배치 엔드포인트 노출 | `POST /api/internal/batch/sync`가 비인증 공개 — 누구나 배치 트리거 가능 | `@Profile("dev")` 또는 IP 화이트리스트 적용 |
+| 배치 엔드포인트 노출 | `BatchAdminGuard` 1차 적용 — enabled 플래그 + secret 헤더로 fail-closed | Spring Security `ADMIN` role 또는 IP 화이트리스트로 이중 방어 |
 | 외부 API 회복력 제한 | retry/backoff는 있으나 quota 초과와 장기 장애에 대한 checkpoint 부족 | checkpoint + 운영계정 + 재개 정책 |
-| 회원 API 보안 보강 필요 | JWT와 즐겨찾기는 구현됐지만 GUEST 역할 차단, 쿠키 보안 속성, 배치 API 보호가 남음 | 운영 전 SecurityConfig/쿠키 정책 정리 |
+| 회원 API 보안 보강 필요 | JWT와 즐겨찾기, GUEST 역할 차단, 쿠키 보안 속성, 배치 API 1차 보호 적용 | 운영 전 SecurityConfig 이중 방어와 쿠키 정책 점검 |
 
 ### 8.3 솔직한 포지셔닝
 
