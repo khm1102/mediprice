@@ -2,7 +2,7 @@ package com.khm1102.mediprice.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
-import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
+import com.khm1102.mediprice.client.hira.auth.HiraServiceKeyProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +12,9 @@ import tools.jackson.dataformat.xml.XmlMapper;
 import java.util.concurrent.Executor;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,6 +106,11 @@ class HiraDetailClientTest {
 
         assertThat(bundle.spclDiagList()).hasSize(1);
         assertThat(bundle.spclDiagList().get(0).srchCdNm()).isEqualTo("응급의료센터");
+        wireMock.verify(getRequestedFor(urlPathEqualTo("/getDgsbjtInfo2.7"))
+                .withQueryParam("ServiceKey", equalTo("test-key"))
+                .withQueryParam("ykiho", equalTo("YKIHO-1"))
+                .withQueryParam("pageNo", equalTo("1"))
+                .withQueryParam("numOfRows", equalTo("100")));
     }
 
     @Test
@@ -126,6 +133,32 @@ class HiraDetailClientTest {
         assertThat(bundle.dgsbjtList()).isEmpty();
         // 다른 API는 정상 반환
         assertThat(bundle.medOftList()).hasSize(1);
+        assertThat(bundle.trnsprtList()).isEmpty();
+        assertThat(bundle.dtlInfo()).isEmpty();
+        assertThat(bundle.spclDiagList()).isEmpty();
+    }
+
+    @Test
+    void missingBodyInOneApiFallsBackToOnlyThatSection() {
+        wireMock.stubFor(get(urlPathEqualTo("/getDgsbjtInfo2.7"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/xml; charset=UTF-8")
+                        .withBody("<response><header><resultCode>03</resultCode></header></response>")));
+        stubXml("/getMedOftInfo2.7", """
+                <response><header><resultCode>00</resultCode></header><body><items>
+                  <item><oftCd>B301</oftCd><oftCdNm>MRI</oftCdNm><oftCnt>3</oftCnt></item>
+                </items></body></response>
+                """);
+        stubXml("/getTrnsprtInfo2.7", emptyBody());
+        stubXml("/getDtlInfo2.7", emptyBody());
+        stubXml("/getSpclDiagInfo2.7", emptyBody());
+
+        HospitalDetailBundle bundle = client.fetchAll("YKIHO-1");
+
+        assertThat(bundle.dgsbjtList()).isEmpty();
+        assertThat(bundle.medOftList()).hasSize(1);
+        assertThat(bundle.medOftList().get(0).oftCdNm()).isEqualTo("MRI");
         assertThat(bundle.trnsprtList()).isEmpty();
         assertThat(bundle.dtlInfo()).isEmpty();
         assertThat(bundle.spclDiagList()).isEmpty();

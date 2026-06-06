@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.item;
 
-import com.khm1102.mediprice.client.hira.NonPayCodeItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayCodeItem;
 import com.khm1102.mediprice.entity.NonPayItem;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.summary;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayHospSummaryItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayHospSummaryItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -75,11 +75,15 @@ class PriceSummarySyncServiceTest {
     /** 1페이지 NORMAL + 2페이지 FAILED + 3페이지 NORMAL (totalPages=3) → failedPages=1, 1+3페이지만 적재. */
     @Test
     void countsFailedMiddlePageAndContinues() {
+        AtomicInteger page2Calls = new AtomicInteger(0);
         when(client.searchHospPriceSummary(anyInt(), anyInt())).thenAnswer(inv -> {
             int page = inv.getArgument(0);
             return switch (page) {
                 case 1 -> body(900, sampleBatch(300));
-                case 2 -> HiraBody.<NonPayHospSummaryItem>failed(2);
+                case 2 -> {
+                    page2Calls.incrementAndGet();
+                    yield HiraBody.<NonPayHospSummaryItem>failed(2);
+                }
                 case 3 -> body(900, sampleBatch(300));
                 default -> body(900);
             };
@@ -90,6 +94,7 @@ class PriceSummarySyncServiceTest {
 
         assertThat(summary.producedTotal()).isEqualTo(600);
         assertThat(summary.failedPages()).isEqualTo(1);
+        assertThat(page2Calls.get()).isEqualTo(1);
     }
 
     /** 1페이지 NORMAL + 2페이지 NODATA(중간) → failedPages=1. */

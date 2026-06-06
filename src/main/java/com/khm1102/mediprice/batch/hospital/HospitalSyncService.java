@@ -2,8 +2,8 @@ package com.khm1102.mediprice.batch.hospital;
 
 
 import com.khm1102.mediprice.client.HiraHospitalClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.HospBasisItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.hospital.HospBasisItem;
 import com.khm1102.mediprice.batch.support.SidoCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Step 2 — 병원 동기화 ({@code getHospBasisList1}). Producer-Consumer 패턴.
+ * Step 2 — 병원 동기화 ({@code getHospBasisList}). Producer-Consumer 패턴.
  * <p>
  * Producer 풀은 17개 시도 × 페이징을 병렬로 호출하여 DTO를 큐에 push.
  * Consumer 풀은 큐에서 batch(BATCH_SIZE)로 take하여 {@link HospitalBatchWriter}를 통해

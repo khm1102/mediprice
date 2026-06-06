@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.stat;
 
-import com.khm1102.mediprice.client.hira.NonPayClcdStatItem;
+import com.khm1102.mediprice.client.hira.stat.NonPayClcdStatItem;
 import com.khm1102.mediprice.entity.NonPayItemClcdStat;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

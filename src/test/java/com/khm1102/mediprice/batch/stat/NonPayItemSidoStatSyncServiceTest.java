@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.stat;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPaySidoStatItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.stat.NonPaySidoStatItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -1,12 +1,12 @@
 package com.khm1102.mediprice.service;
 
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
-import com.khm1102.mediprice.client.hira.DgsbjtItem;
-import com.khm1102.mediprice.client.hira.DtlInfoItem;
-import com.khm1102.mediprice.client.hira.MedOftItem;
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
-import com.khm1102.mediprice.client.hira.SpclDiagItem;
-import com.khm1102.mediprice.client.hira.TrnsprtItem;
+import com.khm1102.mediprice.client.hira.detail.DgsbjtItem;
+import com.khm1102.mediprice.client.hira.detail.DtlInfoItem;
+import com.khm1102.mediprice.client.hira.detail.MedOftItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.detail.SpclDiagItem;
+import com.khm1102.mediprice.client.hira.detail.TrnsprtItem;
 import com.khm1102.mediprice.dto.HospitalDetailDto;
 import com.khm1102.mediprice.entity.Hospital;
 import com.khm1102.mediprice.entity.Price;
