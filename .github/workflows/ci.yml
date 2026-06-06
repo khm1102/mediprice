@@ -10,6 +10,9 @@ env:
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build

@@ -4,6 +4,9 @@ import com.khm1102.mediprice.global.common.ApiResponse;
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.filter.AuthAttributeNames;
 import com.khm1102.mediprice.global.filter.JwtAuthFilter;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
@@ -15,12 +18,14 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -69,7 +74,10 @@ public class SecurityConfig {
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, CorsConfigurationSource corsSource) {
         http
                 .securityMatcher("/api/**")
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        // 배치 내부 트리거는 X-Batch-Admin-Secret으로 별도 보호한다. 브라우저 폼/쿠키 기반 API와 분리.
+                        .ignoringRequestMatchers("/api/internal/**"))
                 .cors(cors -> cors.configurationSource(corsSource))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -89,6 +97,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(apiAuthenticationEntryPoint())
                         .accessDeniedHandler(apiAccessDeniedHandler())
                 )
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -100,7 +109,7 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain pageSecurityFilterChain(HttpSecurity http, CorsConfigurationSource corsSource) {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 // 현재 corsSource는 /api/** 매핑만 등록 — 페이지 경로엔 자동 미적용.
                 // 향후 페이지 흐름에 cross-origin이 필요한 경로가 생겨도 SecurityFilterChain은 이미 활성화됨.
                 .cors(cors -> cors.configurationSource(corsSource))
@@ -108,7 +117,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 현재는 모든 페이지 permitAll. P2 로그인 도입 시 /auth/** 외엔 authenticated + formLogin redirect 추가.
                         .anyRequest().permitAll()
-                );
+                )
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class);
         return http.build();
     }
 
@@ -141,7 +151,8 @@ public class SecurityConfig {
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         // allowCredentials=true에서는 와일드카드(*)가 Authorization 헤더와 매치 안 됨 → 명시 화이트리스트
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Trace-Id", "X-Requested-With"));
+        config.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "X-Trace-Id", "X-Requested-With", "X-XSRF-TOKEN"));
         config.setExposedHeaders(List.of("X-Trace-Id"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
@@ -175,5 +186,25 @@ public class SecurityConfig {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.getWriter().write(jsonMapper.writeValueAsString(ApiResponse.error(errorCode)));
+    }
+
+    /**
+     * Spring Security 6/7의 deferred CSRF token을 강제로 materialize해 XSRF-TOKEN 쿠키를 내려준다.
+     * JS fetch는 이 쿠키 값을 읽어 X-XSRF-TOKEN 헤더로 돌려보낸다.
+     */
+    private static final class CsrfCookieFilter implements Filter {
+        @Override
+        public void doFilter(jakarta.servlet.ServletRequest request,
+                             jakarta.servlet.ServletResponse response,
+                             FilterChain chain) throws IOException, ServletException {
+            Object token = request.getAttribute(CsrfToken.class.getName());
+            if (!(token instanceof CsrfToken)) {
+                token = request.getAttribute("_csrf");
+            }
+            if (token instanceof CsrfToken csrfToken) {
+                csrfToken.getToken();
+            }
+            chain.doFilter(request, response);
+        }
     }
 }

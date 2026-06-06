@@ -112,6 +112,7 @@
         </c:if>
 
         <form action="<c:url value='/auth/consent'/>" method="post">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 
             <%-- 전체 동의 카드 --%>
             <div class="bg-white rounded-2xl px-5 py-4 mb-3 consent-card"

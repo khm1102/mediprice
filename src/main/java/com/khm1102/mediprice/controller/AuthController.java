@@ -8,6 +8,9 @@ import com.khm1102.mediprice.util.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,28 +31,30 @@ public class AuthController {
     private final GoogleOAuthService googleOAuthService;
     private final JwtUtil jwtUtil;
     private final MpTokenCookieFactory mpTokenCookieFactory;
+    private final boolean secureCookie;
+    private final String sameSite;
 
     public AuthController(AuthService authService,
                           ConsentService consentService,
                           GoogleOAuthService googleOAuthService,
                           JwtUtil jwtUtil,
-                          MpTokenCookieFactory mpTokenCookieFactory) {
+                          MpTokenCookieFactory mpTokenCookieFactory,
+                          @Value("${security.cookie.secure:false}") boolean secureCookie,
+                          @Value("${security.cookie.same-site:Lax}") String sameSite) {
         this.authService = authService;
         this.consentService = consentService;
         this.googleOAuthService = googleOAuthService;
         this.jwtUtil = jwtUtil;
         this.mpTokenCookieFactory = mpTokenCookieFactory;
+        this.secureCookie = secureCookie;
+        this.sameSite = sameSite;
     }
 
     @GetMapping("/oauth2/authorize/google")
     public void startGoogleOAuth(HttpServletResponse response) throws IOException {
         String state = UUID.randomUUID().toString();
 
-        Cookie stateCookie = new Cookie("oauth2_state", state);
-        stateCookie.setHttpOnly(true);
-        stateCookie.setPath("/");
-        stateCookie.setMaxAge(300); // 5분
-        response.addCookie(stateCookie);
+        addCookie(response, "oauth2_state", state, "/", 300);
 
         response.sendRedirect(googleOAuthService.buildAuthorizationUrl(state));
     }
@@ -143,25 +148,26 @@ public class AuthController {
     }
 
     private void setConsentKeyCookie(HttpServletResponse response, String key) {
-        Cookie cookie = new Cookie("consent_key", key);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/auth/consent");
-        cookie.setMaxAge(600); // 10분
-        response.addCookie(cookie);
+        addCookie(response, "consent_key", key, "/auth/consent", 600);
     }
 
     private void clearConsentKeyCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("consent_key", "");
-        cookie.setMaxAge(0);
-        cookie.setPath("/auth/consent");
-        response.addCookie(cookie);
+        addCookie(response, "consent_key", "", "/auth/consent", 0);
     }
 
     private void clearStateCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("oauth2_state", "");
-        cookie.setMaxAge(0);
-        cookie.setPath("/");
-        response.addCookie(cookie);
+        addCookie(response, "oauth2_state", "", "/", 0);
+    }
+
+    private void addCookie(HttpServletResponse response, String name, String value, String path, long maxAgeSeconds) {
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .path(path)
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSite)
+                .maxAge(maxAgeSeconds)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private String extractCookie(HttpServletRequest request, String name) {

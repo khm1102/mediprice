@@ -28,10 +28,7 @@ const getMemberInfo = () => (memberState && memberState.role === 'MEMBER') ? mem
 
 const handleLogout = async () => {
     try {
-        await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
+        await api.post('/api/auth/logout', {});
     } catch {
         // 서버 오류와 무관하게 클라이언트 상태 리셋
     }
@@ -55,11 +52,7 @@ const confirmWithdraw = async () => {
     const btn = document.querySelector('#withdraw-card button:last-child');
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     try {
-        const res = await fetch('/api/auth/me', {
-            method: 'DELETE',
-            credentials: 'same-origin'
-        });
-        if (!res.ok) throw new Error();
+        await api.delete('/api/auth/me');
         memberState = null;
         window.location.href = '/';
     } catch {
