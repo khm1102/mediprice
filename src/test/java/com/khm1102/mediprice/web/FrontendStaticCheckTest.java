@@ -496,10 +496,13 @@ class FrontendStaticCheckTest {
     @Test
     void lowAccuracyTriggersBannerWithMeterReadout() throws IOException {
         String js = read("static/js/hospital.js");
-        // 임계값 상수 + 정확도 키 + 메시지 본문 패턴
+        // 임계값 상수 + 라이브 정확도 캡처 + 메시지 본문 패턴
         assertThat(js).contains("LOW_ACCURACY_THRESHOLD_M");
         assertThat(js).contains("pos.coords.accuracy");
-        assertThat(js).contains("accuracy: typeof parsed.accuracy === 'number'");
+        // sessionStorage에는 좌표 미저장 — CodeQL clear-text-storage 회귀 방지.
+        assertThat(js)
+                .as("민감 좌표를 sessionStorage에 다시 저장하면 안 된다")
+                .doesNotContain("JSON.stringify({ lat, lng,");
         // 배너 메시지에 정확도 m 단위 표기
         assertThat(js).contains("±${m}m");
 
