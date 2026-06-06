@@ -12,19 +12,19 @@ const LOW_ACCURACY_THRESHOLD_M = 1500;
 
 let _geoCache = null;
 
+// 보안: 민감 좌표(lat/lng)는 sessionStorage 평문 저장 금지 (CodeQL js/clear-text-storage).
+// 모듈 메모리 캐시 _geoCache + 브라우저의 navigator.geolocation maximumAge: 60000이 같은 탭 내
+// 단기 캐시 역할을 하므로, 페이지 reload 시에만 한 번 더 위치를 받는다. sessionStorage에는
+// 비민감 메타(fallback 여부, 정확도, 타임스탬프)만 둬서 fallback 배너 토글 정합성만 맞춘다.
 const _readGeoFromSession = () => {
     try {
         const raw = sessionStorage.getItem(GEO_SESSION_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        if (parsed?.lat == null || parsed?.lng == null || !parsed?.ts) return null;
+        if (!parsed?.ts) return null;
         if (Date.now() - parsed.ts > GEO_SESSION_MAX_AGE_MS) return null;
-        return {
-            lat: parsed.lat,
-            lng: parsed.lng,
-            fromFallback: !!parsed.fromFallback,
-            accuracy: typeof parsed.accuracy === 'number' ? parsed.accuracy : null,
-        };
+        // 좌표를 저장하지 않으므로 _geoCache 우회 복원은 불가 — 항상 null 반환해 호출처가 재취득하게 한다.
+        return null;
     } catch {
         return null;
     }
@@ -32,9 +32,10 @@ const _readGeoFromSession = () => {
 
 const _writeGeoToSession = (lat, lng, fromFallback, accuracy) => {
     try {
+        // 좌표는 의도적으로 저장하지 않음. 비민감 메타(fallback/accuracy/ts)만 저장.
         sessionStorage.setItem(GEO_SESSION_KEY,
-                JSON.stringify({ lat, lng, fromFallback: !!fromFallback, accuracy, ts: Date.now() }));
-    } catch {
+                JSON.stringify({ fromFallback: !!fromFallback, accuracy, ts: Date.now() }));
+    } catch {화
         // sessionStorage 미지원(SafariPrivate 등) — 무시.
     }
 };
