@@ -11,6 +11,8 @@ RUN chmod +x gradlew && ./gradlew --no-daemon dependencies > /dev/null 2>&1 || t
 
 # 소스 복사 후 테스트 + WAR 빌드 (테스트 실패 시 이미지 빌드 실패 = 배포 차단)
 COPY src src
+# 정적 보안 회귀 테스트가 CI workflow 권한 설정을 검증한다.
+COPY .github/workflows/ci.yml .github/workflows/ci.yml
 RUN ./gradlew --no-daemon clean test war
 
 # ───── Stage 2: Tomcat 11 runtime ─────
