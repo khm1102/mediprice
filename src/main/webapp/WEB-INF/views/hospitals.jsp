@@ -83,6 +83,22 @@
         #panel-detail.open { transform: translateX(0); }
         #pd-backdrop { display: none !important; }
     }
+
+    .search-tag {
+        font-size: 12px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        border: 1px solid #E5E7EB;
+        background: #fff;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .search-tag:hover {
+        background: #EFF6FF;
+        border-color: #2563EB;
+        color: #2563EB;
+    }
 </style>
 
 <div class="hospitals-grid">
@@ -157,14 +173,64 @@
         </div>
 
         <%-- 검색 결과 없음 --%>
-        <div id="state-empty" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-8">
-            <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4" style="box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
-                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+        <div id="state-empty" class="hidden absolute inset-0 overflow-y-auto px-5 py-6">
+            <div class="flex flex-col items-center text-center mb-5">
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4" style="box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-semibold text-gray-600">검색 결과가 없어요</p>
+                <p class="text-xs text-gray-400 mt-1">아래 항목으로 검색해보세요</p>
             </div>
-            <p class="text-sm font-semibold text-gray-600">검색 결과가 없어요</p>
-            <p class="text-xs text-gray-400 mt-1">다른 검색어로 다시 시도해보세요</p>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 mb-2">진단 · 검사</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="applyKeyword('MRI')" class="search-tag">MRI</button>
+                        <button onclick="applyKeyword('초음파')" class="search-tag">초음파</button>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 mb-2">치료</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="applyKeyword('도수치료')" class="search-tag">도수치료</button>
+                        <button onclick="applyKeyword('체외충격파')" class="search-tag">체외충격파</button>
+                        <button onclick="applyKeyword('증식치료')" class="search-tag">증식치료</button>
+                        <button onclick="applyKeyword('추나요법')" class="search-tag">추나요법</button>
+                        <button onclick="applyKeyword('약침술')" class="search-tag">약침술</button>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 mb-2">예방접종</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="applyKeyword('독감')" class="search-tag">독감</button>
+                        <button onclick="applyKeyword('대상포진')" class="search-tag">대상포진</button>
+                        <button onclick="applyKeyword('폐렴구균')" class="search-tag">폐렴구균</button>
+                        <button onclick="applyKeyword('B형간염')" class="search-tag">B형간염</button>
+                        <button onclick="applyKeyword('HPV')" class="search-tag">HPV</button>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 mb-2">치과</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="applyKeyword('임플란트')" class="search-tag">임플란트</button>
+                        <button onclick="applyKeyword('크라운')" class="search-tag">크라운</button>
+                        <button onclick="applyKeyword('스케일링')" class="search-tag">스케일링</button>
+                        <button onclick="applyKeyword('레진')" class="search-tag">레진</button>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 mb-2">기타</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="applyKeyword('상급병실')" class="search-tag">상급병실</button>
+                        <button onclick="applyKeyword('진단서')" class="search-tag">진단서</button>
+                        <button onclick="applyKeyword('라식')" class="search-tag">라식</button>
+                        <button onclick="applyKeyword('라섹')" class="search-tag">라섹</button>
+                        <button onclick="applyKeyword('모발이식')" class="search-tag">모발이식</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <%-- 오류 --%>
@@ -373,6 +439,12 @@
         const keyword = document.getElementById('search-input').value.trim();
         if (!keyword) return;
         fetchHospitalsByLocation(center.lat, center.lng, keyword);
+    };
+
+    // ── 추천 키워드 클릭 ──
+    const applyKeyword = (keyword) => {
+        document.getElementById('search-input').value = keyword;
+        fetchHospitals(keyword);
     };
 
     // ── 검색 ──
