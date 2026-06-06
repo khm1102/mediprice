@@ -68,6 +68,11 @@ public class HospitalService {
         int resolvedLimit = Math.max(1, Math.min(limit, 200));
         String[] codes = npayCds == null ? new String[0]
                 : npayCds.stream().filter(Objects::nonNull).distinct().toArray(String[]::new);
+        // 빈 코드 집합은 SQL까지 보내지 않고 즉시 무결과 — 컨트롤러 단의 입력 검증을 우회한
+        // 내부 호출이나 미래 변경 한 번으로 "반경 내 전체 Price 스캔"이 발생하지 않게 한다.
+        if (codes.length == 0) {
+            return List.of();
+        }
 
         double[] resolvedWeights = resolveWeights(wPrice, wDistance);
         String json = repository.searchNearbyV2Json(
@@ -189,11 +194,12 @@ public class HospitalService {
     }
 
     /**
-     * 가중치 정규화: 음수거나 합이 0 이하면 silent로 기본값(0.7/0.3) 폴백 + WARN 로그.
+     * 가중치 정규화: NaN/Infinity·음수·합 0 이하면 silent로 기본값(0.7/0.3) 폴백 + WARN 로그.
      * SQL이 결과 집합 내 MAX OVER로 정규화하므로 합이 1 초과/미만은 그대로 허용.
      */
     static double[] resolveWeights(double wPrice, double wDistance) {
-        if (wPrice < 0 || wDistance < 0 || (wPrice + wDistance) <= 0) {
+        if (!Double.isFinite(wPrice) || !Double.isFinite(wDistance)
+                || wPrice < 0 || wDistance < 0 || (wPrice + wDistance) <= 0) {
             log.warn("비정상 가중치(wPrice={}, wDistance={}) — 기본값으로 폴백", wPrice, wDistance);
             return new double[]{DEFAULT_W_PRICE, DEFAULT_W_DISTANCE};
         }

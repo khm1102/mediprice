@@ -157,6 +157,64 @@ class HospitalServiceV2Test {
         assertThat(distanceCaptor.getValue()).isEqualTo(0.3);
     }
 
+    /** NaN/Infinity 가중치는 좌표와 같은 등급의 손상된 입력 — 기본값으로 폴백한다. */
+    @Test
+    void nanWeightsAreCoercedToDefaults() {
+        when(repository.searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble())).thenReturn("[]");
+
+        ArgumentCaptor<Double> priceCaptor = ArgumentCaptor.forClass(Double.class);
+        ArgumentCaptor<Double> distanceCaptor = ArgumentCaptor.forClass(Double.class);
+
+        service.searchNearbyV2(37.5, 127.0, List.of("N001"), 5000, "mixed", 50, Double.NaN, 0.3);
+
+        verify(repository).searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), priceCaptor.capture(), distanceCaptor.capture());
+        assertThat(priceCaptor.getValue()).isEqualTo(0.7);
+        assertThat(distanceCaptor.getValue()).isEqualTo(0.3);
+    }
+
+    @Test
+    void infinityWeightsAreCoercedToDefaults() {
+        when(repository.searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble())).thenReturn("[]");
+
+        ArgumentCaptor<Double> priceCaptor = ArgumentCaptor.forClass(Double.class);
+        ArgumentCaptor<Double> distanceCaptor = ArgumentCaptor.forClass(Double.class);
+
+        service.searchNearbyV2(37.5, 127.0, List.of("N001"), 5000, "mixed", 50,
+                Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY);
+
+        verify(repository).searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), priceCaptor.capture(), distanceCaptor.capture());
+        assertThat(priceCaptor.getValue()).isEqualTo(0.7);
+        assertThat(distanceCaptor.getValue()).isEqualTo(0.3);
+    }
+
+    /**
+     * 빈/null npayCds는 SQL까지 보내지 않고 즉시 무결과로 끊는다.
+     * 컨트롤러 단의 입력 검증을 우회한 내부 호출이 반경 내 전체 Price를 스캔하지 못하게 막는 회귀 방지선.
+     */
+    @Test
+    void emptyNpayCdsReturnsImmediatelyWithoutRepositoryCall() {
+        List<HospitalSummaryDto> result = service.searchNearbyV2(
+                37.5, 127.0, List.of(), 5000, "mixed", 50, 0.7, 0.3);
+
+        assertThat(result).isEmpty();
+        verify(repository, never()).searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void nullNpayCdsReturnsImmediatelyWithoutRepositoryCall() {
+        List<HospitalSummaryDto> result = service.searchNearbyV2(
+                37.5, 127.0, null, 5000, "mixed", 50, 0.7, 0.3);
+
+        assertThat(result).isEmpty();
+        verify(repository, never()).searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble());
+    }
+
     /** 합이 1을 초과해도 정상 입력으로 그대로 전달 — SQL이 정규화한다. */
     @Test
     void weightsSummingAboveOneArePreserved() {

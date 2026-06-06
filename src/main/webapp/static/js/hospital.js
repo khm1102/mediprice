@@ -469,14 +469,44 @@ const showState = (id) => {
 
 // ── 병원 목록 ─────────────────────────────────────────────────────────────────
 
+/**
+ * 카드 컨테이너(#hospital-list)에 한 번만 위임 click 리스너를 등록한다.
+ * <ul>
+ *   <li>.fav-btn 클릭 → handleFavoriteClick (즐겨찾기 토글, 카드 진입 차단)</li>
+ *   <li>.hospital-card 클릭 → showHospitalInPanel (상세 패널)</li>
+ * </ul>
+ * keyword/ykiho/좌표를 inline JS string에 박아 넣던 옛 방식의 XSS 가능성을 차단한다.
+ * dataset.boundClicks 플래그로 같은 list에 중복 등록되는 것을 막는다.
+ */
+const _bindHospitalListClicks = (list) => {
+    if (!list || list.dataset.boundClicks === 'true') return;
+    list.dataset.boundClicks = 'true';
+    list.addEventListener('click', (event) => {
+        const favBtn = event.target.closest('.fav-btn');
+        if (favBtn) {
+            event.stopPropagation();
+            handleFavoriteClick(favBtn.dataset.ykiho ?? '', favBtn, event);
+            return;
+        }
+        const card = event.target.closest('.hospital-card');
+        if (!card) return;
+        const ykiho = card.dataset.ykiho ?? '';
+        if (!ykiho) return;
+        const distance = parseFloat(card.dataset.distance) || 0;
+        const lat = parseFloat(card.dataset.lat) || 0;
+        const lng = parseFloat(card.dataset.lng) || 0;
+        const kw = new URLSearchParams(location.search).get('keyword') ?? '';
+        showHospitalInPanel(ykiho, distance, encodeURIComponent(kw), lat, lng);
+    });
+};
+
 const renderHospitalCard = (hospital) => {
-    const _kw = new URLSearchParams(location.search).get('keyword') ?? '';
     const lat = hospital.lat ?? 0;
     const lng = hospital.lng ?? 0;
-    // onclick에 들어가는 ykiho는 작은따옴표 escape + HTML attribute 안전화. 좌표는 숫자라 안전.
-    const ykihoJs = (hospital.ykiho ?? '').replace(/'/g, "\\'");
+    // ykiho/거리/좌표는 data-* 속성으로 직렬화하고 클릭 처리는 위임 리스너로 한다.
+    // 옛 inline onclick="..." 문자열 조립 방식은 keyword/ykiho에 ', (, ) 가 섞이면 onclick 속성
+    // 안의 JS가 깨지거나 XSS로 이어질 수 있었다 (encodeURIComponent도 따옴표는 escape하지 않는다).
     const ykihoAttr = escapeHtml(hospital.ykiho ?? '');
-    const onclick = `showHospitalInPanel('${ykihoJs}', ${hospital.distance ?? 0}, '${encodeURIComponent(_kw)}', ${lat}, ${lng})`;
 
     // 가격 우선 — 가격이 있으면 우상단에 text-xl로 강조, 없으면 '가격 미신고' 회색 라벨.
     const priceBlock = hospital.curAmt != null
@@ -512,14 +542,16 @@ const renderHospitalCard = (hospital) => {
         .filter(Boolean).join(' · ');
 
     return `
-        <div onclick="${onclick}"
-           data-ykiho="${ykihoAttr}"
+        <div data-ykiho="${ykihoAttr}"
+           data-distance="${hospital.distance ?? 0}"
+           data-lat="${lat}"
+           data-lng="${lng}"
            class="hospital-card block hover:opacity-95 transition-all cursor-pointer"
            style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
             <div class="bg-white rounded-2xl p-4 min-h-[88px]">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex items-start gap-2 flex-1 min-w-0">
-                        <button onclick="handleFavoriteClick('${ykihoJs}', this, event)"
+                        <button type="button"
                                 data-ykiho="${ykihoAttr}"
                                 data-favorited="false"
                                 class="fav-btn flex-shrink-0 mt-0.5 p-1 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
@@ -600,6 +632,7 @@ const renderHospitalResults = (keyword, sorted) => {
         // 카드 렌더링
         const list = document.getElementById('hospital-list');
         list.innerHTML = sorted.map(h => renderHospitalCard(h)).join('');
+        _bindHospitalListClicks(list);
         showState(null);
         // 모바일에서만 자동으로 목록 탭을 활성화. 데스크톱은 list/map이 항상 함께 보이므로 무동작.
         if (!_isDesktopViewport()) togglePane?.('list');

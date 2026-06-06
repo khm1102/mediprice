@@ -115,13 +115,25 @@ class FrontendStaticCheckTest {
         assertThat(hos).contains("await authReady");
     }
 
-    /** favorites.js renderFavoriteCard가 data-ykiho/onclick 이중 컨텍스트에 안전한 두 변수를 모두 사용해야 한다. */
+    /**
+     * 회귀 방지: favorites.js renderFavoriteCard도 inline onclick 조립 방식을 다시 들이면 안 된다.
+     * 모든 클릭 처리는 #favorites-list에 위임된 리스너 + data-* 속성으로만 한다.
+     */
     @Test
-    void favoritesJsEscapesYkihoForAttributeAndJsContexts() throws IOException {
+    void favoritesCardUsesDelegatedClickInsteadOfInlineOnclick() throws IOException {
         String fav = read("static/js/favorites.js");
-        assertThat(fav).contains("ykihoJs");
-        assertThat(fav).contains("ykihoAttr");
+        // inline onclick + ykihoJs 조립 패턴이 다시 들어오면 fail.
+        assertThat(fav)
+                .doesNotContain("onclick=\"showHospitalInPanel(")
+                .doesNotContain("onclick=\"handleFavoritesRemove(")
+                .doesNotContain("const ykihoJs");
+        // data-* 직렬화 + 위임 리스너 식별자.
         assertThat(fav).contains("data-ykiho=\"${ykihoAttr}\"");
+        assertThat(fav).contains("data-lat=");
+        assertThat(fav).contains("data-lng=");
+        assertThat(fav).contains("_bindFavoritesListClicks");
+        assertThat(fav).contains("event.target.closest('.fav-remove-btn')");
+        assertThat(fav).contains("event.target.closest('.hospital-card')");
     }
 
     /** 폐기된 비회원 검색 횟수 제한 정책은 약관에도 application.yml에도 흔적이 남아 있으면 안 된다. */
@@ -410,6 +422,30 @@ class FrontendStaticCheckTest {
         String jsp = read("WEB-INF/views/hospitals.jsp");
         assertThat(jsp).contains("id=\"geo-fallback-notice\"");
         assertThat(jsp).contains("retryGeoLocation()");
+    }
+
+    /**
+     * 회귀 방지: 카드에는 inline {@code onclick="${onclick}"} 또는 즐겨찾기 버튼의
+     * inline onclick이 다시 들어오면 안 된다. 키워드/ykiho에 ' ( ) 가 섞이면 attribute JS가
+     * 깨지거나 XSS로 이어지므로 모든 click 처리는 위임 리스너 + data-* 속성으로 한다.
+     */
+    @Test
+    void hospitalCardUsesDelegatedClickInsteadOfInlineOnclick() throws IOException {
+        String js = read("static/js/hospital.js");
+        // renderHospitalCard가 더 이상 inline onclick을 조립하면 안 된다.
+        assertThat(js)
+                .as("renderHospitalCard에 inline onclick 문자열 조립이 다시 들어오면 안 된다")
+                .doesNotContain("onclick=\"${onclick}\"")
+                .doesNotContain("onclick=\"handleFavoriteClick(")
+                .doesNotContain("const onclick = `showHospitalInPanel(");
+        // data-* 직렬화 + 위임 리스너 식별자가 있어야 한다.
+        assertThat(js).contains("data-distance=");
+        assertThat(js).contains("data-lat=");
+        assertThat(js).contains("data-lng=");
+        assertThat(js).contains("_bindHospitalListClicks");
+        // 위임 리스너 내부에서 즐겨찾기 버튼 → 카드 진입 차단 분기가 있어야 한다.
+        assertThat(js).contains("event.target.closest('.fav-btn')");
+        assertThat(js).contains("event.target.closest('.hospital-card')");
     }
 
     /**

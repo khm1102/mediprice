@@ -67,8 +67,11 @@ BEGIN
                       FROM Hospital h
                       JOIN Price p ON p.ykiho = h.ykiho
                      WHERE ST_DWithin(h.location, ST_MakePoint(p_lng, p_lat)::geography, p_radius)
-                       AND (p_npay_cds IS NULL OR array_length(p_npay_cds, 1) IS NULL
-                            OR p.npay_cd = ANY(p_npay_cds))
+                       -- 빈/NULL 배열은 더 이상 "전체 검색"으로 폴백하지 않는다 (반경 내 전체 Price 스캔 방지).
+                       -- 호출처(HospitalService)가 codes.length>0를 보장하지만 SQL도 명시적으로 가드.
+                       AND p_npay_cds IS NOT NULL
+                       AND array_length(p_npay_cds, 1) > 0
+                       AND p.npay_cd = ANY(p_npay_cds)
                        AND p.adt_end_dd = '99991231'
                      ORDER BY h.ykiho,
                               p.cur_amt ASC,

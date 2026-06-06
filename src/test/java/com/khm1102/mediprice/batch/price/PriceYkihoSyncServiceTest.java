@@ -3,7 +3,6 @@ package com.khm1102.mediprice.batch.price;
 import com.khm1102.mediprice.client.HiraNonPayClient;
 import com.khm1102.mediprice.client.hira.HiraBody;
 import com.khm1102.mediprice.client.hira.NonPayDtlItem;
-import com.khm1102.mediprice.repository.PriceRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,14 +29,14 @@ import static org.mockito.Mockito.when;
 class PriceYkihoSyncServiceTest {
 
     @Mock HiraNonPayClient client;
-    @Mock PriceRepository priceRepository;
+    @Mock PriceYkihoCleanupService cleanupService;
     @Mock EntityManager em;
 
     private PriceYkihoSyncService service;
 
     @BeforeEach
     void setUp() {
-        service = new PriceYkihoSyncService(client, priceRepository);
+        service = new PriceYkihoSyncService(client, cleanupService);
         ReflectionTestUtils.setField(service, "em", em);
     }
 
@@ -54,20 +53,42 @@ class PriceYkihoSyncServiceTest {
         return new NonPayDtlItem("YK1", npayCd, npayCd + "-name", curAmt, "20240101", "99991231");
     }
 
-    /** 1페이지 NODATA면 정상 종료 (saved=0, NORMAL). stale 정리는 호출되지 않는다. */
+    /**
+     * 1페이지 NODATA = HIRA가 명시적으로 가격 없음 응답.
+     * 기존 활성 가격이 남아 있으면 사용자에게 stale로 노출되므로
+     * cleanupService.removeAllActiveByYkiho(REQUIRES_NEW)를 호출해 정리한다.
+     */
     @Test
-    void firstPageNoDataIsNormalTermination() {
+    void firstPageNoDataClearsActivePricesForYkiho() {
         when(client.searchHospPriceDetail("YK1", 1, 100)).thenReturn(HiraBody.noData(1));
+        when(cleanupService.removeAllActiveByYkiho("YK1")).thenReturn(3);
 
         PriceYkihoSyncService.SyncResult result = service.saveOneYkiho("YK1");
 
         assertThat(result.saved()).isZero();
         assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
-        verify(priceRepository, never())
+        verify(cleanupService).removeAllActiveByYkiho("YK1");
+        verify(cleanupService, never())
                 .removeStaleByYkiho(anyString(), anyCollection());
     }
 
-    /** 1페이지 FAILED는 재시도 후에도 실패면 FAILED 반환. stale 정리 호출 안 됨. */
+    /**
+     * NODATA cleanup 실패 시 FAILED를 반환해 재시도 신호를 보존한다.
+     * 옛 구현은 swallow + NORMAL이라 stale 가격이 다음 배치까지 살아남았다.
+     */
+    @Test
+    void firstPageNoDataReturnsFailedWhenCleanupFails() {
+        when(client.searchHospPriceDetail("YK1", 1, 100)).thenReturn(HiraBody.noData(1));
+        when(cleanupService.removeAllActiveByYkiho("YK1"))
+                .thenThrow(new RuntimeException("db down"));
+
+        PriceYkihoSyncService.SyncResult result = service.saveOneYkiho("YK1");
+
+        assertThat(result.status()).isEqualTo(HiraBody.Status.FAILED);
+        assertThat(result.saved()).isZero();
+    }
+
+    /** 1페이지 FAILED는 재시도 후에도 실패면 FAILED 반환. 어떤 정리도 호출되면 안 됨. */
     @Test
     void firstPageFailedAfterRetries() {
         when(client.searchHospPriceDetail(eq("YK1"), eq(1), anyInt()))
@@ -77,11 +98,12 @@ class PriceYkihoSyncServiceTest {
 
         assertThat(result.status()).isEqualTo(HiraBody.Status.FAILED);
         assertThat(result.saved()).isZero();
-        verify(priceRepository, never())
+        verify(cleanupService, never())
                 .removeStaleByYkiho(anyString(), anyCollection());
+        verify(cleanupService, never()).removeAllActiveByYkiho(anyString());
     }
 
-    /** 1페이지 NORMAL + 2페이지 NODATA가 중간에 들어오면 FAILED. */
+    /** 1페이지 NORMAL + 2페이지 NODATA가 중간에 들어오면 FAILED. 어떤 정리도 호출되면 안 됨. */
     @Test
     void middlePageNoDataIsTreatedAsFailure() {
         when(client.searchHospPriceDetail("YK1", 1, 100))
@@ -93,8 +115,9 @@ class PriceYkihoSyncServiceTest {
 
         assertThat(result.status()).isEqualTo(HiraBody.Status.FAILED);
         assertThat(result.saved()).isEqualTo(2);
-        verify(priceRepository, never())
+        verify(cleanupService, never())
                 .removeStaleByYkiho(anyString(), anyCollection());
+        verify(cleanupService, never()).removeAllActiveByYkiho(anyString());
     }
 
     /** 모든 페이지 정상이면 NORMAL + stale 정리 호출. activeCodes에 본 npayCd 모두 포함. */
@@ -112,8 +135,26 @@ class PriceYkihoSyncServiceTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<String>> captor = ArgumentCaptor.forClass(Collection.class);
-        verify(priceRepository).removeStaleByYkiho(eq("YK1"), captor.capture());
+        verify(cleanupService).removeStaleByYkiho(eq("YK1"), captor.capture());
         assertThat(captor.getValue()).containsExactlyInAnyOrder("N001", "N002", "N003");
+    }
+
+    /**
+     * stale 정리 실패는 best-effort — 데이터 저장이 정상이면 NORMAL 유지.
+     * REQUIRES_NEW로 outer 트랜잭션이 격리되므로 저장된 데이터는 commit된다.
+     */
+    @Test
+    void staleCleanupFailureKeepsNormalStatus() {
+        when(client.searchHospPriceDetail("YK1", 1, 100))
+                .thenReturn(normalBody(1, 50, List.of(item("N001", 10000L))));
+        when(cleanupService.removeStaleByYkiho(eq("YK1"), anyCollection()))
+                .thenThrow(new RuntimeException("db down"));
+
+        PriceYkihoSyncService.SyncResult result = service.saveOneYkiho("YK1");
+
+        assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
+        assertThat(result.saved()).isEqualTo(1);
+        verify(em).merge(any());
     }
 
     /** isActive=false 항목은 saved 카운트되지 않고 활성 집합에도 들어가지 않는다. */
@@ -128,6 +169,6 @@ class PriceYkihoSyncServiceTest {
         assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
         assertThat(result.saved()).isEqualTo(1);
         verify(em).merge(any());
-        verify(priceRepository).removeStaleByYkiho(eq("YK1"), eq(java.util.Set.of("N001")));
+        verify(cleanupService).removeStaleByYkiho(eq("YK1"), eq(java.util.Set.of("N001")));
     }
 }

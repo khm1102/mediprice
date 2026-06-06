@@ -164,13 +164,14 @@
 | 헤더 로고 | 정적 | 클릭 시 `/`로 이동 |
 | Hero 카피 | 정적 | — |
 | "전체 항목 보기" 버튼 | 정적 | 항목 선택 모달 오픈 (`GET /api/items`) |
-| 추천 카드 (4~6개) | 정적 (npayCd 하드코딩) | 클릭 시 위치 권한 요청 → `/hospitals?lat&lng&npayCd=...&radius=2` |
+| 추천 카드 (4~6개) | 정적 (npayCds 하드코딩) | 클릭 시 위치 권한 요청 → `/hospitals?keyword=...` 페이지 진입 후 검색바 자동완성으로 npayCds 도출 → `/api/hospitals/search?lat&lng&npayCds&sort=mixed` 호출 |
 | 푸터 | 정적 | — |
 
 #### 위치 권한 요청 흐름
-1. 사용자가 카드 또는 항목 선택 → `navigator.geolocation.getCurrentPosition` 호출
-2. 허용 → 좌표 획득 후 `/hospitals?lat={lat}&lng={lng}&npayCd={...}&radius=2`로 이동
-3. 거부/실패 → 모달: "위치를 직접 선택할 수 있어요" + 지도 모달(서울 시청 기본 중심) → 핀 드롭
+1. 사용자가 카드 또는 항목 선택 → `navigator.geolocation.getCurrentPosition` 호출 (`accuracy`도 같이 노출)
+2. 허용(고정밀) → `/hospitals?keyword=...`로 이동 → 페이지 로드 후 `/api/hospitals/search?lat&lng&npayCds&...` 호출
+3. 정확도 낮음(>1500m) → 결과 페이지 상단에 amber 배너 + 정확도(±NNNm) 표시 + "다시 시도" 버튼
+4. 거부/실패 → 서울 시청 기본 좌표로 fallback 검색 + 동일 배너로 안내
 
 ### 5.2 항목 선택 모달
 
