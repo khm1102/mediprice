@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.stat;
 
-import com.khm1102.mediprice.client.hira.NonPaySidoStatItem;
+import com.khm1102.mediprice.client.hira.stat.NonPaySidoStatItem;
 import com.khm1102.mediprice.entity.NonPayItemSidoStat;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

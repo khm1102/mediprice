@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.item;
 
-import com.khm1102.mediprice.client.hira.NonPayDescItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDescItem;
 import com.khm1102.mediprice.entity.NonPayItemDesc;
 import com.khm1102.mediprice.repository.NonPayItemDescRepository;
 import jakarta.persistence.EntityManager;

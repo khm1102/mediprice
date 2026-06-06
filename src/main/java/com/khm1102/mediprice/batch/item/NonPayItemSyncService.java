@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.item;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayCodeItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayCodeItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

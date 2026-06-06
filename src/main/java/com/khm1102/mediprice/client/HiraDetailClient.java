@@ -1,18 +1,16 @@
 package com.khm1102.mediprice.client;
 
-import com.khm1102.mediprice.client.hira.DgsbjtItem;
-import com.khm1102.mediprice.client.hira.DtlInfoItem;
-import com.khm1102.mediprice.client.hira.HiraResponse;
-import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
-import com.khm1102.mediprice.client.hira.MedOftItem;
-import com.khm1102.mediprice.client.hira.SpclDiagItem;
-import com.khm1102.mediprice.client.hira.TrnsprtItem;
+import com.khm1102.mediprice.client.hira.detail.DgsbjtItem;
+import com.khm1102.mediprice.client.hira.detail.DtlInfoItem;
+import com.khm1102.mediprice.client.hira.common.HiraResponse;
+import com.khm1102.mediprice.client.hira.auth.HiraServiceKeyProvider;
+import com.khm1102.mediprice.client.hira.detail.MedOftItem;
+import com.khm1102.mediprice.client.hira.detail.SpclDiagItem;
+import com.khm1102.mediprice.client.hira.detail.TrnsprtItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.util.DefaultUriBuilderFactory;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.dataformat.xml.XmlMapper;
 
@@ -31,23 +29,20 @@ import java.util.concurrent.Executor;
 @Component
 public class HiraDetailClient {
 
-    private final RestClient restClient;
+    private final HiraApiHttpClient httpClient;
     private final XmlMapper xmlMapper;
     private final HiraServiceKeyProvider keyProvider;
     private final Executor executor;
 
     public HiraDetailClient(
             HiraServiceKeyProvider keyProvider,
-            @Value("${hira.detail-base-url}") String baseUrl,
+            @Value("${hira.detail-base-url:https://apis.data.go.kr/B551182/MadmDtlInfoService2.7}") String baseUrl,
             XmlMapper hiraXmlMapper,
             @Qualifier("hiraDetailExecutor") Executor hiraDetailExecutor) {
         this.keyProvider = keyProvider;
         this.xmlMapper = hiraXmlMapper;
         this.executor = hiraDetailExecutor;
-        // URI_COMPONENT: base64 인증키의 +/= 문자가 query component에서 깨지지 않게 인코딩한다.
-        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(baseUrl);
-        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
-        this.restClient = RestClient.builder().uriBuilderFactory(uriFactory).build();
+        this.httpClient = new HiraApiHttpClient(baseUrl);
     }
 
     public record HospitalDetailBundle(
@@ -112,16 +107,11 @@ public class HiraDetailClient {
     private <T> List<T> invokeList(String path, String ykiho, TypeReference<HiraResponse<T>> typeRef) {
         String serviceKey = keyProvider.next();
         try {
-            byte[] xml = restClient.get()
-                    .uri(b -> b.path(path)
-                            .queryParam("ServiceKey", serviceKey)
-                            .queryParam("ykiho", ykiho)
-                            .queryParam("pageNo", 1)
-                            .queryParam("numOfRows", 100)
-                            .build())
-                    .retrieve()
-                    .body(byte[].class);
-            HiraResponse<T> response = xmlMapper.readValue(xml, typeRef);
+            HiraResponse<T> response = httpClient.getXml(b -> b.path(path)
+                    .queryParam("ServiceKey", serviceKey)
+                    .queryParam("ykiho", ykiho)
+                    .queryParam("pageNo", 1)
+                    .queryParam("numOfRows", 100), typeRef, xmlMapper);
             if (response.body() == null) {
                 return List.of();
             }

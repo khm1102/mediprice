@@ -8,12 +8,12 @@ import com.khm1102.mediprice.dto.HospitalDetailExtrasDto;
 
 
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
-import com.khm1102.mediprice.client.hira.DgsbjtItem;
-import com.khm1102.mediprice.client.hira.DtlInfoItem;
-import com.khm1102.mediprice.client.hira.MedOftItem;
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
-import com.khm1102.mediprice.client.hira.SpclDiagItem;
-import com.khm1102.mediprice.client.hira.TrnsprtItem;
+import com.khm1102.mediprice.client.hira.detail.DgsbjtItem;
+import com.khm1102.mediprice.client.hira.detail.DtlInfoItem;
+import com.khm1102.mediprice.client.hira.detail.MedOftItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.detail.SpclDiagItem;
+import com.khm1102.mediprice.client.hira.detail.TrnsprtItem;
 import com.khm1102.mediprice.entity.Price;
 import com.khm1102.mediprice.global.exception.business.HospitalNotFoundException;
 import com.khm1102.mediprice.repository.PriceRepository;

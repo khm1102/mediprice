@@ -1,6 +1,6 @@
 package com.khm1102.mediprice.batch.summary;
 
-import com.khm1102.mediprice.client.hira.NonPayHospSummaryItem;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayHospSummaryItem;
 import com.khm1102.mediprice.entity.PriceSummary;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

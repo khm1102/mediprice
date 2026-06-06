@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.summary;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayHospSummaryItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayHospSummaryItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -33,8 +33,7 @@ public class PriceSummarySyncService {
     private static final int QUEUE_CAPACITY = 3000;
     private static final int CONSUMER_THREADS = 4;
     private static final long PRODUCER_SLEEP_MS = 100;
-    /** 페이지 실패 시 즉시 재시도 횟수. */
-    private static final int PAGE_RETRY = 2;
+    private static final int PROGRESS_LOG_INTERVAL = 50;
 
     /** Consumer 종료용 sentinel. reference equality(==)로 비교. */
     private static final NonPayHospSummaryItem POISON_PILL = new NonPayHospSummaryItem(
@@ -116,7 +115,7 @@ public class PriceSummarySyncService {
         int totalPages = -1;
         try {
             while (true) {
-                HiraBody<NonPayHospSummaryItem> body = fetchWithRetry(pageNo);
+                HiraBody<NonPayHospSummaryItem> body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
 
                 if (body.isFailed()) {
                     failedPages++;
@@ -139,11 +138,17 @@ public class PriceSummarySyncService {
                     }
                     if (totalPages < 0) {
                         totalPages = totalPagesOf(body);
+                        log.info("PriceSummary producer 시작 — totalCount={}, totalPages={}",
+                                body.getTotalCount(), totalPages);
                     }
                 }
 
                 if (totalPages > 0 && pageNo >= totalPages) {
                     break;
+                }
+                if (totalPages > 0 && pageNo % PROGRESS_LOG_INTERVAL == 0) {
+                    log.info("PriceSummary producer 진행 — pageNo={}/{}, produced={}, failedPages={}",
+                            pageNo, totalPages, produced, failedPages);
                 }
                 pageNo++;
                 Thread.sleep(PRODUCER_SLEEP_MS);
@@ -158,15 +163,6 @@ public class PriceSummarySyncService {
         } catch (Exception e) {
             log.error("PriceSummary producer 실패: {}", e.getMessage(), e);
         }
-    }
-
-    private HiraBody<NonPayHospSummaryItem> fetchWithRetry(int pageNo) throws InterruptedException {
-        HiraBody<NonPayHospSummaryItem> body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
-        for (int attempt = 0; attempt < PAGE_RETRY && body.isFailed(); attempt++) {
-            Thread.sleep(PRODUCER_SLEEP_MS);
-            body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
-        }
-        return body;
     }
 
     private static int totalPagesOf(HiraBody<NonPayHospSummaryItem> body) {

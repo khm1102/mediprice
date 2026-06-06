@@ -1,8 +1,8 @@
 package com.khm1102.mediprice.batch.price;
 
 import com.khm1102.mediprice.client.HiraNonPayClient;
-import com.khm1102.mediprice.client.hira.HiraBody;
-import com.khm1102.mediprice.client.hira.NonPayDtlItem;
+import com.khm1102.mediprice.client.hira.common.HiraBody;
+import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
 import com.khm1102.mediprice.entity.Price;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
