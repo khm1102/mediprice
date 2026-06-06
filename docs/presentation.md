@@ -1,6 +1,6 @@
 # MediPrice — 비급여 진료비 비교 플랫폼
 
-> 발표 대상: 교수님 및 학부생 | 작성 기준: 2026-05-19
+> 발표 대상: 교수님 및 학부생 | 작성 기준: 2026-06-05
 >
 > 이 문서는 발표 대본 성격의 요약본이다. 정확한 API/배치 규격은 `docs/hira-api-spec.md`, 장애 이력은 `docs/troubleshooting.md`를 기준으로 한다.
 
@@ -50,8 +50,7 @@ P0  인프라 (Docker / PostgreSQL / Tomcat / Spring 부팅)       ✅ 완료
 P0.5  Security 분리 / TraceIdFilter / 통일 로그 포맷          ✅ 완료
 P1  심평원 배치 / REST API 3개 / PostGIS / 단위 테스트          ✅ 완료
 P1.5  상세 API 매핑 수정 / Sido 통계 수정 / 배치 병렬화          ✅ 완료
-다음  JSP 페이지 + 지도 SDK + 정적 JS                           대기
-P2  회원가입 / 로그인 (JWT) / 즐겨찾기                         보류
+P2  JSP/네이버맵 화면 / Google OAuth / JWT / 즐겨찾기             진행
 ```
 
 ### 2.2 공공데이터 활용 전략
@@ -119,7 +118,7 @@ MediPrice는 원래 **토이 프로젝트**로 기획되어 Next.js + Nest.js �
 **PostgreSQL + PostGIS를 선택한 구체적 근거:**
 
 - **PostGIS `ST_DWithin`**: MySQL/MariaDB도 공간 기능을 제공하지만, PostgreSQL의 PostGIS는 OGC GIS 표준에 충실하며 `GEOGRAPHY` 타입으로 구면 거리를 정확하게 계산합니다. `ST_DWithin`은 GIST 인덱스와 결합하여 수만 건의 좌표를 빠르게 검색합니다.
-- **`search_nearby_hospitals()` 저장 프로시저**: 위치 기반 검색 + 비급여 가격 JOIN + 거리 계산을 단일 PL/pgSQL 함수로 캡슐화하여 네트워크 왕복을 줄이고 결과를 JSON으로 직접 반환합니다.
+- **`search_nearby_hospitals_v2()` 저장 프로시저**: 위치 기반 검색 + 비급여 가격 JOIN + 거리 계산을 단일 PL/pgSQL 함수로 캡슐화하여 네트워크 왕복을 줄이고 결과를 JSON으로 직접 반환합니다. 다중 npayCd, 정렬 모드(거리/가격/혼합 점수), 가중치를 한 호출에서 처리합니다.
 - **`json_agg()` 함수**: 병원 1건에 연결된 N개의 가격 항목을 서버에서 배열로 집계하여 애플리케이션 코드의 N+1 문제를 방지합니다.
 - **무료 오픈소스 + Docker 공식 이미지**: `postgis/postgis` Docker 이미지로 개발·운영 환경을 동일하게 구성할 수 있습니다.
 
@@ -146,7 +145,7 @@ VPS 서버 localhost:5432 (PostgreSQL)
 - HTTP 세션은 서버 메모리에 상태를 저장하므로, 서버가 2대 이상으로 늘어날 경우 세션 동기화 문제가 발생합니다.
 - JWT는 토큰 자체에 인증 정보를 포함하므로 어느 서버에서 검증해도 동일한 결과를 얻습니다.
 - 로그인 시 JWT를 발급하여 `HttpOnly` 쿠키에 저장합니다. `HttpOnly` 속성으로 JavaScript에서 토큰에 접근할 수 없어 XSS 공격을 방지합니다.
-- 현재 MVP에서는 인증 없이 전체 공개(`permitAll`)이며, 회원 기능은 P2에서 도입할 예정입니다. SecurityFilterChain은 이미 구성되어 있어 JwtAuthFilter 추가만으로 활성화됩니다.
+- 현재 검색 API는 공개되어 있고, Google OAuth 로그인 후 JWT 쿠키로 회원 기능을 사용합니다. 즐겨찾기와 회원 정보 API는 인증된 회원을 전제로 합니다.
 
 ### 4.5 Docker + GitHub Actions CI/CD
 
@@ -210,7 +209,7 @@ Claude와 Codex의 대화 내역과 중요한 결정 사항을 별도의 `.md` �
 
 ### 6.1 위치 기반 병원 검색 (PostGIS)
 
-**`search_nearby_hospitals()` PL/pgSQL 저장 프로시저**
+**`search_nearby_hospitals_v2()` PL/pgSQL 저장 프로시저**
 
 ```sql
 -- 핵심 쿼리 개념 (간략화)
@@ -250,6 +249,8 @@ BatchService.syncAll()
 - 개별 항목·페이지 실패는 `log.warn` 후 계속 진행한다.
 - DB write는 페이지/청크/ykiho 단위 트랜잭션으로 분리한다.
 - 수동 트리거: `POST /api/internal/batch/sync`
+  - 기본 비활성화 (`BATCH_ADMIN_ENABLED=false`)
+  - 운영에서 `BATCH_ADMIN_ENABLED=true`와 `X-Batch-Admin-Secret` 헤더가 모두 맞아야 실행
 
 ### 6.3 병원 상세 — 실시간 외부 API 병렬 호출
 
@@ -284,7 +285,7 @@ logback.xml → [%X{traceId}] 패턴으로 모든 로그에 포함
 
 ## 7. 시스템 아키텍처
 
-> 전체 Mermaid 다이어그램: `architecture.md` 참조
+> 패키지/요청 흐름 기준 문서: `docs/layered-architecture.md` 참조
 
 ### 7.1 요청 흐름
 
@@ -355,10 +356,10 @@ Spring Boot가 아니므로 Root Context와 Servlet Context가 분리됩니다.
 | 한계 | 내용 | 개선 방향 |
 |---|---|---|
 | 캐시 TTL 없음 | `ConcurrentMapCache`는 만료 정책 미지원 — 서버 재시작 시 초기화 | Caffeine Cache 도입 (단, 현재 금지) / 배치 주기와 일치하도록 수동 evict |
-| 테스트 커버리지 공백 | 단위 테스트 94개는 통과, PostGIS/배치 통합 테스트는 부족 | Testcontainers + WireMock 도입 |
-| 배치 엔드포인트 노출 | `POST /api/internal/batch/sync`가 비인증 공개 — 누구나 배치 트리거 가능 | `@Profile("dev")` 또는 IP 화이트리스트 적용 |
+| 테스트 커버리지 공백 | 단위/정적 테스트 269개는 통과, PostGIS/실배치 통합 테스트는 부족 | Testcontainers + WireMock 도입 |
+| 배치 엔드포인트 노출 | `BatchAdminGuard` 1차 적용 — enabled 플래그 + secret 헤더로 fail-closed | Spring Security `ADMIN` role 또는 IP 화이트리스트로 이중 방어 |
 | 외부 API 회복력 제한 | retry/backoff는 있으나 quota 초과와 장기 장애에 대한 checkpoint 부족 | checkpoint + 운영계정 + 재개 정책 |
-| 회원 기능 미구현 | JWT SecurityFilterChain 구성만 완료, JwtAuthFilter·AuthService 미작성 | P2 도입 (구조 준비 완료) |
+| 회원 API 보안 보강 필요 | JWT와 즐겨찾기, GUEST 역할 차단, 쿠키 보안 속성, 배치 API 1차 보호 적용 | 운영 전 SecurityConfig 이중 방어와 쿠키 정책 점검 |
 
 ### 8.3 솔직한 포지셔닝
 

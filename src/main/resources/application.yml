@@ -23,6 +23,21 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
+security:
+  cookie:
+    # 운영(HTTPS)에서는 COOKIE_SECURE=true 권장. 로컬 HTTP 개발은 false 유지.
+    secure: ${COOKIE_SECURE:false}
+    # OAuth 콜백이 cross-site redirect라 Strict이면 mp_token이 콜백 직후에 전달되지 않을 수 있다 → Lax 기본.
+    same-site: ${COOKIE_SAME_SITE:Lax}
+
+batch:
+  # 기본값 false. 운영에서는 BATCH_ADMIN_ENABLED=true로 명시적으로 켜야 /api/internal/batch/** 가 동작.
+  admin-enabled: ${BATCH_ADMIN_ENABLED:false}
+  # /api/internal/batch/**의 X-Batch-Admin-Secret 헤더와 정확히 일치해야 통과.
+  # 기본값 빈 문자열 = 어떤 요청도 통과 X. 운영에서 32+ 문자 랜덤(예: openssl rand -base64 48)으로 설정.
+  # admin-enabled=true 만 켜고 secret 미설정 시에도 모든 요청 403 (fail-closed).
+  admin-secret: ${BATCH_ADMIN_SECRET:}
+
 naver:
   map-key: ${NAVER_MAP_KEY:}
 
@@ -39,9 +54,6 @@ hira:
 cache:
   # 주의: ConcurrentMapCacheManager는 TTL 미지원. 이 값은 현재 적용되지 않음
   ttl-seconds: ${CACHE_TTL_SECONDS:3600}
-
-guest:
-  search-limit: ${GUEST_SEARCH_LIMIT:3}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}

@@ -1,18 +1,15 @@
 # TODO
 
-환경 설정(P0 + P0.5) + P1/P1.5 진행 중 결정 보류된 항목과 향후 운영 단계로 미룬 항목 정리.
+현재 구현 상태 기준으로 남은 운영 위험, 데이터 적재 안정화, UI 보강 항목을 정리한다.
 
 ---
 
 ## 🚧 P1 진행 중 추가된 항목
 
-### N1. `/api/internal/batch/sync` 권한 보호
-- **현황:** 인증 없이 누구나 호출 가능 — `BatchAdminApiController` MVP 검증용
-- **방향:** 운영 배포 전 다음 중 하나:
-  - (a) 운영 빌드에서 컨트롤러 자체 제거 (Spring profile 분리)
-  - (b) P2 Security 도입 시 admin 권한 보호 (`hasRole('ADMIN')`)
-  - (c) 인프라 단(nginx/Cloudflare)에서 IP 제한
-- **결정 시점:** 운영 배포 직전
+### N1. `/api/internal/batch/**` 권한 보호 — ✅ 1차 적용 (BatchAdminGuard)
+- **적용:** `BatchAdminGuard`가 두 단계 가드. ① `batch.admin-enabled` (기본 false) → B001. ② `batch.admin-secret` 설정 + 요청 `X-Batch-Admin-Secret` 헤더 정확 일치 → 불일치/누락/blank 시 B003. 상수시간 비교, trim 금지.
+- **운영 설정:** `BATCH_ADMIN_ENABLED=true` + `BATCH_ADMIN_SECRET=<openssl rand -base64 48 결과>` 둘 다 필요. 한쪽만 켜면 fail-closed로 모든 요청 403.
+- **잔여(이중 방어 권장):** SecurityConfig 단에서 `/api/internal/**`에 `hasRole('ADMIN')` 추가 또는 인프라(nginx/Cloudflare) IP 제한. 현재는 컨트롤러 가드만 신뢰.
 
 ### N2. 배치 cron 주기 조정 — ✅ 적용됨
 - 매일 → **매월 1일 새벽 0시** (`@Scheduled(cron = "0 0 0 1 * *")`)로 변경. 비급여 데이터 갱신주기와 정렬
@@ -22,12 +19,11 @@
 - **방향:** 공공데이터포털에서 운영계정 활용 신청 (~1주 소요)
 - **결정 시점:** 첫 배치 실행 직후 트래픽 초과 발생 시
 
-### N4. 외부 API 회로차단기/재시도
-- **현황:** RestClient 단발 호출 + try-catch 빈 결과 fallback
-- **방향:** 심평원 API 응답 지연 잦으면 도입
-  - Resilience4j 직접 구현 (CLAUDE.md 라이브러리 미허용 정책)
-  - 또는 RestClient interceptor에 retry 로직
-- **결정 시점:** 운영 안정화 단계
+### N4. 외부 API 실패/empty 응답 구분
+- **현황:** HIRA 클라이언트가 실패, body null, 진짜 NODATA를 모두 빈 body처럼 반환할 수 있다.
+- **위험:** 가격 상세/요약처럼 페이지가 많은 API에서 중간 페이지 누락이 성공처럼 끝날 수 있다.
+- **방향:** resultCode/resultMsg 기반 상태 구분, 실패 카운트, 중간 페이지 retry, 최종 실패 로그를 배치별로 명확히 남긴다.
+- **결정 시점:** 가격 계열 재적재 전
 
 ### N5. 배치 트랜잭션 경계 분리 — ✅ 적용됨
 - **적용:** 외부 API 호출과 DB write 트랜잭션을 분리했다.
@@ -39,10 +35,10 @@
 - **방향:** NonPayItem 전체(~875건)를 `@Cacheable("hiraApiCache")` 또는 별도 캐시
 - **결정 시점:** 응답 시간 측정 후
 
-### N7. JSP 페이지 + 카카오맵 + 정적 JS
-- **현황:** API/배치만 구현. 사용자 결정으로 프론트는 다음 라운드 보류
-- **방향:** PageController + index.jsp + hospital-list.jsp + hospital-detail.jsp + 카카오맵 SDK + api.js/hospital.js
-- **결정 시점:** 사용자가 시작 지시 시
+### N7. 상세 화면 정보 섹션 정리
+- **현황:** JSP + 네이버맵 + 정적 JS 화면은 구현됨. 다만 병원 상세 패널에서 의료장비/진료시간/주차 정보 표시가 DTO 의미와 어긋나는 부분이 있다.
+- **방향:** `medOftList`는 의료장비로, `operatingInfo`는 진료시간/응급 운영으로, `parkingInfo`는 주차 정보로 분리 렌더링.
+- **결정 시점:** 상세 화면 QA 전
 
 ### N8. Price 배치 파이프라인화
 - **현황:** 전체 배치는 7개 sync 작업을 `hiraBatchExecutor`로 동시에 dispatch한다. 단, `PriceSyncService`는 `Hospital.ykiho` 목록이 필요해 `HospitalSyncService` 완료 뒤에 실행된다.
@@ -64,6 +60,28 @@
 - **남은 확인:** 부산(`Bs`), 충북(`Cb`), 전북(`Jb`), 전남(`Jn`), 제주(`Jj`) 필드는 현재 문서/응답에서 확인되지 않았다.
 - **방향:** 실제 API 샘플을 항목별로 더 넓게 수집해 필드 존재 여부를 확정하고, 없으면 “API 미제공”으로 문서화.
 
+### N11. 회원 전용 API의 GUEST 역할 차단
+- **현황:** `SecurityConfig` API 체인은 `/api/favorites/**`와 `/api/auth/me`를 `authenticated()`로만 보호한다. `FavoriteApiController`는 `@AuthenticationPrincipal MemberPrincipal`만 주입받고 역할(`role`)은 검사하지 않는다. `MemberPrincipal.isGuest()`가 정의되어 있지만 컨트롤러에서 호출되지 않는다.
+- **위험:** Guest JWT(`role=GUEST`, `memberId=null`)로 회원 API를 호출하면 SecurityContext는 인증된 상태로 통과한다. 즐겨찾기 추가 시 `memberId=null` 상태로 저장 시도 → NPE 또는 DB 제약 위반.
+- **방향:** (a) SecurityConfig API 체인에서 `/api/favorites/**`와 `/api/auth/me`에 `hasRole("MEMBER")` 적용, 또는 (b) 각 컨트롤러 진입 시 `MemberPrincipal.isGuest()`로 가드.
+- **결정 시점:** 운영 배포 전 (보안 P0).
+
+### N12. `search_nearby_hospitals` 정렬 안정성 — ✅ 해결됨 (함수 자체 제거)
+- v2 통합 후 옛 `search_nearby_hospitals` 함수와 `/api/hospitals?npayCd=` 엔드포인트는 모두 제거됐다.
+- 현행 `search_nearby_hospitals_v2`는 외부 `ORDER BY` tie-breaker로 `distance ASC, ykiho ASC`를 보장한다.
+
+### N13. 상세 캐시 TTL 부재로 인한 stale
+- **현황:** `CacheConfig`는 TTL을 지원하지 않는 `ConcurrentMapCacheManager("hiraApiCache")`를 사용한다. `HospitalDetailService.lookupDetail(ykiho)`의 `@Cacheable("hiraApiCache")` 항목은 서버 재시작 전까지 만료되지 않는다. `application.yml`의 `cache.ttl-seconds=3600`은 현재 코드에서 적용되지 않는다.
+- **위험:** 배치로 가격이 갱신되어도 캐시 히트가 발생하면 stale 응답이 사용자에게 반환된다 (서버 라이프타임 동안 누적).
+- **방향:** (a) 배치 완료 시 명시적 `@CacheEvict` 트리거, (b) Spring `Cache` SPI를 활용해 TTL을 지원하는 매니저로 전환 (현재 Caffeine/Redis 금지 정책 유지하면서 검토), (c) 캐시 키에 배치 버전을 포함.
+- **결정 시점:** 가격 데이터 완전 적재 후 사용자 영향 측정 시.
+
+### N14. Price stale row 정리 정책
+- **현황:** `PriceYkihoSyncService`는 `entityManager.merge()`로 upsert만 수행한다. 조회 단계에서는 `adt_end_dd='99991231'`로 활성 가격만 필터하지만, HIRA에서 가격이 빠진 경우에도 DB row가 `99991231`로 남아 있을 수 있다.
+- **위험:** HIRA 측 가격 종료/철회를 감지하지 못해 stale 가격이 활성으로 노출될 수 있다.
+- **방향:** ykiho 단위 동기화 결과에 없는 `(ykiho, npayCd)` 조합을 logical delete 또는 `adt_end_dd` 갱신 처리하는 sweep 추가.
+- **결정 시점:** 가격 전체 재적재 후 데이터 정합성 검증 단계.
+
 ---
 
 ## 🟡 환경 설정 단계 보류 항목 (이전부터 유지)
@@ -74,11 +92,11 @@
 
 ### D4. `BaseEntity` ID 전략 — `IDENTITY` → `SEQUENCE`  *(부분 해결됨)*
 - **현황:** P1에서 도메인 엔티티(NonPayItem/Hospital/Price)는 자체 PK(ykiho/npay_cd/복합키) 사용 → IDENTITY 무관
-- **잔여:** `BaseEntity`(Long id IDENTITY)는 P2 Member 도입 시 사용 예정. Member도 단건 upsert면 그대로 OK
+- **잔여:** `Member`와 `Favorite`는 `BaseEntity`를 사용한다. 단건 insert/soft delete 중심이라 현재는 유지 가능.
 
 ### D7. `SecurityConfig` / `AppConfig` 분할
 - **현황:** `SecurityConfig` 167줄 (apiChain + pageChain + CORS + EntryPoint + AccessDeniedHandler + helper). `AppConfig`는 PropertySource + JsonMapper + ComponentScan 동시 보유
-- **방향:** P2 진입 전까지 다음 분할
+- **방향:** 운영 보강 전 다음 분할 검토
   - `SecurityConfig` (체인 2개) / `CorsConfig` / `ApiAuthExceptionConfig`
   - `RootConfig` (ComponentScan) / `PropertyConfig` / `JsonConfig`
 - **결정 시점:** P1 도중 자연스럽게, P2 직전엔 완료
@@ -160,10 +178,14 @@
 
 | # | 항목 | 위치 |
 |---|---|---|
-| E-P1-1 | `GuestSearchCounter` TTL + sticky session 가이드 | `service/GuestSearchCounter` |
-| E-P1-2 | `@Cacheable` 위치 격자 키 (`Math.round(lat*1000)/1000.0`) | `service/HospitalService` |
-| E-P1-3 | 쿠키 `HttpOnly; Secure; SameSite=Strict; Path=/` | `api/AuthApiController.tokenGuest` |
-| E-P1-4 | native query 명명 바인딩 (`:lat`, `@Param("lat")`) 강제 | `repository/HospitalRepository` |
+| E-P1-1 | `@Cacheable` 위치 격자 키 (`Math.round(lat*1000)/1000.0`) | `service/HospitalService` |
+| E-P1-2 | 쿠키 `HttpOnly; Secure; SameSite; Path=/` — ✅ 적용됨 | `MpTokenCookieFactory` |
+| E-P1-3 | native query 명명 바인딩 (`:lat`, `@Param("lat")`) 강제 | `repository/HospitalRepository` |
+
+### E-P1-2 보강 — ✅ 적용됨
+- `MpTokenCookieFactory`가 `mp_token`을 `HttpOnly=true`, `Path=/`, `SameSite=COOKIE_SAME_SITE`, `Secure=COOKIE_SECURE`로 발급/삭제한다.
+- `static/js/auth.js`는 쿠키를 직접 디코딩하지 않고 `GET /api/auth/me` 기반으로 로그인 상태를 캐싱한다.
+- 운영 HTTPS에서는 `COOKIE_SECURE=true`를 권장한다. 기본 `SameSite`는 `Lax`.
 
 ---
 

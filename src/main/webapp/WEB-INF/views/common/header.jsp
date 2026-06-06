@@ -9,13 +9,20 @@
     <meta name="description" content="비급여 진료비 비교 플랫폼. 내 주변 병원의 비급여 진료비를 한눈에 비교하세요.">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <%-- PWA --%>
-    <link rel="manifest" href="<c:url value="/manifest.json"/>">
+    <link rel="manifest" href="<c:url value='/manifest.json'/>">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="MediPrice">
-    <link rel="apple-touch-icon" href="<c:url value="/static/pwa/icons/icon-180.png"/>">
-    <title><c:out value="${pageTitle != null ? pageTitle.concat(' - MediPrice') : 'MediPrice'}" escapeXml="false"/></title>
+    <link rel="apple-touch-icon" href="<c:url value='/static/pwa/icons/icon-180.png'/>">
+    <title>
+        <c:choose>
+            <c:when test="${not empty pageTitle}">
+                <c:out value="${pageTitle}" /> - MediPrice
+            </c:when>
+            <c:otherwise>MediPrice</c:otherwise>
+        </c:choose>
+    </title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/spoqa/spoqa-han-sans@latest/css/SpoqaHanSansNeo.css">
     <script>
         tailwind = { config: {
@@ -29,9 +36,9 @@
         }};
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="<c:url value='/static/js/api.js'/>?v=2"></script>
-    <script defer src="<c:url value='/static/js/auth.js'/>?v=2"></script>
-    <script defer src="<c:url value='/static/js/common.js'/>?v=2"></script>
+    <script defer src="<c:url value='/static/js/api.js'/>?v=20260606-ux2"></script>
+    <script defer src="<c:url value='/static/js/auth.js'/>?v=20260606-ux2"></script>
+    <script defer src="<c:url value='/static/js/common.js'/>?v=20260606-ux2"></script>
 </head>
 <body class="bg-[#F9FAFB] min-h-screen flex flex-col">
 
@@ -39,7 +46,7 @@
     <div class="px-4 lg:px-6 w-full flex items-center justify-between">
 
         <%-- 로고 --%>
-        <a href="<c:url value="/"/>" class="flex items-center gap-2">
+        <a href="<c:url value='/'/>" class="flex items-center gap-2">
             <span class="text-[#2563EB] font-bold text-xl tracking-tight">MediPrice</span>
             <span class="text-[10px] bg-blue-50 text-[#2563EB] font-semibold px-2 py-0.5 rounded-full leading-none">Beta</span>
         </a>

@@ -2,10 +2,11 @@ package com.khm1102.mediprice.service;
 
 import com.khm1102.mediprice.entity.Hospital;
 import com.khm1102.mediprice.repository.HospitalRepository;
+import com.khm1102.mediprice.dto.HospitalDetailBasicsDto;
 import com.khm1102.mediprice.dto.HospitalDetailDto;
+import com.khm1102.mediprice.dto.HospitalDetailExtrasDto;
 
 
-import com.khm1102.mediprice.client.HiraDetailClient;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
 import com.khm1102.mediprice.client.hira.DgsbjtItem;
 import com.khm1102.mediprice.client.hira.DtlInfoItem;
@@ -16,7 +17,6 @@ import com.khm1102.mediprice.client.hira.TrnsprtItem;
 import com.khm1102.mediprice.entity.Price;
 import com.khm1102.mediprice.global.exception.business.HospitalNotFoundException;
 import com.khm1102.mediprice.repository.PriceRepository;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,20 +37,45 @@ public class HospitalDetailService {
     private final HospitalRepository hospitalRepository;
     private final PriceRepository priceRepository;
     private final NonPayItemService nonPayItemService;
-    private final HiraDetailClient detailClient;
+    private final HospitalDetailHiraCache hiraCache;
 
     public HospitalDetailService(HospitalRepository hospitalRepository,
                                  PriceRepository priceRepository,
                                  NonPayItemService nonPayItemService,
-                                 HiraDetailClient detailClient) {
+                                 HospitalDetailHiraCache hiraCache) {
         this.hospitalRepository = hospitalRepository;
         this.priceRepository = priceRepository;
         this.nonPayItemService = nonPayItemService;
-        this.detailClient = detailClient;
+        this.hiraCache = hiraCache;
     }
 
-    @Cacheable(cacheNames = "hiraApiCache", key = "#ykiho")
+    /**
+     * 옛 combined 응답. 프론트는 {@link #lookupBasics}/{@link #lookupExtras}를 따로 호출해 progressive rendering을 한다.
+     * 본 메서드는 backward compat을 위해 유지한다.
+     */
     public HospitalDetailDto lookupDetail(String ykiho) {
+        HospitalDetailBasicsDto basics = lookupBasics(ykiho);
+        HospitalDetailExtrasDto extras = lookupExtras(ykiho);
+        return new HospitalDetailDto(
+                basics.ykiho(),
+                basics.yadmNm(),
+                basics.addr(),
+                basics.telNo(),
+                basics.clCdNm(),
+                basics.hospUrl(),
+                basics.drTotCnt(),
+                basics.prices(),
+                extras.dgsbjtList(),
+                extras.medOftList(),
+                extras.transitList(),
+                extras.parkingInfo(),
+                extras.operatingInfo(),
+                extras.spclDiagList()
+        );
+    }
+
+    /** DB only — 병원 기본 + 비급여 가격. 외부 호출 없음. */
+    public HospitalDetailBasicsDto lookupBasics(String ykiho) {
         Hospital hospital = hospitalRepository.findById(ykiho)
                 .orElseThrow(HospitalNotFoundException::new);
 
@@ -67,9 +92,7 @@ public class HospitalDetailService {
                         p.getCurAmt()))
                 .toList();
 
-        HospitalDetailBundle bundle = detailClient.fetchAll(ykiho);
-
-        return new HospitalDetailDto(
+        return new HospitalDetailBasicsDto(
                 hospital.getYkiho(),
                 hospital.getYadmNm(),
                 hospital.getAddr(),
@@ -77,7 +100,19 @@ public class HospitalDetailService {
                 hospital.getClCdNm(),
                 hospital.getHospUrl(),
                 hospital.getDrTotCnt(),
-                priceItems,
+                priceItems
+        );
+    }
+
+    /** HIRA 5종(진료과목/장비/교통/주차·운영/특수진료) — {@link HospitalDetailHiraCache} 캐시 활용. */
+    public HospitalDetailExtrasDto lookupExtras(String ykiho) {
+        // /extras도 ykiho 유효성을 보장(없는 ykiho면 404).
+        if (!hospitalRepository.existsById(ykiho)) {
+            throw new HospitalNotFoundException();
+        }
+        HospitalDetailBundle bundle = hiraCache.lookupBundle(ykiho);
+        return new HospitalDetailExtrasDto(
+                ykiho,
                 toDgsbjtNames(bundle.dgsbjtList()),
                 toMedOftNames(bundle.medOftList()),
                 toTransitList(bundle.trnsprtList()),

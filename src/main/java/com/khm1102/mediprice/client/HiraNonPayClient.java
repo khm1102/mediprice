@@ -1,6 +1,7 @@
 package com.khm1102.mediprice.client;
 
 import com.khm1102.mediprice.client.hira.HiraBody;
+import com.khm1102.mediprice.client.hira.HiraHeader;
 import com.khm1102.mediprice.client.hira.HiraResponse;
 import com.khm1102.mediprice.client.hira.HiraServiceKeyProvider;
 import com.khm1102.mediprice.client.hira.NonPayClcdStatItem;
@@ -21,6 +22,7 @@ import tools.jackson.dataformat.xml.XmlMapper;
 import java.time.Duration;
 import java.util.function.UnaryOperator;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.util.UriBuilder;
 
 /**
@@ -85,9 +87,24 @@ public class HiraNonPayClient {
 
     /** 병원×항목 시기별 min/max 가격 요약. */
     public HiraBody<NonPayHospSummaryItem> searchHospPriceSummary(int pageNo, int numOfRows) {
-        return invoke("/getNonPaymentItemHospList2", b -> b
-                        .queryParam("pageNo", pageNo)
-                        .queryParam("numOfRows", numOfRows),
+        return searchHospPriceSummary(null, pageNo, numOfRows);
+    }
+
+    /**
+     * 병원×항목 시기별 min/max 가격 요약 — 시도 필터 버전.
+     * <p>
+     * sidoCd가 null/blank면 전국 호출로 위임. quota 부담을 줄이려고 시도 분할로 호출하고 싶을 때 사용.
+     */
+    public HiraBody<NonPayHospSummaryItem> searchHospPriceSummary(
+            @Nullable String sidoCd, int pageNo, int numOfRows) {
+        return invoke("/getNonPaymentItemHospList2", b -> {
+                    b.queryParam("pageNo", pageNo)
+                            .queryParam("numOfRows", numOfRows);
+                    if (sidoCd != null && !sidoCd.isBlank()) {
+                        b.queryParam("sidoCd", sidoCd);
+                    }
+                    return b;
+                },
                 new TypeReference<HiraResponse<NonPayHospSummaryItem>>() {}, pageNo);
     }
 
@@ -126,10 +143,7 @@ public class HiraNonPayClient {
                         .retrieve()
                         .body(byte[].class);
                 HiraResponse<T> response = xmlMapper.readValue(xml, typeRef);
-                if (response.body() == null) {
-                    return HiraBody.empty(pageNo);
-                }
-                return response.body();
+                return classify(response, path, pageNo);
             } catch (Exception e) {
                 lastError = e;
                 if (attempt < RETRY_BACKOFF_MS.length) {
@@ -137,13 +151,42 @@ public class HiraNonPayClient {
                         Thread.sleep(RETRY_BACKOFF_MS[attempt]);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        return HiraBody.empty(pageNo);
+                        return HiraBody.failed(pageNo);
                     }
                 }
             }
         }
         log.warn("{} 최종 실패 (pageNo={}): {}",
                 path, pageNo, lastError == null ? "unknown" : lastError.getMessage());
-        return HiraBody.empty(pageNo);
+        return HiraBody.failed(pageNo);
+    }
+
+    /**
+     * resultCode 기반으로 NORMAL / NODATA / FAILED를 구분한다.
+     * <p>
+     * header를 body null보다 먼저 검사한다. HIRA가 NODATA(resultCode=03)일 때 body 자체를 비워 보내는 경우가 있어,
+     * body null 단계에서 FAILED로 떨어지면 배치가 진짜 NODATA를 외부 호출 실패로 오인해 페이지 누락을 일으킨다.
+     */
+    private <T> HiraBody<T> classify(HiraResponse<T> response, String path, int pageNo) {
+        if (response == null) {
+            log.warn("{} response null (pageNo={})", path, pageNo);
+            return HiraBody.failed(pageNo);
+        }
+        HiraHeader header = response.header();
+        if (header != null && header.isNoData()) {
+            return HiraBody.noData(pageNo);
+        }
+        if (response.body() == null) {
+            log.warn("{} body null (pageNo={}, resultCode={})",
+                    path, pageNo, header == null ? "null" : header.resultCode());
+            return HiraBody.failed(pageNo);
+        }
+        if (header == null || header.isSuccess()) {
+            response.body().setStatus(HiraBody.Status.NORMAL);
+            return response.body();
+        }
+        log.warn("{} resultCode={} resultMsg={} (pageNo={})",
+                path, header.resultCode(), header.resultMsg(), pageNo);
+        return HiraBody.failed(pageNo);
     }
 }

@@ -1,5 +1,6 @@
 package com.khm1102.mediprice.controller;
 
+import com.khm1102.mediprice.global.security.MpTokenCookieFactory;
 import com.khm1102.mediprice.service.AuthService;
 import com.khm1102.mediprice.service.ConsentService;
 import com.khm1102.mediprice.service.GoogleOAuthService;
@@ -26,15 +27,18 @@ public class AuthController {
     private final ConsentService consentService;
     private final GoogleOAuthService googleOAuthService;
     private final JwtUtil jwtUtil;
+    private final MpTokenCookieFactory mpTokenCookieFactory;
 
     public AuthController(AuthService authService,
                           ConsentService consentService,
                           GoogleOAuthService googleOAuthService,
-                          JwtUtil jwtUtil) {
+                          JwtUtil jwtUtil,
+                          MpTokenCookieFactory mpTokenCookieFactory) {
         this.authService = authService;
         this.consentService = consentService;
         this.googleOAuthService = googleOAuthService;
         this.jwtUtil = jwtUtil;
+        this.mpTokenCookieFactory = mpTokenCookieFactory;
     }
 
     @GetMapping("/oauth2/authorize/google")
@@ -135,10 +139,7 @@ public class AuthController {
     // ── 쿠키 헬퍼 ─────────────────────────────────────────────────────
 
     private void setTokenCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("mp_token", token);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) (jwtUtil.getExpirationMs() / 1000));
-        response.addCookie(cookie);
+        mpTokenCookieFactory.writeToken(response, token, jwtUtil.getExpirationMs() / 1000);
     }
 
     private void setConsentKeyCookie(HttpServletResponse response, String key) {

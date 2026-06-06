@@ -1,8 +1,8 @@
 # MediPrice 기능 명세서 (MVP)
 
-> **문서 목적** — 디자이너/프론트 개발자에게 다음 라운드(JSP + 지도 SDK + 정적 JS) 작업을 넘기기 위한 화면·플로우·데이터 명세.
-> **기준일** — 2026-05-19
-> **변경 이력** — 2026-05-19 배치 병렬화, 상세 API 5종, 최신 적재 스냅샷 반영
+> **문서 목적** — 현재 JSP + 네이버맵 + 정적 JS 화면과 서비스 API 흐름을 공유하기 위한 기능 명세.
+> **기준일** — 2026-06-05
+> **변경 이력** — 2026-06-05 프론트 구현, Google OAuth/JWT, 즐겨찾기, 검색 제한 정책 폐기 반영
 >
 > API/배치의 정확한 최신 규격은 `docs/hira-api-spec.md`, 장애/수정 이력은 `docs/troubleshooting.md`를 기준으로 한다.
 
@@ -30,9 +30,8 @@
 ### MVP에서 의도적으로 제외한 것
 | 기능 | 사유 | 후순위 |
 |---|---|---|
-| 회원가입/로그인 | 발표용 프로토타입 범위 축소 | P2 (보류) |
-| 비회원 검색 횟수 제한 (Guest JWT) | 인증 전체가 P2로 미뤄짐 — 모든 `/api/**` 비인증 통과 | P2 |
-| 즐겨찾기/리뷰/평점 | 회원 도메인 의존 | P2+ |
+| 이메일/비밀번호 회원가입 | Google OAuth만 우선 지원 | P2+ |
+| 리뷰/평점 | 회원 도메인 + 모더레이션 정책 필요 | P2+ |
 | AI 추천/유사 시술 추천 | 데이터 양·품질 부족 | P3+ |
 | 결제/예약 연동 | 비교 검색 서비스 범위 밖 | 범위 외 |
 | 미용 시술(보톡스/필러/지방흡입 등) 비교 | **심평원 의무 공시 대상 아님 → 데이터 부재** | 범위 외 |
@@ -45,18 +44,23 @@
 | 항목 | 상태 |
 |---|---|
 | `GET /api/items` — 비급여 항목 그룹 (중분류 → 항목 리스트) | 완료 |
-| `GET /api/hospitals?lat&lng&npayCd&radius` — 위치+항목 근거리 검색 (PostGIS, 거리 정렬, 최대 20건) | 완료 |
-| `GET /api/hospitals/{ykiho}` — 병원 상세 (DB + 외부 5개 API 병합) | 완료 |
+| `GET /api/hospitals/search?lat&lng&npayCds&radius&sort&limit&wPrice&wDistance` — 위치+다중 비급여항목 검색 (search_nearby_hospitals_v2, mixed/price/distance 정렬, 매칭 항목명 + 종별 평균 결합) | 완료 |
+| `GET /api/hospitals/{ykiho}/basics`, `GET /api/hospitals/{ykiho}/extras` — 병원 상세 progressive (basics: DB only fast, extras: HIRA 5종 캐시 slow) | 완료 |
+| `GET /api/hospitals/{ykiho}` — 병원 상세 통합 응답 (basics + extras 합본) | 완료 |
+| Google OAuth + JWT 쿠키 인증 | 완료 |
+| `/api/favorites/**` — 회원 즐겨찾기 | 완료 |
 | 심평원 배치 7종 병렬 dispatch (Price는 Hospital 의존) | 완료 |
 | PostGIS 위치 검색 프로시저 + GIST 인덱스 | 완료 |
 
-### 2.2 프론트엔드 — 다음 라운드(이번 명세 대상)
+### 2.2 프론트엔드 — 구현됨
 | 화면 | 라우팅 | 우선순위 |
 |---|---|---|
-| 랜딩(메인) | `GET /` | P0 |
-| 검색 결과(지도+리스트) | `GET /hospitals?lat&lng&npayCd&radius` | P0 |
-| 병원 상세 | `GET /hospitals/{ykiho}` | P0 |
-| 헬스체크 | `GET /health` | 완료 (단순 JSP) |
+| 랜딩(메인) | `GET /` | 완료 |
+| 검색 결과(지도+리스트+상세 패널) | `GET /hospitals?keyword=...` | 완료 |
+| 즐겨찾기 | `GET /favorites` | 완료 |
+| Google 약관 동의 | `GET /auth/consent` | 완료 |
+| 법적 문서 | `GET /legal/terms`, `/privacy`, `/location` | 완료 |
+| 헬스체크 | `GET /health` | 완료 |
 
 ---
 
@@ -112,9 +116,9 @@
 | 랜딩 진입 | (없음, 정적) | — |
 | 추천 카드 클릭 | (없음, 카드의 `npayCd` 사용) | — |
 | 항목 선택 모달 | `GET /api/items` | 응답 빈 배열이면 "항목 데이터 준비 중" 안내 |
-| 결과 진입 | `GET /api/hospitals?lat&lng&npayCd&radius` | 빈 배열이면 6장 참고 (반경 확장 제안 + 가격 부분 적재 안내) |
+| 결과 진입 | `GET /api/hospitals/search?lat&lng&npayCds&radius&sort&limit&wPrice&wDistance` | 빈 배열이면 6장 참고 (반경 확장 제안 + 가격 부분 적재 안내) |
 | 마커/카드 클릭 | (없음, 응답 데이터 활용) | — |
-| 상세 진입 | `GET /api/hospitals/{ykiho}` | 404 시 "병원 정보를 찾을 수 없습니다" 페이지 |
+| 상세 진입 | `GET /api/hospitals/{ykiho}/basics` (즉시) + `GET /api/hospitals/{ykiho}/extras` (지연) | basics 404 시 "병원 정보를 찾을 수 없습니다" 페이지. extras 5xx는 부분 정보로 폴백 |
 
 ---
 
@@ -160,13 +164,14 @@
 | 헤더 로고 | 정적 | 클릭 시 `/`로 이동 |
 | Hero 카피 | 정적 | — |
 | "전체 항목 보기" 버튼 | 정적 | 항목 선택 모달 오픈 (`GET /api/items`) |
-| 추천 카드 (4~6개) | 정적 (npayCd 하드코딩) | 클릭 시 위치 권한 요청 → `/hospitals?lat&lng&npayCd=...&radius=2` |
+| 추천 카드 (4~6개) | 정적 (npayCds 하드코딩) | 클릭 시 위치 권한 요청 → `/hospitals?keyword=...` 페이지 진입 후 검색바 자동완성으로 npayCds 도출 → `/api/hospitals/search?lat&lng&npayCds&sort=mixed` 호출 |
 | 푸터 | 정적 | — |
 
 #### 위치 권한 요청 흐름
-1. 사용자가 카드 또는 항목 선택 → `navigator.geolocation.getCurrentPosition` 호출
-2. 허용 → 좌표 획득 후 `/hospitals?lat={lat}&lng={lng}&npayCd={...}&radius=2`로 이동
-3. 거부/실패 → 모달: "위치를 직접 선택할 수 있어요" + 지도 모달(서울 시청 기본 중심) → 핀 드롭
+1. 사용자가 카드 또는 항목 선택 → `navigator.geolocation.getCurrentPosition` 호출 (`accuracy`도 같이 노출)
+2. 허용(고정밀) → `/hospitals?keyword=...`로 이동 → 페이지 로드 후 `/api/hospitals/search?lat&lng&npayCds&...` 호출
+3. 정확도 낮음(>1500m) → 결과 페이지 상단에 amber 배너 + 정확도(±NNNm) 표시 + "다시 시도" 버튼
+4. 거부/실패 → 서울 시청 기본 좌표로 fallback 검색 + 동일 배너로 안내
 
 ### 5.2 항목 선택 모달
 
@@ -246,9 +251,9 @@
 | 결과 리스트 | 카드 리스트 | 카드 클릭 → `/hospitals/{ykiho}`로 이동 |
 
 #### 데이터
-- `GET /api/hospitals?lat=..&lng=..&npayCd=..&radius=..` → `List<HospitalSummaryDto>`
-- 필드: `ykiho`, `yadmNm`, `addr`, `clCdNm`, `telNo`, `curAmt`, `distance`, `lat`, `lng`
-- 정렬은 서버에서 distance ASC, 최대 20건
+- `GET /api/hospitals/search?lat=..&lng=..&npayCds=..&radius=..&sort=mixed&limit=50&wPrice=0.7&wDistance=0.3` → `List<HospitalSummaryDto>`
+- 필드: `ykiho`, `yadmNm`, `addr`, `clCdNm`, `telNo`, `curAmt`, `distance`, `lat`, `lng`, `matchedNpayCd`, `matchedNpayKorNm`, `score`, `avgAmt`, `diffPct`
+- 정렬은 서버에서 sort 파라미터에 따라 (mixed/price/distance), 기본 LIMIT 50, 최대 200건
 
 #### 빈 상태 / 에러 (6장 상세)
 - 결과 0건 → "이 지역에는 신고된 가격 데이터가 없어요" + 반경 확장 제안 + 가격 데이터 준비 중 안내
@@ -430,25 +435,24 @@
 
 ## 9. 다음 라운드 후보 (P2+)
 
-> **현재 라운드 = 프론트(JSP+네이버맵+JS) 작업**. 아래는 그 다음 라운드 후보. 우선순위 높은 순.
+아래는 현재 구현 이후의 개선 후보. 우선순위 높은 순.
 
-### 우선순위 1 — 회원/인증 흐름 (P2 보류 중)
-- Guest JWT 발급 + 검색 횟수 제한 (3회) — 가입 유도 장치
-- 회원가입/로그인 (이메일+BCrypt), JWT HttpOnly 쿠키
-- 관련 문서: `docs/authentication.md`
+### 우선순위 1 — 배치/운영 안정화
+- `/api/internal/batch/**` 운영 보호 — 1차 적용됨 (`BatchAdminGuard`, enabled + secret)
+- HIRA 실패/empty 응답 구분
+- Price/PriceSummary 재개 정책 수립 (`TODO N9`)
+- 운영계정 신청(`TODO N3`) 선행
 
 ### 우선순위 2 — 가격 필터/정렬 강화
 - 가격 범위 슬라이더 (최저~최고)
 - 정렬 옵션: 거리순/가격순/이름순
 - 가격 통계 (평균/중위/최저) 배지
 
-### 우선순위 3 — 즐겨찾기 + 비교 장바구니
-- 회원 도메인 의존 → P2 회원가입 이후
-- 병원 ★ 즐겨찾기, 2~3개 병원 가격 가로 비교 표
+### 우선순위 3 — 상세 화면 보강
+- 의료장비, 진료시간, 주차 정보 섹션을 DTO 의미에 맞게 분리
+- 가격 데이터 부분 적재 안내 강화
 
 ### 우선순위 4 — 가격 데이터 완전 적재
-- 운영계정 신청(`TODO N3`) 선행
-- Price/PriceSummary 재개 정책 수립 (`TODO N9`)
 - Hospital ykiho 생산과 Price worker 소비를 연결하는 파이프라인 검토 (`TODO N8`)
 
 ### 우선순위 5 — 캐시 전략 개선
@@ -472,8 +476,10 @@
 | 항목 | 목표 |
 |---|---|
 | `/api/items` p95 | < 200ms (DB 조회만, 향후 캐싱 후 < 50ms) |
-| `/api/hospitals` p95 | < 800ms (PostGIS 프로시저 + 20건 응답) |
-| `/api/hospitals/{ykiho}` p95 | < 1500ms (외부 5개 API 병렬 호출 포함) |
+| `/api/hospitals/search` p95 | < 800ms (search_nearby_hospitals_v2 프로시저 + 최대 200건 응답) |
+| `/api/hospitals/{ykiho}/basics` p95 | < 200ms (DB only fast path) |
+| `/api/hospitals/{ykiho}/extras` p95 | < 1500ms (HIRA 5종 캐시, 미스 시 외부 API 5개 병렬 호출) |
+| `/api/hospitals/{ykiho}` p95 | < 1500ms (basics + extras 합본, extras에 좌우됨) |
 | 랜딩 페이지 LCP | < 2.5초 (모바일 4G 가정) |
 | 결과 페이지 First Map Render | < 3초 (네이버맵 SDK 로드 + 첫 마커 표시) |
 
@@ -496,7 +502,8 @@
 - HTTPS (Cloudflare Tunnel) — 운영 시점
 - CORS 화이트리스트 (`TODO E3`)
 - 모든 `/api/**` 응답에 `X-Trace-Id` 헤더 (`TODO E2`로 노출 여부 결정)
-- JWT 도입은 P2 (현재 인증 없음)
+- JWT 쿠키 보안 속성(HttpOnly/Secure/SameSite) 보강
+- 회원 전용 API에서 GUEST 역할 차단
 
 ---
 
@@ -521,7 +528,7 @@
 |---|---|
 | 프로젝트 개요 | `docs/project-overview.md` |
 | 레이어드 아키텍처 | `docs/layered-architecture.md` |
-| 인증/인가 (P2 보류) | `docs/authentication.md` |
+| 인증/인가 | `docs/authentication.md` |
 | 에러 처리 | `docs/error-handling.md` |
 | Null 안전성 | `docs/null-safety.md` |
 | 코딩 컨벤션 | `CLAUDE.md` |

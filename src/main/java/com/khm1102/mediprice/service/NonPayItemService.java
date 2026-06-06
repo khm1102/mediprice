@@ -1,10 +1,12 @@
 package com.khm1102.mediprice.service;
 
 import com.khm1102.mediprice.entity.NonPayItem;
+import com.khm1102.mediprice.global.config.CacheConfig;
 import com.khm1102.mediprice.repository.NonPayItemRepository;
 import com.khm1102.mediprice.dto.NonPayItemGroupDto;
 
 import com.khm1102.mediprice.client.hira.NonPayDtlItem;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +14,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +30,14 @@ public class NonPayItemService {
         this.repository = repository;
     }
 
-    /** {@code GET /api/items} — 중분류명 기준 그룹핑. */
+    /**
+     * {@code GET /api/items} — 중분류명 기준 그룹핑.
+     * <p>
+     * 비급여 항목은 월 1회 배치로만 변경되므로 단일 키({@code 'all'})로 캐시한다.
+     * 배치 종료 시 {@link com.khm1102.mediprice.batch.orchestrator.BatchService}가 캐시를 evict한다.
+     * 매 호출 findAll(875건) + Java Stream groupingBy 비용을 캐시 hit 시 마이크로초 단위로 줄인다.
+     */
+    @Cacheable(cacheNames = CacheConfig.NON_PAY_ITEM_GROUPS_CACHE, key = "'all'")
     public List<NonPayItemGroupDto> searchGroupedItems() {
         return repository.findAll().stream()
                 .filter(NonPayItemService::isActive)

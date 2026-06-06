@@ -5,28 +5,42 @@
 ```
 com.khm1102.mediprice/
 ├── controller/           @RestController + @Controller (전부 한 폴더 평면 배치)
-│   ├── HospitalApiController       /api/hospitals + /{ykiho}
+│   ├── HospitalApiController       /api/hospitals/search + /{ykiho}[/basics|/extras]
 │   ├── NonPayItemApiController     /api/items
+│   ├── AuthController/AuthApiController  Google OAuth + JWT 쿠키
+│   ├── FavoriteController/FavoriteApiController  즐겨찾기 페이지/API
 │   ├── HealthApiController         /api/health (JSON probe)
 │   ├── HealthController            /health (JSP)
+│   ├── LegalController             /legal/** 약관/개인정보/위치약관
 │   └── (BatchAdminApiController는 batch/ 폴더 — 운영 묶음)
 ├── service/              도메인 서비스 (비즈니스 로직)
 │   ├── NonPayItemService           항목 그룹핑 + 코드→이름 룩업
 │   ├── HospitalService             PostGIS 프로시저 호출 + JSON 파싱
-│   └── HospitalDetailService       DB(병원/가격) + 외부 5개 API 병합
+│   ├── HospitalDetailService       DB(병원/가격) + 외부 5개 API 병합
+│   ├── AuthService                 OAuth 회원 처리 + 탈퇴
+│   ├── GoogleOAuthService          Google token/userinfo 호출
+│   ├── ConsentService              신규 회원 약관 동의 임시 저장
+│   └── FavoriteService             즐겨찾기 조회/추가/삭제
 ├── entity/               도메인 엔티티 (자체 PK)
 │   ├── Hospital                    ykiho PK + native UPDATE location
 │   ├── NonPayItem                  npay_cd PK
 │   ├── Price                       @IdClass(PriceId) ykiho+npay_cd
-│   └── PriceId
+│   ├── PriceId
+│   ├── Member                      Google OAuth 회원
+│   └── Favorite                    회원별 병원 즐겨찾기
 ├── repository/           Spring Data JPA
-│   ├── HospitalRepository          findAllYkiho, searchNearbyJson(::text), updateLocation
+│   ├── HospitalRepository          findAllYkiho, searchNearbyV2Json(::text), updateLocation
 │   ├── NonPayItemRepository
-│   └── PriceRepository             findAllByYkiho
+│   ├── PriceRepository             findAllByYkihoAndAdtEndDd
+│   ├── MemberRepository
+│   └── FavoriteRepository
 ├── dto/                  도메인 DTO (record)
-│   ├── HospitalSummaryDto          /api/hospitals 응답 element
-│   ├── HospitalDetailDto           /api/hospitals/{ykiho} 응답 (PriceItem, transit/parking/operating 중첩)
-│   └── NonPayItemGroupDto          /api/items 응답 (Item 중첩)
+│   ├── HospitalSummaryDto          /api/hospitals/search 응답 element (matched 항목명·종별 평균 포함)
+│   ├── HospitalDetailBasicsDto     /api/hospitals/{ykiho}/basics 응답 (DB only)
+│   ├── HospitalDetailExtrasDto     /api/hospitals/{ykiho}/extras 응답 (HIRA 5종)
+│   ├── HospitalDetailDto           /api/hospitals/{ykiho} 통합 응답 (PriceItem, transit/parking/operating 중첩)
+│   ├── NonPayItemGroupDto          /api/items 응답 (Item 중첩)
+│   └── FavoriteDto                 /api/favorites 응답 element
 ├── batch/                운영 묶음 — 스케줄러/수동 트리거/도메인별 적재
 │   ├── admin/                    BatchAdminApiController — POST /api/internal/batch/**
 │   ├── orchestrator/             BatchService — 전체 배치 병렬 dispatch
@@ -59,19 +73,20 @@ com.khm1102.mediprice/
     │   ├── CacheConfig             ConcurrentMapCacheManager
     │   └── DatabaseInitializer     @PostConstruct PostGIS extension/location 컬럼/GIST/procedures.sql
     ├── exception/
-    │   ├── ErrorCode               C/A/G/H/M 카테고리
+    │   ├── ErrorCode               C/A/H/F 카테고리
     │   ├── MediPriceException      추상
     │   ├── GlobalExceptionHandler  5xx vs 4xx 분기, BindException 첫 필드에러
-    │   ├── auth/                   LoginFailed, TokenExpired/Invalid, AuthorizationDenied, Authentication
-    │   └── business/               HospitalNotFound, PriceNotFound, MemberNotFound, DuplicateEmail, GuestSearchLimitExceeded, BusinessException
+    │   ├── auth/                   AuthenticationException
+    │   └── business/               HospitalNotFound, FavoriteNotFound, FavoriteAlreadyExists, BusinessException
     ├── filter/
     │   ├── TraceIdFilter           32-hex UUID, X-Trace-Id 양방향, MDC, 위험문자 sanitize
-    │   └── AuthAttributeNames      request attribute 키 상수
+    │   ├── AuthAttributeNames      request attribute 키 상수
+    │   └── JwtAuthFilter           mp_token 쿠키 JWT → SecurityContext
     └── entity/
-        ├── BaseEntity              Long id PK + 시간 필드 (미래 Member용)
+        ├── BaseEntity              Long id PK + 시간 필드 (Member/Favorite용)
         └── AbstractAuditEntity     시간 필드만 (자체 PK 도메인 엔티티용)
 
-src/main/resources/sql/procedures.sql  ← search_nearby_hospitals (PostGIS PL/pgSQL, JSON 반환)
+src/main/resources/sql/procedures.sql  ← search_nearby_hospitals_v2 (PostGIS PL/pgSQL, JSON 반환)
 ```
 
 **구조 결정 이력**: 한때 DDD-스타일 도메인 폴더(`hospital/`, `nonpayitem/`, `price/`)로 옮겼다가 over-engineering 판단으로 layered로 되돌림 — 도메인 4~5개 규모엔 평면 layered가 가장 빠른 탐색.
@@ -101,7 +116,7 @@ Service (비즈니스 로직)
     ↓
 Repository (JPA) ──────► PostgreSQL + PostGIS
                          ├── Hospital.location (GEOGRAPHY POINT 4326, GIST 인덱스)
-                         └── search_nearby_hospitals(lat,lng,npayCd,radius) PL/pgSQL
+                         └── search_nearby_hospitals_v2(lat,lng,npayCds[],radius,sort,limit,wPrice,wDistance) PL/pgSQL
 ```
 
 > **JSON-only 정책**: jackson-dataformat-xml이 클래스패스에 있어 (Hira 파싱용) Spring이 XML 응답 컨버터를 자동 등록함. 브라우저가 `Accept: application/xml;q=0.9`를 보내서 XML이 골라지는 함정 → `WebMvcConfig.configureContentNegotiation`에서 `ignoreAcceptHeader(true)` + `defaultContentType(APPLICATION_JSON)` 강제.
@@ -110,7 +125,8 @@ Repository (JPA) ──────► PostgreSQL + PostGIS
 
 ```
 @Scheduled cron "0 0 0 1 * *" (매월 1일 0시) → BatchService.syncAll()
-                  + 수동: POST /api/internal/batch/sync (BatchAdminApiController)
+                  + 수동: POST /api/internal/batch/sync
+                    (BatchAdminApiController, BatchAdminGuard enabled + secret)
     ↓
 BatchService가 hiraBatchExecutor로 7개 작업 dispatch
     ├─ NonPayItemSyncService          → NonPayItem upsert
@@ -132,7 +148,9 @@ BatchService가 hiraBatchExecutor로 7개 작업 dispatch
 ## 실시간 외부 호출 (병원 상세)
 
 ```
-GET /api/hospitals/{ykiho} → HospitalDetailService.lookupDetail(ykiho)
+GET /api/hospitals/{ykiho}        → HospitalDetailService.lookupDetail(ykiho) (basics+extras 합본)
+GET /api/hospitals/{ykiho}/basics → HospitalDetailService.lookupBasics(ykiho) (DB only, fast)
+GET /api/hospitals/{ykiho}/extras → HospitalDetailService.lookupExtras(ykiho) (HIRA 5종, slow)
     ├── DB: Hospital + Price(adt_end_dd='99991231' 필터) + NonPayItemService.lookupNamesByCodes(이름 매핑)
     └── HiraDetailClient.fetchAll(ykiho) — 5개 API CompletableFuture.allOf
         ├── getDgsbjtInfo2.7    (진료과목)
@@ -212,7 +230,7 @@ public record ApiResponse<T>(boolean success, T data, ErrorDetail error) {
 
 프론트 처리:
 ```js
-const result = await api.get('/api/hospitals?lat=37.5&lng=126.9&npayCd=...');
+const result = await api.get('/api/hospitals/search?lat=37.5&lng=126.9&npayCds=...&sort=mixed');
 if (result.success) {
     renderHospitalList(result.data);
 } else {

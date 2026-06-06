@@ -7,7 +7,7 @@
     html, body { background-color: #F2F4F6; }
 </style>
 
-<script defer src="<c:url value="/static/js/hospital.js"/>?v=2"></script>
+<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260606-ux2"></script>
 
 <div class="bg-[#F2F4F6] min-h-full">
 <div class="max-w-xl mx-auto px-4 py-6">
@@ -29,7 +29,7 @@
             </div>
             <h2 class="text-base font-semibold text-gray-800 mb-2">병원 정보를 준비 중이에요</h2>
             <p class="text-sm text-gray-400 mb-7 leading-relaxed">진료비 데이터 서비스를<br>곧 제공할 예정입니다</p>
-            <a href="<c:url value="/hospitals"/>"
+            <a href="<c:url value='/hospitals'/>"
                class="inline-flex items-center justify-center bg-[#2563EB] text-white text-sm font-semibold px-6 rounded-xl hover:bg-blue-700 transition-colors min-h-[44px]">
                 병원 목록으로
             </a>
@@ -40,7 +40,7 @@
     <div id="state-content" class="hidden space-y-3">
 
         <%-- 뒤로가기 --%>
-        <a id="back-btn" href="<c:url value="/hospitals"/>"
+        <a id="back-btn" href="<c:url value='/hospitals'/>"
            class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563EB] transition-colors min-h-[44px] -ml-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -125,19 +125,14 @@
             </div>
         </div>
 
-        <%-- 진료과목 --%>
-        <div id="section-dgsbjt" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">진료과목</h2>
-            <div id="dgsbjt-list" class="flex flex-wrap gap-1.5"></div>
+        <%-- 검색 항목 가격 카드 (검색 키워드 매칭 시만 노출) --%>
+        <div id="section-search-price" class="hidden bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl p-5">
+            <p class="text-[11px] font-semibold text-[#2563EB] uppercase tracking-wide">내 검색 항목 가격</p>
+            <p id="search-item-name" class="text-sm text-gray-700 mt-1.5 truncate"></p>
+            <p id="search-item-price" class="text-2xl font-bold text-[#2563EB] mt-1"></p>
         </div>
 
-        <%-- 진료시간 --%>
-        <div id="section-medoft" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">진료시간</h2>
-            <div id="medoft-list" class="space-y-1"></div>
-        </div>
-
-        <%-- 비급여 진료비 --%>
+        <%-- 비급여 진료비 (최상단) --%>
         <div class="bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
             <h2 class="text-sm font-semibold text-gray-700 mb-4">비급여 진료비</h2>
 
@@ -155,6 +150,47 @@
                 <tbody id="price-tbody" class="divide-y divide-gray-100"></tbody>
             </table>
         </div>
+
+        <%-- 부가 정보 — 접이식 details 그룹 --%>
+        <details id="section-dgsbjt" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+            <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                진료과목
+                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </summary>
+            <div id="dgsbjt-list" class="flex flex-wrap gap-1.5 px-5 pb-5"></div>
+        </details>
+
+        <details id="section-medoft" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+            <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                의료장비
+                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </summary>
+            <div id="medoft-list" class="space-y-1 px-5 pb-5"></div>
+        </details>
+
+        <details id="section-operating" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+            <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                진료시간
+                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </summary>
+            <div id="operating-list" class="space-y-1 px-5 pb-5"></div>
+        </details>
+
+        <details id="section-parking" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+            <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                주차 정보
+                <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </summary>
+            <div id="parking-list" class="space-y-1 px-5 pb-5"></div>
+        </details>
 
 
     </div>

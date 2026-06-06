@@ -72,6 +72,58 @@ class PriceSummarySyncServiceTest {
         assertThat(saved).isZero();
     }
 
+    /** 1페이지 NORMAL + 2페이지 FAILED + 3페이지 NORMAL (totalPages=3) → failedPages=1, 1+3페이지만 적재. */
+    @Test
+    void countsFailedMiddlePageAndContinues() {
+        when(client.searchHospPriceSummary(anyInt(), anyInt())).thenAnswer(inv -> {
+            int page = inv.getArgument(0);
+            return switch (page) {
+                case 1 -> body(900, sampleBatch(300));
+                case 2 -> HiraBody.<NonPayHospSummaryItem>failed(2);
+                case 3 -> body(900, sampleBatch(300));
+                default -> body(900);
+            };
+        });
+        when(writer.saveBatch(any())).thenAnswer(inv -> ((List<?>) inv.getArgument(0)).size());
+
+        PriceSummarySyncService.SyncSummary summary = service.syncWithDetail();
+
+        assertThat(summary.producedTotal()).isEqualTo(600);
+        assertThat(summary.failedPages()).isEqualTo(1);
+    }
+
+    /** 1페이지 NORMAL + 2페이지 NODATA(중간) → failedPages=1. */
+    @Test
+    void countsMiddleNoDataAsFailedPage() {
+        when(client.searchHospPriceSummary(anyInt(), anyInt())).thenAnswer(inv -> {
+            int page = inv.getArgument(0);
+            return switch (page) {
+                case 1 -> body(900, sampleBatch(300));
+                case 2 -> HiraBody.<NonPayHospSummaryItem>noData(2);
+                case 3 -> body(900, sampleBatch(300));
+                default -> body(900);
+            };
+        });
+        when(writer.saveBatch(any())).thenAnswer(inv -> ((List<?>) inv.getArgument(0)).size());
+
+        PriceSummarySyncService.SyncSummary summary = service.syncWithDetail();
+
+        assertThat(summary.failedPages()).isEqualTo(1);
+        assertThat(summary.producedTotal()).isEqualTo(600);
+    }
+
+    /** 1페이지 NODATA → producer 정상 종료, failedPages=0. */
+    @Test
+    void firstPageNoDataIsClean() {
+        when(client.searchHospPriceSummary(anyInt(), anyInt()))
+                .thenReturn(HiraBody.noData(1));
+
+        PriceSummarySyncService.SyncSummary summary = service.syncWithDetail();
+
+        assertThat(summary.failedPages()).isZero();
+        assertThat(summary.producedTotal()).isZero();
+    }
+
     private static NonPayHospSummaryItem[] sampleBatch(int n) {
         NonPayHospSummaryItem[] arr = new NonPayHospSummaryItem[n];
         for (int i = 0; i < n; i++) {

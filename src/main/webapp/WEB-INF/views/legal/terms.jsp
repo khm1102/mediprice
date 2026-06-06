@@ -8,7 +8,7 @@
 
         <%-- 헤더 --%>
         <div class="mb-8">
-            <a href="<c:url value="/"/>"
+            <a href="<c:url value='/'/>"
                class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#2563EB] transition-colors mb-4">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -78,8 +78,8 @@
                         이용자로부터 어떠한 금전적 대가도 수취하지 않습니다.
                     </li>
                     <li>
-                        ③ 비회원은 제한된 검색 횟수 내에서 서비스를 이용할 수 있으며,<br>
-                        회원으로 가입하면 횟수 제한 없이 이용할 수 있습니다.
+                        ③ 비급여 진료비 검색 기능은 회원 가입 없이 누구나 자유롭게 이용할 수 있으며,<br>
+                        Google 계정 로그인 시 즐겨찾기 등 회원 전용 기능을 추가로 사용할 수 있습니다.
                     </li>
                     <li>④ 서비스는 운영상 또는 기술상 이유로 사전 고지 없이 일시 중단될 수 있습니다.</li>
                     <li>

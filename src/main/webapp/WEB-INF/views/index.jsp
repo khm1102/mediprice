@@ -173,6 +173,7 @@
         <p class="mt-6 text-[11px] text-gray-400 leading-relaxed hero-anim hero-anim-5">
             ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
             해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
+        </p>
 
     </div>
 </div>

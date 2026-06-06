@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.cache.CacheManager;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -40,6 +41,7 @@ class BatchServiceTest {
     @Mock PriceSummarySyncService summarySyncService;
     @Mock NonPayItemClcdStatSyncService clcdStatSyncService;
     @Mock NonPayItemSidoStatSyncService sidoStatSyncService;
+    @Mock CacheManager cacheManager;
 
     @InjectMocks BatchService batchService;
 
