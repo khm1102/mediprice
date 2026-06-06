@@ -293,8 +293,8 @@
                 </div>
             </a>
 
-            <%-- 주사치료 --%>
-            <a href="<c:url value='/hospitals?keyword=주사치료'/>"
+            <%-- 대상포진 --%>
+            <a href="<c:url value='/hospitals?keyword=대상포진'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 200ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -322,13 +322,13 @@
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">주사치료</p>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate">통증의학과</p>
+                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">대상포진</p>
+                    <p class="text-xs text-gray-400 mt-0.5 truncate">예방접종</p>
                 </div>
             </a>
 
-            <%-- 수면내시경 --%>
-            <a href="<c:url value='/hospitals?keyword=수면내시경'/>"
+            <%-- 진정내시경 --%>
+            <a href="<c:url value='/hospitals?keyword=진정내시경'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 250ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -338,7 +338,7 @@
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">수면내시경</p>
+                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">진정내시경</p>
                     <p class="text-xs text-gray-400 mt-0.5 truncate">소화기내과</p>
                 </div>
             </a>
@@ -541,7 +541,7 @@
                             <a href="<c:url value='/hospitals?keyword=MRI'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">MRI</a>
                             <a href="<c:url value='/hospitals?keyword=초음파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">초음파</a>
                             <a href="<c:url value='/hospitals?keyword=체외충격파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">체외충격파</a>
-                            <a href="<c:url value='/hospitals?keyword=수면내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">수면내시경</a>
+                            <a href="<c:url value='/hospitals?keyword=진정내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">진정내시경</a>
                         </div>
                     </div>
 
