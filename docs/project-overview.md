@@ -126,6 +126,9 @@ GET /api/favorites, POST /api/favorites, DELETE /api/favorites/{ykiho}
 | POST | `/api/internal/batch/sync/clcd-stat` | 종별 통계 단독 |
 | POST | `/api/internal/batch/sync/sido-stat` | 지역 통계 단독 |
 
+`/api/internal/batch/**`는 `BatchAdminGuard`가 `batch.admin-enabled=true`와
+`X-Batch-Admin-Secret` 헤더 일치를 모두 확인한 뒤에만 실행한다. 기본값은 fail-closed다.
+
 모든 REST 응답은 `ApiResponse<T>` 형태다.
 
 ## 로컬 배치 스냅샷 (2026-05-17)

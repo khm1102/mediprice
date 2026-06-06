@@ -125,7 +125,8 @@ Repository (JPA) ──────► PostgreSQL + PostGIS
 
 ```
 @Scheduled cron "0 0 0 1 * *" (매월 1일 0시) → BatchService.syncAll()
-                  + 수동: POST /api/internal/batch/sync (BatchAdminApiController)
+                  + 수동: POST /api/internal/batch/sync
+                    (BatchAdminApiController, BatchAdminGuard enabled + secret)
     ↓
 BatchService가 hiraBatchExecutor로 7개 작업 dispatch
     ├─ NonPayItemSyncService          → NonPayItem upsert

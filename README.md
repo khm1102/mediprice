@@ -184,7 +184,7 @@ CACHE_TTL_SECONDS=3600
 | POST | `/api/favorites` | 즐겨찾기 추가 (회원 JWT 필요) |
 | DELETE | `/api/favorites/{ykiho}` | 즐겨찾기 삭제 (회원 JWT 필요) |
 
-운영/디버그 배치 API:
+운영/디버그 배치 API (`BatchAdminGuard`로 이중 가드 — 둘 다 충족해야 동작):
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
@@ -194,13 +194,17 @@ CACHE_TTL_SECONDS=3600
 | POST | `/api/internal/batch/sync/clcd-stat` | 종별 통계 단독 |
 | POST | `/api/internal/batch/sync/sido-stat` | 지역 통계 단독 |
 
+- `BATCH_ADMIN_ENABLED=true` (기본 false). 미설정 시 모든 요청 403 (`B001 BATCH_ADMIN_DISABLED`).
+- `BATCH_ADMIN_SECRET=<32+ 문자 랜덤>` 설정 + 요청 헤더 `X-Batch-Admin-Secret`이 정확히 일치해야 통과. 둘 중 하나라도 누락/불일치 시 403 (`B003 BATCH_ADMIN_FORBIDDEN`).
+- 비교는 상수시간(trim 금지). 운영에서는 두 변수 모두 설정해야 함.
+
 ---
 
 ## 인증 방식
 
 검색/항목/헬스체크 API는 공개되어 있다. Google OAuth 로그인 후 서버가 `mp_token` JWT 쿠키를 발급하며, `/api/favorites/**`와 `/api/auth/me` 계열은 인증된 회원이 사용한다.
 
-주의: `/api/internal/batch/**`는 MVP 디버그용으로 아직 공개되어 있으므로 운영 배포 전 별도 보호가 필요하다.
+`/api/internal/batch/**`는 `BatchAdminGuard`가 enabled 플래그 + `X-Batch-Admin-Secret` 헤더를 이중 검사한다. 기본 fail-closed (`BATCH_ADMIN_ENABLED=false`, `BATCH_ADMIN_SECRET=`).
 
 ## 문서
 

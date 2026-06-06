@@ -438,7 +438,7 @@
 아래는 현재 구현 이후의 개선 후보. 우선순위 높은 순.
 
 ### 우선순위 1 — 배치/운영 안정화
-- `/api/internal/batch/**` 운영 보호
+- `/api/internal/batch/**` 운영 보호 — 1차 적용됨 (`BatchAdminGuard`, enabled + secret)
 - HIRA 실패/empty 응답 구분
 - Price/PriceSummary 재개 정책 수립 (`TODO N9`)
 - 운영계정 신청(`TODO N3`) 선행
