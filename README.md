@@ -100,7 +100,7 @@ MediPrice는 건강보험심사평가원(심평원) 공공 API를 기반으로 <
 - 배치는 7개 SyncService를 병렬 dispatch한다. 단, 가격 상세(`PriceSyncService`)는 병원 `ykiho` 목록이 필요해 Hospital 완료 뒤 실행한다.
 - 병원 상세는 DB 정보와 심평원 상세 API 5개(진료과목, 의료장비, 대중교통, 세부정보, 특수진료)를 병렬 병합한다.
 
-자세한 구조는 `architecture.md`와 `docs/layered-architecture.md`를 기준으로 한다.
+자세한 구조는 `docs/layered-architecture.md`를 기준으로 한다.
 
 ---
 
@@ -156,6 +156,14 @@ DB_PASSWORD=your_db_password
 JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRATION=86400000
 
+# JWT 쿠키
+COOKIE_SECURE=false
+COOKIE_SAME_SITE=Lax
+
+# 배치 수동 트리거 보호
+BATCH_ADMIN_ENABLED=false
+BATCH_ADMIN_SECRET=
+
 # 네이버맵 API
 NAVER_MAP_KEY=your_naver_map_key_here
 
@@ -190,6 +198,7 @@ CACHE_TTL_SECONDS=3600
 |---|---|---|
 | POST | `/api/internal/batch/sync` | 전체 배치 |
 | POST | `/api/internal/batch/sync/prices` | 가격 상세 단독 |
+| POST | `/api/internal/batch/sync/desc` | 항목 설명 단독 |
 | POST | `/api/internal/batch/sync/summary` | 가격 요약 단독 |
 | POST | `/api/internal/batch/sync/clcd-stat` | 종별 통계 단독 |
 | POST | `/api/internal/batch/sync/sido-stat` | 지역 통계 단독 |

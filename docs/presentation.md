@@ -285,7 +285,7 @@ logback.xml → [%X{traceId}] 패턴으로 모든 로그에 포함
 
 ## 7. 시스템 아키텍처
 
-> 전체 Mermaid 다이어그램: `architecture.md` 참조
+> 패키지/요청 흐름 기준 문서: `docs/layered-architecture.md` 참조
 
 ### 7.1 요청 흐름
 
@@ -356,7 +356,7 @@ Spring Boot가 아니므로 Root Context와 Servlet Context가 분리됩니다.
 | 한계 | 내용 | 개선 방향 |
 |---|---|---|
 | 캐시 TTL 없음 | `ConcurrentMapCache`는 만료 정책 미지원 — 서버 재시작 시 초기화 | Caffeine Cache 도입 (단, 현재 금지) / 배치 주기와 일치하도록 수동 evict |
-| 테스트 커버리지 공백 | 단위 테스트 94개는 통과, PostGIS/배치 통합 테스트는 부족 | Testcontainers + WireMock 도입 |
+| 테스트 커버리지 공백 | 단위/정적 테스트 269개는 통과, PostGIS/실배치 통합 테스트는 부족 | Testcontainers + WireMock 도입 |
 | 배치 엔드포인트 노출 | `BatchAdminGuard` 1차 적용 — enabled 플래그 + secret 헤더로 fail-closed | Spring Security `ADMIN` role 또는 IP 화이트리스트로 이중 방어 |
 | 외부 API 회복력 제한 | retry/backoff는 있으나 quota 초과와 장기 장애에 대한 checkpoint 부족 | checkpoint + 운영계정 + 재개 정책 |
 | 회원 API 보안 보강 필요 | JWT와 즐겨찾기, GUEST 역할 차단, 쿠키 보안 속성, 배치 API 1차 보호 적용 | 운영 전 SecurityConfig 이중 방어와 쿠키 정책 점검 |

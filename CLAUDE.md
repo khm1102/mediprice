@@ -113,7 +113,7 @@ PostgreSQL + PostGIS
 회원
   Google OAuth → /auth/oauth2/authorize/google
   콜백 → 신규 회원이면 /auth/consent (약관 동의)
-  JWT 발급 → mp_token 쿠키 저장 (Path=/, Max-Age=JWT_EXPIRATION)
+  JWT 발급 → mp_token HttpOnly 쿠키 저장 (Path=/, Max-Age=JWT_EXPIRATION, SameSite 기본 Lax)
   요청마다 JwtAuthFilter가 mp_token을 검증해 MemberPrincipal로 인증
 
 비회원
@@ -122,7 +122,7 @@ PostgreSQL + PostGIS
   Guest JWT는 향후 사용자 추적용으로만 두며 검색 차단/카운팅 용도가 아님
 ```
 
-> 현재 mp_token 쿠키에 HttpOnly/Secure/SameSite가 설정되어 있지 않다. 운영 전 보강 필요 (TODO.md E-P1-2).
+> `mp_token`은 `MpTokenCookieFactory`가 HttpOnly로 발급한다. `Secure`와 `SameSite`는 `COOKIE_SECURE`, `COOKIE_SAME_SITE`로 제어한다.
 
 ### 3.3 캐싱 구조
 
