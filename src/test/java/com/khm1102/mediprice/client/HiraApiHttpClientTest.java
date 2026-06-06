@@ -90,4 +90,27 @@ class HiraApiHttpClientTest {
                 xmlMapper))
                 .hasMessageContaining("Unexpected character");
     }
+
+    /** UriBuilder가 caller에게 host()를 노출하므로 SSRF 방지를 위해 trusted base와 다른 host는 거부. */
+    @Test
+    void requestToDifferentHostIsRejected() {
+        assertThatThrownBy(() -> httpClient.get(b -> b.host("evil.example").path("/x")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unexpected URI host");
+    }
+
+    @Test
+    void requestWithDifferentSchemeIsRejected() {
+        assertThatThrownBy(() -> httpClient.get(b -> b.scheme("ftp").path("/x")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unexpected URI scheme");
+    }
+
+    @Test
+    void requestToDifferentPortIsRejected() {
+        int otherPort = wireMock.port() == 65535 ? 65534 : wireMock.port() + 1;
+        assertThatThrownBy(() -> httpClient.get(b -> b.port(otherPort).path("/x")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unexpected URI port");
+    }
 }
