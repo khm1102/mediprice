@@ -184,20 +184,20 @@
 <div class="bg-white">
     <div class="max-w-5xl mx-auto px-4 pt-10 pb-10 lg:pt-12 lg:pb-12">
         <div class="grid grid-cols-3 divide-x divide-gray-200">
-            <div class="text-center px-4" data-anim>
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim>
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="6" data-counter-prefix="최대 " data-counter-suffix="배">최대 6배</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">MRI 병원 간<br>최저·최고 가격 차이</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">MRI 병원 간<br>최저·최고 가격 차이</p>
             </div>
-            <div class="text-center px-4" data-anim style="--ad: 80ms">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim style="--ad: 80ms">
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="75065" data-counter-start="70000" data-counter-suffix="">75,065</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">전국 병·의원급<br>의료기관 수</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">전국 병·의원급<br>의료기관 수</p>
             </div>
-            <div class="text-center px-4" data-anim style="--ad: 160ms">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim style="--ad: 160ms">
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="693" data-counter-start="400" data-counter-suffix="개">693개</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
             </div>
         </div>
     </div>
@@ -293,8 +293,8 @@
                 </div>
             </a>
 
-            <%-- 주사치료 --%>
-            <a href="<c:url value='/hospitals?keyword=주사치료'/>"
+            <%-- 대상포진 --%>
+            <a href="<c:url value='/hospitals?keyword=대상포진'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 200ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -322,13 +322,13 @@
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">주사치료</p>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate">통증의학과</p>
+                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">대상포진</p>
+                    <p class="text-xs text-gray-400 mt-0.5 truncate">예방접종</p>
                 </div>
             </a>
 
-            <%-- 수면내시경 --%>
-            <a href="<c:url value='/hospitals?keyword=수면내시경'/>"
+            <%-- 진정내시경 --%>
+            <a href="<c:url value='/hospitals?keyword=진정내시경'/>"
                class="flex items-center gap-3 bg-white rounded-2xl p-4 hover:shadow-md transition-all group min-h-[68px]"
                style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); --ad: 250ms" data-anim>
                 <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -338,7 +338,7 @@
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">수면내시경</p>
+                    <p class="text-sm font-semibold text-gray-800 group-hover:text-[#2563EB] transition-colors truncate">진정내시경</p>
                     <p class="text-xs text-gray-400 mt-0.5 truncate">소화기내과</p>
                 </div>
             </a>
@@ -541,7 +541,7 @@
                             <a href="<c:url value='/hospitals?keyword=MRI'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">MRI</a>
                             <a href="<c:url value='/hospitals?keyword=초음파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">초음파</a>
                             <a href="<c:url value='/hospitals?keyword=체외충격파'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">체외충격파</a>
-                            <a href="<c:url value='/hospitals?keyword=수면내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">수면내시경</a>
+                            <a href="<c:url value='/hospitals?keyword=진정내시경'/>" class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 font-medium hover:bg-gray-200 transition-colors">진정내시경</a>
                         </div>
                     </div>
 
