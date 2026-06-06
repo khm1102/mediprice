@@ -170,9 +170,8 @@
             </button>
         </div>
 
-        <p class="mt-6 text-[11px] text-gray-400 leading-relaxed hero-anim hero-anim-5">
-            ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로,<br/>
-            해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
+        <p class="mt-6 text-[11px] text-gray-400 leading-relaxed hero-anim hero-anim-5 text-center lg:text-left">
+            ※ 2026년 비급여 진료비용 공개를 위한 자료수집 및 검증기간(4월~8월)으로, <br/> 해당 기간에는 변경사항이 반영되지 않아 조회 금액과 실제 금액 간 차이가 있을 수 있습니다.
         </p>
 
     </div>
@@ -184,20 +183,20 @@
 <div class="bg-white">
     <div class="max-w-5xl mx-auto px-4 pt-10 pb-10 lg:pt-12 lg:pb-12">
         <div class="grid grid-cols-3 divide-x divide-gray-200">
-            <div class="text-center px-4" data-anim>
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim>
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="6" data-counter-prefix="최대 " data-counter-suffix="배">최대 6배</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">MRI 병원 간<br>최저·최고 가격 차이</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">MRI 병원 간<br>최저·최고 가격 차이</p>
             </div>
-            <div class="text-center px-4" data-anim style="--ad: 80ms">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim style="--ad: 80ms">
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="75065" data-counter-start="70000" data-counter-suffix="">75,065</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">전국 병·의원급<br>의료기관 수</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">전국 병·의원급<br>의료기관 수</p>
             </div>
-            <div class="text-center px-4" data-anim style="--ad: 160ms">
-                <p class="text-3xl lg:text-4xl font-bold text-[#2563EB] tracking-tight"
+            <div class="text-center px-2 lg:px-4" data-anim style="--ad: 160ms">
+                <p class="text-xl lg:text-4xl font-bold text-[#2563EB] tracking-tight whitespace-nowrap"
                    data-counter-target="693" data-counter-start="400" data-counter-suffix="개">693개</p>
-                <p class="text-xs lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
+                <p class="text-[10px] lg:text-sm text-gray-500 mt-2 leading-snug">비급여<br>공개 항목 수</p>
             </div>
         </div>
     </div>
