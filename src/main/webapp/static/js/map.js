@@ -172,9 +172,27 @@ const focusMapOnHospital = (lat, lng) => {
     naverMap.setZoom(16);
 };
 
-/** 핀 HTML */
+/**
+ * 지도 컨테이너의 가시/크기 변화(예: 모바일 segmented control 'list' → 'map')에 대응해
+ * Naver Map이 캔버스 사이즈를 다시 측정하게 한다.
+ */
+const refreshMapSize = () => {
+    if (!naverMap || typeof naver === 'undefined') return;
+    try {
+        naver.maps.Event.trigger(naverMap, 'resize');
+    } catch (e) {
+        // SDK 미초기화 등 — 무시
+    }
+};
+
+/** 핀 HTML — name은 외부(DB/HIRA) 데이터이므로 null-safe + escapeHtml 처리. */
 const buildPinHtml = (name, price, isCheapest) => {
-    const shortName = name.length > 9 ? name.slice(0, 9) + '…' : name;
+    const safeName = String(name ?? '');
+    const shortName = safeName.length > 9 ? safeName.slice(0, 9) + '…' : safeName;
+    const safeShortName = escapeHtml(shortName);
+    // price가 표시에 합류할 미래 케이스에 대비해 형 변환 후 escape — 현재는 unused이지만 안전 패턴 유지.
+    const safePrice = price == null ? '' : escapeHtml(String(price));
+    void safePrice;
     const bg        = isCheapest ? '#2563EB' : '#fff';
     const color     = isCheapest ? '#fff'    : '#374151';
     const border    = isCheapest ? 'none'    : '1px solid #E5E7EB';
@@ -183,7 +201,7 @@ const buildPinHtml = (name, price, isCheapest) => {
 
     return `<div style="transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;cursor:pointer;">
         <div style="background:${bg};border:${border};border-radius:8px;padding:3px 8px;box-shadow:${shadow};white-space:nowrap;">
-            <span style="font-size:11px;font-weight:${isCheapest ? '700' : '500'};color:${color};">${shortName}</span>
+            <span style="font-size:11px;font-weight:${isCheapest ? '700' : '500'};color:${color};">${safeShortName}</span>
         </div>
         <div style="width:2px;height:5px;background:${stemColor};"></div>
         <div style="width:5px;height:5px;border-radius:50%;background:${stemColor};"></div>
@@ -212,13 +230,60 @@ const recenterMap = () => {
     );
 };
 
+// 현재 위치 표시(파란 점 + 정확도 원)
+let _meMarker = null;
+let _meCircle = null;
+
+const showCurrentLocation = (lat, lng, accuracyMeters) => {
+    if (!naverMap || lat == null || lng == null) return;
+    const pos = new naver.maps.LatLng(lat, lng);
+
+    if (!_meMarker) {
+        _meMarker = new naver.maps.Marker({
+            position: pos,
+            map: naverMap,
+            zIndex: 50,
+            icon: {
+                content: `<div style="position:relative;width:18px;height:18px;transform:translate(-50%,-50%);">
+                    <div style="position:absolute;inset:0;border-radius:50%;background:#2563EB;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,0.45);"></div>
+                </div>`,
+                anchor: new naver.maps.Point(0, 0),
+            },
+        });
+    } else {
+        _meMarker.setPosition(pos);
+    }
+
+    const radius = Math.max(20, Math.min(accuracyMeters ?? 80, 300));
+    if (!_meCircle) {
+        _meCircle = new naver.maps.Circle({
+            map: naverMap,
+            center: pos,
+            radius,
+            fillColor: '#2563EB',
+            fillOpacity: 0.08,
+            strokeColor: '#2563EB',
+            strokeOpacity: 0.35,
+            strokeWeight: 1,
+        });
+    } else {
+        _meCircle.setCenter(pos);
+        _meCircle.setRadius(radius);
+    }
+};
+
 const initMapWithCurrentLocation = () => {
     if (!navigator.geolocation) {
         initMap(37.5665, 126.9780);
         return;
     }
     navigator.geolocation.getCurrentPosition(
-        pos => initMap(pos.coords.latitude, pos.coords.longitude),
+        pos => {
+            initMap(pos.coords.latitude, pos.coords.longitude);
+            // 현재 위치 마커는 지도 인스턴스가 만들어진 다음 프레임에 안전하게 추가.
+            requestAnimationFrame(() =>
+                showCurrentLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy));
+        },
         () => initMap(37.5665, 126.9780)
     );
 };

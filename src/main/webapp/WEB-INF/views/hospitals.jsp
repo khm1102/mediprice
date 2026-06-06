@@ -5,28 +5,37 @@
 
 <script type="text/javascript"
     src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKey}"></script>
-<script src="<c:url value="/static/js/MarkerClustering.js"/>"></script>
-<script defer src="<c:url value="/static/js/map.js"/>"></script>
-<script defer src="<c:url value="/static/js/hospital.js"/>"></script>
+<script src="<c:url value='/static/js/MarkerClustering.js'/>?v=20260606-ux2"></script>
+<script defer src="<c:url value='/static/js/map.js'/>?v=20260606-ux2"></script>
+<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260606-ux2"></script>
 
 <style>
     html, body { overflow: hidden; height: 100%; }
     main { height: calc(100vh - 3.5rem); min-height: 0; overflow: hidden; }
 
+    /* ── 모바일 기본 (≤1023px): 검색바 / segmented / pane(list or map) ── */
     .hospitals-grid {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: auto 45vh 1fr;
+        grid-template-rows: auto 1fr;
         grid-template-areas:
             "search"
-            "map"
-            "list";
+            "main";
         height: 100%;
     }
-    .list-area { overflow-y: auto; }
-    .map-area  { border-bottom: 2px solid #E5E7EB; position: relative; }
+    .main-stack { grid-area: main; position: relative; overflow: hidden; }
+    .map-area   { position: absolute; inset: 0; }
+    #panel-list { position: absolute; inset: 0; overflow-y: auto; }
 
-    /* ── 상세 패널: 모바일 — 하단 시트 ── */
+    /* pane 토글은 모바일에서만 의미가 있다. 데스크톱에선 list/map이 grid-area로 분리되므로 무력화한다. */
+    @media (max-width: 1023px) {
+        .pane-hidden { display: none !important; }
+    }
+
+    /* segmented control은 모바일에서만 노출 */
+    #mobile-pane-tabs { display: flex; }
+
+    /* ── 모바일 상세: 하단 시트(90dvh 가까이 덮음, 헤더는 남김) ── */
     #panel-detail {
         position: fixed;
         left: 0; right: 0; bottom: 0;
@@ -43,7 +52,6 @@
     }
     #panel-detail.open { transform: translateY(0); }
 
-    /* 백드롭 (모바일) */
     #pd-backdrop {
         display: none;
         position: fixed; inset: 0;
@@ -52,33 +60,69 @@
     }
     #pd-backdrop.open { display: block; }
 
+    /* ── 데스크톱 lg (1024~1279px): 좌측 360 + 지도 가변, 상세는 overlay 모달 ── */
     @media (min-width: 1024px) {
+        #mobile-pane-tabs { display: none; }
         .hospitals-grid {
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: 360px 1fr;
             grid-template-rows: auto 1fr;
             grid-template-areas:
                 "search map"
-                "list map";
+                "list   map";
+            height: 100%;
         }
         .panel-left {
             position: relative;
             z-index: 10;
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.07);
         }
-        .map-area { border-bottom: none; }
+        /* 데스크톱에선 .main-stack 자체는 사용하지 않고 list/map이 각 grid-area로 배치된다. */
+        .main-stack { display: contents; }
+        #panel-list { grid-area: list; position: relative; inset: auto; overflow-y: auto; }
+        .map-area   { grid-area: map;  position: relative; inset: auto; border-bottom: none; }
 
-        /* ── 상세 패널: 데스크톱 ── */
+        /* 상세 패널: lg에선 화면 중앙 overlay 모달 — 지도/목록을 침범하지 않는다. */
         #panel-detail {
             position: fixed;
-            top: 3.5rem; left: 400px; bottom: 0;
-            right: auto;
-            width: 380px;
+            top: 50%; left: 50%; right: auto; bottom: auto;
+            transform: translate(-50%, -50%) scale(0.98);
+            width: min(640px, calc(100vw - 4rem));
+            max-height: 80dvh;
+            height: auto;
+            border-radius: 20px;
+            background: #F2F4F6;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.22s cubic-bezier(.4,0,.2,1);
+            z-index: 210;
+        }
+        #panel-detail.open {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        /* lg에서는 backdrop을 다시 보여줘 overlay로 동작 */
+        #pd-backdrop { display: block; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        #pd-backdrop.open { opacity: 1; pointer-events: auto; }
+    }
+
+    /* ── 데스크톱 xl (1280px+): 우측 슬라이드 패널 (3-col) ── */
+    @media (min-width: 1280px) {
+        #panel-detail {
+            position: fixed;
+            top: 3.5rem; right: 0; bottom: 0; left: auto;
+            transform: translateX(110%);
+            width: 420px;
+            max-height: none;
             height: auto;
             border-radius: 0;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.12);
-            transform: translateX(-110%);
-            transition: transform 0.32s cubic-bezier(.4,0,.2,1);
-            z-index: 5;
+            background: #F2F4F6;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+            opacity: 1;
+            pointer-events: auto;
+            transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+            z-index: 210;
         }
         #panel-detail.open { transform: translateX(0); }
         #pd-backdrop { display: none !important; }
@@ -87,25 +131,82 @@
 
 <div class="hospitals-grid">
 
-    <%-- 검색바 --%>
-    <div style="grid-area: search;" class="panel-left bg-white border-b border-gray-200 px-4 py-3 flex gap-2 flex-shrink-0">
-        <div class="flex-1 flex items-center gap-2 bg-[#F2F4F6] rounded-xl px-3.5 focus-within:ring-2 focus-within:ring-[#2563EB]/30 transition-all">
-            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <input type="text" id="search-input"
-                placeholder="진료 항목을 입력하세요"
-                class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none py-2.5"/>
+    <%-- 검색바 + 자동완성 dropdown + 인기 칩 + 모바일 segmented control --%>
+    <div style="grid-area: search;" class="panel-left bg-white border-b border-gray-200 flex-shrink-0">
+        <div class="px-4 pt-3 flex gap-2 relative">
+            <div class="flex-1 flex items-center gap-2 bg-[#F2F4F6] rounded-xl px-3.5 focus-within:ring-2 focus-within:ring-[#2563EB]/30 transition-all">
+                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" id="search-input"
+                    placeholder="진료 항목을 입력하세요"
+                    autocomplete="off"
+                    aria-autocomplete="list"
+                    aria-controls="search-suggestions"
+                    class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none py-2.5"/>
+            </div>
+            <button onclick="handleSearch()"
+                class="bg-[#2563EB] text-white px-5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors min-h-[44px] flex-shrink-0">
+                검색
+            </button>
+
+            <%-- 자동완성 dropdown — input 바로 아래 절대 위치 --%>
+            <div id="search-suggestions"
+                 role="listbox"
+                 class="hidden absolute left-4 right-4 top-[3.4rem] z-30 bg-white rounded-xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto"
+                 style="box-shadow: 0 8px 24px rgba(0,0,0,0.10);"></div>
         </div>
-        <button onclick="handleSearch()"
-            class="bg-[#2563EB] text-white px-5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors min-h-[44px] flex-shrink-0">
-            검색
-        </button>
+
+        <%-- 위치 fallback / 낮은 정확도 안내 — notifyGeoFallback이 메시지 문구를 동적으로 갱신. --%>
+        <div id="geo-fallback-notice"
+             class="hidden mx-4 mt-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-2.5">
+            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p data-geo-message class="flex-1 text-[11px] text-amber-700 leading-relaxed">
+                현재 위치를 가져오지 못해 <strong>서울 시청</strong> 기준으로 검색 중이에요.
+                지도를 옮겨 재검색하거나 위치 권한을 허용해 다시 시도해보세요.
+            </p>
+            <button type="button" onclick="retryGeoLocation()"
+                    class="flex-shrink-0 text-[11px] font-semibold text-amber-700 hover:underline whitespace-nowrap">
+                다시 시도
+            </button>
+        </div>
+
+        <%-- 인기 항목 칩 (가로 스크롤) --%>
+        <div class="px-4 pb-2 pt-2 overflow-x-auto">
+            <div id="quick-chips" class="flex gap-1.5 whitespace-nowrap"></div>
+        </div>
+
+        <%-- 정렬 토글: [추천 | 가격순 | 가까운 순]. 백엔드 /api/hospitals/search 의 sort 파라미터에 매핑. --%>
+        <%-- 가중치 슬라이더(mixed 모드 전용)는 renderWeightSlider가 #weight-slider에 주입. --%>
+        <div class="px-4 pb-2">
+            <div id="sort-tabs" class="flex gap-1.5"></div>
+            <div id="weight-slider" class="hidden mt-2"></div>
+        </div>
+
+        <%-- 모바일 segmented control: 목록 / 지도 토글 (데스크톱에선 hidden) --%>
+        <div id="mobile-pane-tabs" class="px-4 pb-3 gap-1.5">
+            <button type="button" data-pane="list" onclick="togglePane('list')"
+                    class="pane-tab flex-1 h-9 rounded-lg text-xs font-semibold bg-[#2563EB] text-white transition-colors"
+                    aria-pressed="true">
+                목록
+            </button>
+            <button type="button" data-pane="map" onclick="togglePane('map')"
+                    class="pane-tab flex-1 h-9 rounded-lg text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                    aria-pressed="false">
+                지도
+            </button>
+        </div>
     </div>
 
+    <%-- 모바일에선 list/map이 같은 영역에서 토글, 데스크톱에선 grid-area로 분리 --%>
+    <div class="main-stack">
+
     <%-- 지도 --%>
-    <div style="grid-area: map;" class="map-area relative">
+    <div class="map-area pane-hidden">
         <div id="map" class="w-full h-full" style="background: #e8edf5;"></div>
 
         <%-- 이 지역에서 재검색 버튼 --%>
@@ -137,7 +238,7 @@
     </div>
 
     <%-- 병원 목록 패널 --%>
-    <div id="panel-list" style="grid-area: list; position: relative;" class="panel-left list-area bg-[#F2F4F6]">
+    <div id="panel-list" class="panel-left bg-[#F2F4F6]">
 
         <%-- 검색 안내 (키워드 없이 진입) --%>
         <div id="state-prompt" class="absolute inset-0 flex flex-col items-center justify-center text-center px-8">
@@ -157,7 +258,7 @@
         </div>
 
         <%-- 검색 결과 없음 --%>
-        <div id="state-empty" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-8">
+        <div id="state-empty" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6">
             <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4" style="box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
                 <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -165,6 +266,10 @@
             </div>
             <p class="text-sm font-semibold text-gray-600">검색 결과가 없어요</p>
             <p class="text-xs text-gray-400 mt-1">다른 검색어로 다시 시도해보세요</p>
+
+            <%-- 추천 칩 (같은 중분류의 다른 항목 or 인기 항목 fallback) --%>
+            <p class="text-[11px] text-gray-500 font-medium mt-5 mb-2">이런 항목은 어떠세요?</p>
+            <div id="state-empty-chips" class="flex flex-wrap gap-1.5 justify-center max-w-xs"></div>
         </div>
 
         <%-- 오류 --%>
@@ -187,10 +292,11 @@
 
     </div>
 
+    </div>  <%-- /main-stack --%>
 
 </div>
 
-<%-- 백드롭 (모바일 전용) --%>
+<%-- 상세 패널 backdrop (모바일/데스크톱 lg overlay 공용) --%>
 <div id="pd-backdrop" onclick="showHospitalList()"></div>
 
 <%-- 병원 상세 패널 --%>
@@ -300,19 +406,14 @@
                     </p>
                 </div>
 
-                <%-- 진료과목 --%>
-                <div id="pd-section-dgsbjt" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">진료과목</h3>
-                    <div id="pd-dgsbjt-list" class="flex flex-wrap gap-1.5"></div>
+                <%-- 검색 항목 가격 카드 (검색 키워드 매칭 시만 노출) --%>
+                <div id="pd-section-search-price" class="hidden bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl p-5">
+                    <p class="text-[11px] font-semibold text-[#2563EB] uppercase tracking-wide">내 검색 항목 가격</p>
+                    <p id="pd-search-item-name" class="text-sm text-gray-700 mt-1.5 truncate"></p>
+                    <p id="pd-search-item-price" class="text-2xl font-bold text-[#2563EB] mt-1"></p>
                 </div>
 
-                <%-- 진료시간 --%>
-                <div id="pd-section-medoft" class="hidden bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">진료시간</h3>
-                    <div id="pd-medoft-list" class="space-y-1"></div>
-                </div>
-
-                <%-- 비급여 진료비 --%>
+                <%-- 비급여 진료비 (가격이 최상단, 항상 펼침) --%>
                 <div class="bg-white rounded-2xl p-5" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
                     <h3 class="text-sm font-semibold text-gray-700 mb-4">비급여 진료비</h3>
                     <div id="pd-price-loading" class="flex items-center justify-center gap-2 py-8 text-gray-400">
@@ -331,35 +432,53 @@
                     </table>
                 </div>
 
+                <%-- 부가 정보 — 접이식 details 그룹 (가격 비교 동선을 가장 짧게) --%>
+                <details id="pd-section-dgsbjt" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+                    <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                        진료과목
+                        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </summary>
+                    <div id="pd-dgsbjt-list" class="flex flex-wrap gap-1.5 px-5 pb-5"></div>
+                </details>
+
+                <details id="pd-section-medoft" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+                    <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                        의료장비
+                        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </summary>
+                    <div id="pd-medoft-list" class="space-y-1 px-5 pb-5"></div>
+                </details>
+
+                <details id="pd-section-operating" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+                    <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                        진료시간
+                        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </summary>
+                    <div id="pd-operating-list" class="space-y-1 px-5 pb-5"></div>
+                </details>
+
+                <details id="pd-section-parking" class="hidden bg-white rounded-2xl group" style="box-shadow: 0 2px 12px rgba(0,0,0,0.07);">
+                    <summary class="cursor-pointer list-none p-5 flex items-center justify-between text-sm font-semibold text-gray-700">
+                        주차 정보
+                        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </summary>
+                    <div id="pd-parking-list" class="space-y-1 px-5 pb-5"></div>
+                </details>
+
 
             </div>
         </div>
     </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const pd = document.getElementById('panel-detail');
-        const pl = document.getElementById('panel-list');
-        const bd = document.getElementById('pd-backdrop');
-        if (!pd || !pl) return;
-
-        new MutationObserver(() => {
-            if (pl.style.display === 'none') {
-                pl.style.display = '';
-                pd.classList.add('open');
-                bd?.classList.add('open');
-            }
-        }).observe(pl, { attributes: true, attributeFilter: ['style'] });
-
-        new MutationObserver(() => {
-            if (pd.style.display === 'none') {
-                pd.style.display = '';
-                pd.classList.remove('open');
-                bd?.classList.remove('open');
-            }
-        }).observe(pd, { attributes: true, attributeFilter: ['style'] });
-    });
-
     // ── 이 지역에서 재검색 ──
     const showReSearchBtn = () => {
         document.getElementById('map-research-btn')?.classList.remove('hidden');
@@ -389,6 +508,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         const keyword = new URLSearchParams(location.search).get('keyword') || '';
         document.getElementById('search-input').value = keyword;
+        // 인기 칩 + 자동완성 dropdown은 검색 결과와 무관하게 비동기로 채워둔다.
+        initSearchUx();
         fetchHospitals(keyword);
     });
 </script>

@@ -2,6 +2,8 @@ package com.khm1102.mediprice.controller;
 
 import com.khm1102.mediprice.dto.FavoriteDto;
 import com.khm1102.mediprice.global.common.ApiResponse;
+import com.khm1102.mediprice.global.exception.ErrorCode;
+import com.khm1102.mediprice.global.exception.auth.AuthenticationException;
 import com.khm1102.mediprice.global.security.MemberPrincipal;
 import com.khm1102.mediprice.service.FavoriteService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,7 +32,8 @@ public class FavoriteApiController {
     @GetMapping
     public ApiResponse<List<FavoriteDto>> getFavorites(
             @AuthenticationPrincipal MemberPrincipal principal) {
-        return ApiResponse.success(favoriteService.lookupFavorites(principal.memberId()));
+        Long memberId = requireMember(principal);
+        return ApiResponse.success(favoriteService.lookupFavorites(memberId));
     }
 
     /** 즐겨찾기 추가 */
@@ -38,8 +41,9 @@ public class FavoriteApiController {
     public ApiResponse<Void> addFavorite(
             @AuthenticationPrincipal MemberPrincipal principal,
             @RequestBody Map<String, String> body) {
+        Long memberId = requireMember(principal);
         String ykiho = body.get("ykiho");
-        favoriteService.addFavorite(principal.memberId(), ykiho);
+        favoriteService.addFavorite(memberId, ykiho);
         return ApiResponse.success(null);
     }
 
@@ -48,7 +52,8 @@ public class FavoriteApiController {
     public ApiResponse<Void> removeFavorite(
             @AuthenticationPrincipal MemberPrincipal principal,
             @PathVariable String ykiho) {
-        favoriteService.removeFavorite(principal.memberId(), ykiho);
+        Long memberId = requireMember(principal);
+        favoriteService.removeFavorite(memberId, ykiho);
         return ApiResponse.success(null);
     }
 
@@ -56,7 +61,18 @@ public class FavoriteApiController {
     public ApiResponse<Map<String, Boolean>> getFavoriteStatus(
             @AuthenticationPrincipal MemberPrincipal principal,
             @PathVariable String ykiho) {
-        boolean isFavorite = favoriteService.existsFavorite(principal.memberId(), ykiho);
+        Long memberId = requireMember(principal);
+        boolean isFavorite = favoriteService.existsFavorite(memberId, ykiho);
         return ApiResponse.success(Map.of("isFavorite", isFavorite));
+    }
+
+    /**
+     * SecurityConfig가 1차로 ROLE_MEMBER만 통과시키지만, 필터 우회나 설정 변경 회귀를 막기 위한 deep defense.
+     */
+    private static Long requireMember(MemberPrincipal principal) {
+        if (principal == null || principal.isGuest() || principal.memberId() == null) {
+            throw new AuthenticationException(ErrorCode.UNAUTHORIZED);
+        }
+        return principal.memberId();
     }
 }

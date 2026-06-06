@@ -1,12 +1,13 @@
 # MediPrice 프로젝트 메모리
 
-## 프로젝트 상태 (2026-05-19)
+## 프로젝트 상태 (2026-06-05)
 
 - P0/P0.5 인프라와 공통 예외/로그/Security 기본 구조 완료.
 - P1 백엔드 API, PostGIS 검색, 심평원 배치 구현 완료.
 - P1.5 상세 API 모델 매핑 수정, SidoStat 코드 수정, 배치 병렬화 완료.
-- 프론트 JSP/지도/정적 JS는 다음 라운드 대기.
-- JWT 로그인/회원/Guest 검색 제한은 P2 보류.
+- JSP/네이버맵/정적 JS 화면 구현 완료.
+- Google OAuth, JWT 쿠키, 회원 탈퇴, 즐겨찾기 구현 완료.
+- Guest 검색 제한 정책은 폐기되었고 적용하지 않는다.
 
 ## 구현 완료 항목
 
@@ -14,7 +15,9 @@
 - **entity/**: Hospital, NonPayItem, Price, PriceSummary, NonPayItemDesc, NonPayItemClcdStat, NonPayItemSidoStat
 - **dto/**: ApiResponse, 병원 검색/상세/항목 응답 DTO
 - **exception/**: MediPriceException 계층 + GlobalExceptionHandler
-- **controller/**: Health, Hospital API, NonPayItem API, BatchAdmin API
+- **controller/**: Health, Hospital, NonPayItem, Auth/OAuth, Favorite, Legal, BatchAdmin API
+- **service/**: Hospital/NonPayItem/HospitalDetail, Auth/GoogleOAuth/Consent, Favorite
+- **entity/**: Hospital, NonPayItem, Price 계열, Member, Favorite
 - **batch/**: HIRA batch 7종 + 수동 트리거. `admin/orchestrator/hospital/item/price/summary/stat/support`로 기능별 분리
 - **client/**: HIRA 병원정보/비급여/의료기관 상세 API client
 - **docker-compose.yml / Dockerfile**: PostgreSQL + PostGIS + app image 실행 구조

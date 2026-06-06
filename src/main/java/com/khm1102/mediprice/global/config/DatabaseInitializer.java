@@ -19,7 +19,7 @@ import java.sql.Statement;
  * <ul>
  *   <li>PostGIS extension 활성화 (멱등 — IF NOT EXISTS)</li>
  *   <li>Hospital.location GIST 인덱스 (ddl-auto가 GEOGRAPHY 인덱스 생성 못 함)</li>
- *   <li>{@code procedures.sql}의 {@code search_nearby_hospitals} 함수 등록 (CREATE OR REPLACE)</li>
+ *   <li>{@code procedures.sql}의 {@code search_nearby_hospitals_v2} 함수 등록 (CREATE OR REPLACE)</li>
  * </ul>
  * 모든 DDL은 멱등이라 재실행 안전.
  */
@@ -37,6 +37,22 @@ public class DatabaseInitializer {
     private static final String GIST_INDEX_DDL =
             "CREATE INDEX IF NOT EXISTS idx_hospital_location ON Hospital USING GIST(location)";
 
+    /**
+     * v2 검색 함수 (search_nearby_hospitals_v2) 전용 partial composite index.
+     * <ul>
+     *   <li>WHERE adt_end_dd = '99991231' — 활성 가격만 인덱스에 포함해 row 수와 디스크 절약</li>
+     *   <li>선두 컬럼 npay_cd — v2 함수의 {@code p.npay_cd = ANY(p_npay_cds)} 필터에 맞춤</li>
+     *   <li>그 다음 ykiho — Hospital join 조건</li>
+     *   <li>마지막 cur_amt — DISTINCT ON 정렬 키(ykiho별 최저가)에 활용</li>
+     * </ul>
+     * PK (ykiho, npay_cd)와 선두 컬럼이 달라 중복 인덱스가 아니다.
+     * HospitalDetailService.lookupBasics 같은 (ykiho prefix) 조회는 기존 PK 인덱스가 그대로 커버한다.
+     */
+    private static final String PRICE_ACTIVE_PARTIAL_INDEX_DDL =
+            "CREATE INDEX IF NOT EXISTS idx_price_active_npay_ykiho_amt " +
+            "ON Price (npay_cd, ykiho, cur_amt) " +
+            "WHERE adt_end_dd = '99991231'";
+
     private final DataSource dataSource;
 
     public DatabaseInitializer(DataSource dataSource) {
@@ -49,6 +65,7 @@ public class DatabaseInitializer {
             execute(conn, POSTGIS_EXTENSION_DDL);
             execute(conn, LOCATION_COLUMN_DDL);
             execute(conn, GIST_INDEX_DDL);
+            execute(conn, PRICE_ACTIVE_PARTIAL_INDEX_DDL);
             executeProceduresScript(conn);
             log.info("DatabaseInitializer 완료");
         } catch (SQLException e) {

@@ -1,5 +1,6 @@
 package com.khm1102.mediprice.batch.price;
 
+import com.khm1102.mediprice.client.hira.HiraBody;
 import com.khm1102.mediprice.repository.HospitalRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class PriceSyncService {
         AtomicInteger processed = new AtomicInteger(0);
         AtomicInteger reporting = new AtomicInteger(0);
         AtomicInteger empty = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
 
         ExecutorService pool = Executors.newFixedThreadPool(WORKER_THREADS, r -> {
             Thread t = new Thread(r, "price-worker-" + System.nanoTime());
@@ -57,21 +59,24 @@ public class PriceSyncService {
             List<CompletableFuture<Void>> futures = ykihoList.stream()
                     .map(ykiho -> CompletableFuture.runAsync(() -> {
                         try {
-                            int saved = ykihoSyncService.saveOneYkiho(ykiho);
-                            savedTotal.addAndGet(saved);
-                            if (saved > 0) {
+                            PriceYkihoSyncService.SyncResult result = ykihoSyncService.saveOneYkiho(ykiho);
+                            savedTotal.addAndGet(result.saved());
+                            if (result.status() == HiraBody.Status.FAILED) {
+                                failed.incrementAndGet();
+                            } else if (result.saved() > 0) {
                                 reporting.incrementAndGet();
                             } else {
                                 empty.incrementAndGet();
                             }
                         } catch (Exception e) {
                             log.warn("Price sync 실패 (ykiho={}): {}", ykiho, e.getMessage());
-                            empty.incrementAndGet();
+                            failed.incrementAndGet();
                         } finally {
                             int n = processed.incrementAndGet();
                             if (n % PROGRESS_LOG_INTERVAL == 0) {
-                                log.info("PriceSyncService 진행 — {}/{}, savedTotal={}, reporting={}, empty={}",
-                                        n, ykihoList.size(), savedTotal.get(), reporting.get(), empty.get());
+                                log.info("PriceSyncService 진행 — {}/{}, savedTotal={}, reporting={}, empty={}, failed={}",
+                                        n, ykihoList.size(),
+                                        savedTotal.get(), reporting.get(), empty.get(), failed.get());
                             }
                         }
                     }, pool))
@@ -90,8 +95,9 @@ public class PriceSyncService {
         }
 
         long elapsedMs = System.currentTimeMillis() - start;
-        log.info("PriceSyncService 완료 — savedTotal={}, reporting={}, empty={} (총 {} ykiho), elapsedMs={}",
-                savedTotal.get(), reporting.get(), empty.get(), ykihoList.size(), elapsedMs);
+        log.info("PriceSyncService 완료 — savedTotal={}, reporting={}, empty={}, failed={} (총 {} ykiho), elapsedMs={}",
+                savedTotal.get(), reporting.get(), empty.get(), failed.get(),
+                ykihoList.size(), elapsedMs);
         return savedTotal.get();
     }
 }
