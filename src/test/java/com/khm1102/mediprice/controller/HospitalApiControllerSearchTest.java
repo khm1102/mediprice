@@ -55,6 +55,22 @@ class HospitalApiControllerSearchTest {
         assertThat(codesCaptor.getValue()).containsExactly("N001", "N002", "N003");
     }
 
+    @Test
+    void searchTrimsDropsEmptyTokensAndDeduplicatesNpayCds() {
+        when(hospitalService.searchNearbyV2(anyDouble(), anyDouble(), anyList(),
+                anyInt(), anyString(), anyInt(), anyDouble(), anyDouble()))
+                .thenReturn(List.of());
+
+        controller().searchHospitalsV2(
+                37.5, 127.0, " N001, ,N002,N001,, ", 5000, "mixed", 50, 0.7, 0.3);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<String>> codesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(hospitalService).searchNearbyV2(eq(37.5), eq(127.0), codesCaptor.capture(),
+                eq(5000), eq("mixed"), eq(50), eq(0.7), eq(0.3));
+        assertThat(codesCaptor.getValue()).containsExactly("N001", "N002");
+    }
+
     /** 빈 npayCds → BusinessException(C002 INVALID_INPUT). */
     @Test
     void rejectsBlankNpayCds() {

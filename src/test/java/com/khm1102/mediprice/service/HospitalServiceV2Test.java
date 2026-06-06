@@ -215,6 +215,34 @@ class HospitalServiceV2Test {
                 anyString(), anyInt(), anyDouble(), anyDouble());
     }
 
+    @Test
+    void nullAndDuplicateNpayCdsAreRemovedBeforeSqlCall() {
+        when(repository.searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble())).thenReturn("[]");
+        ArgumentCaptor<String[]> codesCaptor = ArgumentCaptor.forClass(String[].class);
+
+        service.searchNearbyV2(37.5, 127.0,
+                java.util.Arrays.asList("N001", null, "N002", "N001"),
+                5000, "mixed", 50, 0.7, 0.3);
+
+        verify(repository).searchNearbyV2Json(anyDouble(), anyDouble(), codesCaptor.capture(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble());
+        assertThat(codesCaptor.getValue()).containsExactly("N001", "N002");
+    }
+
+    @Test
+    void clampsLimitToLowerBound() {
+        when(repository.searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), anyInt(), anyDouble(), anyDouble())).thenReturn("[]");
+        ArgumentCaptor<Integer> limitCaptor = ArgumentCaptor.forClass(Integer.class);
+
+        service.searchNearbyV2(37.5, 127.0, List.of("N001"), 5000, "mixed", -10, 0.7, 0.3);
+
+        verify(repository).searchNearbyV2Json(anyDouble(), anyDouble(), any(), anyInt(),
+                anyString(), limitCaptor.capture(), anyDouble(), anyDouble());
+        assertThat(limitCaptor.getValue()).isEqualTo(1);
+    }
+
     /** 합이 1을 초과해도 정상 입력으로 그대로 전달 — SQL이 정규화한다. */
     @Test
     void weightsSummingAboveOneArePreserved() {
