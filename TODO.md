@@ -179,13 +179,13 @@
 | # | 항목 | 위치 |
 |---|---|---|
 | E-P1-1 | `@Cacheable` 위치 격자 키 (`Math.round(lat*1000)/1000.0`) | `service/HospitalService` |
-| E-P1-2 | 쿠키 `HttpOnly; Secure; SameSite=Strict; Path=/` | `AuthController`, `AuthApiController` |
+| E-P1-2 | 쿠키 `HttpOnly; Secure; SameSite; Path=/` — ✅ 적용됨 | `MpTokenCookieFactory` |
 | E-P1-3 | native query 명명 바인딩 (`:lat`, `@Param("lat")`) 강제 | `repository/HospitalRepository` |
 
-### E-P1-2 보강 (현재 상태)
-- `AuthController.setTokenCookie()`와 `AuthApiController.guestToken()`이 발급하는 `mp_token` 쿠키는 현재 `HttpOnly`, `Secure`, `SameSite` 속성이 모두 미설정 상태다. XSS·CSRF 노출 위험.
-- HttpOnly로 전환하면 `static/js/auth.js`가 로그인 상태 확인을 위해 쿠키를 직접 디코딩하는 로직을 못 쓰게 된다. 대안으로 `GET /api/auth/me` 호출로 상태를 확인하도록 함께 바꾸어야 한다.
-- 운영 도메인이 HTTPS로 고정되면 `Secure=true`와 `SameSite=Lax`(또는 `Strict`)를 환경변수로 토글할 수 있게 한다.
+### E-P1-2 보강 — ✅ 적용됨
+- `MpTokenCookieFactory`가 `mp_token`을 `HttpOnly=true`, `Path=/`, `SameSite=COOKIE_SAME_SITE`, `Secure=COOKIE_SECURE`로 발급/삭제한다.
+- `static/js/auth.js`는 쿠키를 직접 디코딩하지 않고 `GET /api/auth/me` 기반으로 로그인 상태를 캐싱한다.
+- 운영 HTTPS에서는 `COOKIE_SECURE=true`를 권장한다. 기본 `SameSite`는 `Lax`.
 
 ---
 

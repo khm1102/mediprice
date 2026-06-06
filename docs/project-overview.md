@@ -10,16 +10,16 @@
 - **데이터 출처:** 건강보험심사평가원(심평원) 공공데이터포털 OpenAPI
 - **기본 전략:** 외부 API를 실시간 검색에 직접 쓰지 않고, 월 배치로 DB에 적재한 뒤 서비스 API는 DB를 조회한다.
 
-## 진행 상태 (2026-06-05)
+## 진행 상태 (2026-06-06)
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | **P0** | Docker/PostgreSQL/PostGIS/Tomcat/Spring 기본 부팅 | 완료 |
 | **P0.5** | SecurityFilterChain 분리, TraceIdFilter, Hikari/Hibernate 보강, 통일 로그 | 완료 |
-| **P1** | 심평원 배치 7종, REST API 3개, PostGIS 검색 프로시저, 테스트 94개 | 완료 |
+| **P1** | 심평원 배치 7종, REST API, PostGIS 검색 v2 프로시저, 테스트 269개 | 완료 |
 | **P1.5** | 심평원 상세 API 5종 매핑 수정, Sido 통계 코드 수정, 배치 병렬화 | 완료 |
-| **P2** | JSP/네이버맵/정적 JS 화면, Google OAuth, JWT 쿠키, 즐겨찾기 | 진행/구현됨 |
-| **다음 라운드** | 배치 안정화, 운영 보호, 가격 데이터 완전 적재, 상세 UI 보강 | 대기 |
+| **P2** | JSP/네이버맵/정적 JS 화면, Google OAuth, HttpOnly JWT 쿠키, 즐겨찾기, 검색 v2 UX | 구현됨 |
+| **다음 라운드** | 가격 데이터 완전 적재, PostGIS 통합 테스트, 운영 이중 방어 | 대기 |
 
 검색 API는 공개 상태이며, Guest JWT 기반 검색 제한 정책은 적용하지 않는다. 회원 기능은 Google OAuth + JWT 쿠키 기반으로 구현되어 있고, 즐겨찾기 API는 인증된 회원을 전제로 한다.
 
