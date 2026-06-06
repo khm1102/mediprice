@@ -36,6 +36,11 @@ public class HospitalApiController {
     /** 각 npayCd 길이 한계 — DB 컬럼 길이(20)에 맞춰 보수적으로. */
     private static final int MAX_NPAY_CD_LEN = 20;
     private static final Pattern NPAY_CD_PATTERN = Pattern.compile("^[A-Za-z0-9]+$");
+    /**
+     * ykiho — HIRA 의료기관 식별자. 표준/URL-safe base64에서 나올 수 있는 문자만 허용해 SSRF path 구분자
+     * ({@code . / \ ? # &} 등)를 source에서 차단한다. CodeQL sanitizer로 인식되는 형태.
+     */
+    private static final Pattern YKIHO_PATTERN = Pattern.compile("^[A-Za-z0-9+/=_-]+$");
 
     /** 좌표 허용 범위 — WGS84 표준. NaN/Infinity는 PostGIS ST_MakePoint에 그대로 들어가면 함수 실패. */
     private static final double LAT_MIN = -90.0;
@@ -125,19 +130,28 @@ public class HospitalApiController {
 
     @GetMapping("/{ykiho}")
     public ApiResponse<HospitalDetailDto> lookupHospital(@PathVariable String ykiho) {
+        validateYkiho(ykiho);
         return ApiResponse.success(detailService.lookupDetail(ykiho));
     }
 
     /** 가격 카드/표를 위한 fast 응답 — DB only. */
     @GetMapping("/{ykiho}/basics")
     public ApiResponse<HospitalDetailBasicsDto> lookupBasics(@PathVariable String ykiho) {
+        validateYkiho(ykiho);
         return ApiResponse.success(detailService.lookupBasics(ykiho));
     }
 
     /** 진료과목/장비/교통/주차·운영/특수진료를 위한 slow 응답 — HIRA 5종 캐시. */
     @GetMapping("/{ykiho}/extras")
     public ApiResponse<HospitalDetailExtrasDto> lookupExtras(@PathVariable String ykiho) {
+        validateYkiho(ykiho);
         return ApiResponse.success(detailService.lookupExtras(ykiho));
+    }
+
+    private static void validateYkiho(String ykiho) {
+        if (ykiho == null || !YKIHO_PATTERN.matcher(ykiho).matches()) {
+            throw new InvalidInputException("ykiho 형식이 올바르지 않습니다.");
+        }
     }
 
     private static List<String> parseNpayCds(String raw) {
