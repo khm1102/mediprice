@@ -10,7 +10,7 @@
 - **데이터 출처:** 건강보험심사평가원(심평원) 공공데이터포털 OpenAPI
 - **기본 전략:** 외부 API를 실시간 검색에 직접 쓰지 않고, 월 배치로 DB에 적재한 뒤 서비스 API는 DB를 조회한다.
 
-## 진행 상태 (2026-05-19)
+## 진행 상태 (2026-06-05)
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
@@ -18,10 +18,10 @@
 | **P0.5** | SecurityFilterChain 분리, TraceIdFilter, Hikari/Hibernate 보강, 통일 로그 | 완료 |
 | **P1** | 심평원 배치 7종, REST API 3개, PostGIS 검색 프로시저, 테스트 94개 | 완료 |
 | **P1.5** | 심평원 상세 API 5종 매핑 수정, Sido 통계 코드 수정, 배치 병렬화 | 완료 |
-| **다음 라운드** | JSP 페이지, 지도 SDK, 정적 JS 화면 구현 | 대기 |
-| **P2** | 회원가입/로그인(JWT), 즐겨찾기, 추천 기능 | 보류 |
+| **P2** | JSP/네이버맵/정적 JS 화면, Google OAuth, JWT 쿠키, 즐겨찾기 | 진행/구현됨 |
+| **다음 라운드** | 배치 안정화, 운영 보호, 가격 데이터 완전 적재, 상세 UI 보강 | 대기 |
 
-비회원 Guest JWT/검색 횟수 제한은 아직 구현하지 않았다. 현재 `/api/**`는 MVP 검증을 위해 비인증 통과 상태다.
+검색 API는 공개 상태이며, Guest JWT 기반 검색 제한 정책은 적용하지 않는다. 회원 기능은 Google OAuth + JWT 쿠키 기반으로 구현되어 있고, 즐겨찾기 API는 인증된 회원을 전제로 한다.
 
 ## 핵심 기능
 
@@ -34,7 +34,7 @@
 ### 2. 위치 기반 병원 검색
 
 - 병원 기본정보는 `getHospBasisList`를 시도별/페이지별로 전체 수집한다.
-- PostGIS `search_nearby_hospitals(lat, lng, npayCd, radius)` 프로시저로 거리순 검색한다.
+- PostGIS `search_nearby_hospitals_v2(lat, lng, npayCds[], radius, sort, limit, wPrice, wDistance)` 프로시저로 거리·가격·혼합 점수 정렬을 한 호출에서 처리한다.
 - `Hospital.location`은 JPA 엔티티 필드로 매핑하지 않고 native update로 `ST_MakePoint(x, y)::geography`를 채운다.
 
 ### 3. 병원 상세
@@ -43,6 +43,13 @@
 - 심평원 의료기관별 상세정보서비스 5개 API를 실시간 병렬 호출한다.
 - 호출 API: 진료과목, 의료장비, 대중교통, 세부정보(주차/진료시간/응급), 특수진료.
 - 외부 상세 API 일부가 실패해도 해당 섹션만 빈 값으로 fallback한다.
+
+### 4. 화면과 회원 기능
+
+- JSP 화면: `/`, `/hospitals`, `/hospital`, `/favorites`, `/auth/consent`, `/legal/**`.
+- 지도: 네이버맵 JavaScript SDK v3 + 커스텀 마커 클러스터링.
+- 인증: Google OAuth 시작/콜백/약관 동의 후 `mp_token` JWT 쿠키 발급.
+- 즐겨찾기: 회원별 병원 저장, 삭제, 상태 조회와 즐겨찾기 페이지 지도 표시.
 
 ## 데이터 흐름
 
@@ -73,12 +80,22 @@ Price의 다음 개선 방향은 `HospitalSyncService`가 생산한 `ykiho`를 �
 GET /api/items
     → DB의 NonPayItem 전체를 중분류 기준 그룹핑
 
-GET /api/hospitals?lat&lng&npayCd&radius
-    → PostGIS 프로시저 호출 → 거리순 병원 JSON 반환
+GET /api/hospitals/search?lat&lng&npayCds&radius&sort&limit&wPrice&wDistance
+    → search_nearby_hospitals_v2 PostGIS 프로시저 호출 (다중 npayCd + 정렬 모드 + 가중치)
+    → mixed/price/distance 정렬, ykiho별 DISTINCT ON 최저가 JSON 반환
+    → service가 매칭 항목명(NonPayItem) + 종별 평균(NonPayItemClcdStat) batch enrich
+
+GET /api/hospitals/{ykiho}/basics
+    → DB only fast — Hospital + Price(active) + NonPayItem 이름 매핑
+
+GET /api/hospitals/{ykiho}/extras
+    → HIRA 5종 캐시 — 진료과목/장비/교통/주차·운영/특수진료 (외부 API 5개 병렬)
 
 GET /api/hospitals/{ykiho}
-    ├── DB: Hospital + Price(active) + NonPayItem 이름 매핑
-    └── 외부 상세 API 5개 병렬 호출
+    → 통합 응답 (basics + extras 합본)
+
+GET /api/favorites, POST /api/favorites, DELETE /api/favorites/{ykiho}
+    → JWT 회원 인증 후 Favorite soft delete/restore 기반 저장
 ```
 
 ## API 엔드포인트
@@ -88,8 +105,13 @@ GET /api/hospitals/{ykiho}
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | GET | `/api/items` | 비급여 항목 그룹 |
-| GET | `/api/hospitals?lat&lng&npayCd&radius` | 근거리 병원 검색 |
-| GET | `/api/hospitals/{ykiho}` | 병원 상세 |
+| GET | `/api/hospitals/search?lat&lng&npayCds&radius&sort&limit&wPrice&wDistance` | 위치 + 다중 비급여항목 검색 (v2) |
+| GET | `/api/hospitals/{ykiho}/basics` | 병원 상세 fast — DB only |
+| GET | `/api/hospitals/{ykiho}/extras` | 병원 상세 slow — HIRA 5종 캐시 |
+| GET | `/api/hospitals/{ykiho}` | 병원 상세 통합 응답 |
+| GET | `/api/favorites` | 회원 즐겨찾기 목록 |
+| POST | `/api/favorites` | 회원 즐겨찾기 추가 |
+| DELETE | `/api/favorites/{ykiho}` | 회원 즐겨찾기 삭제 |
 
 ### 운영/디버그
 
@@ -131,6 +153,9 @@ GET /api/hospitals/{ykiho}
 ## 알려진 TODO / 위험 요소
 
 - `BatchAdminApiController`는 운영 배포 전 인증/프로파일/IP 제한으로 보호해야 한다.
+- HIRA 응답 실패와 진짜 데이터 없음이 같은 empty body로 취급될 수 있어, 가격 계열 배치의 부분 적재 감지와 재개 정책 보강이 필요하다.
+- 상세 캐시는 `ConcurrentMapCache` 기반이라 TTL이 없고, 배치 후 가격 변경분이 서버 재시작 전까지 상세 응답에 남을 수 있다.
+- 회원 JWT 쿠키의 HttpOnly/Secure/SameSite 정책과 GUEST의 회원 API 접근 차단을 정리해야 한다.
 - 심평원 운영계정 신청이 필요하다. 개발 키는 가격 상세 전체 적재에 부족하다.
 - Price 배치는 Hospital 전체 완료 후 시작하는 구조다. Hospital producer가 `ykiho`를 내보내고 Price worker가 바로 소비하는 파이프라인으로 개선할 수 있다.
 - Price/PriceSummary 부분 적재분은 재실행 정책을 정해야 한다. truncate 후 전체 재적재인지, PK 기준 upsert로 이어받을지 결정이 필요하다.

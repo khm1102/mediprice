@@ -27,15 +27,14 @@ ApiResponse.error(ErrorCode) → {"success": false, "error": {"code": "H001", "m
 |--------|----------|-----------|------|
 | **C** | Common | C001–C099 | HTTP 표준 에러, 입력값 검증 등 프레임워크 수준 |
 | **A** | Auth | A001–A099 | 인증/인가 실패 |
-| **G** | Guest | G001–G099 | 비회원 제한 관련 |
 | **H** | Hospital | H001–H099 | 병원/가격 도메인 |
-| **M** | Member | M001–M099 | 회원 도메인 |
+| **F** | Favorite | F001–F099 | 즐겨찾기 도메인 |
 
 ### 코드 선별 기준
 
 - **공통(C):** Spring이 기본 발생시키는 HTTP 에러(404, 405)와 입력값 검증을 코드화
-- **인증(A):** JWT 라이프사이클(만료, 위변조)과 로그인 실패를 구분하기 위해 분리
-- **비즈니스(G, H, M):** 도메인별로 접두사를 달리해서, 같은 404라도 "뭐가 없는지" 코드만으로 식별 가능
+- **인증(A):** JWT 라이프사이클(만료, 위변조), 인증 누락, 접근 거부를 구분하기 위해 분리
+- **비즈니스(H, F):** 도메인별로 접두사를 달리해서, 같은 404라도 "뭐가 없는지" 코드만으로 식별 가능
 
 ### 현재 등록된 코드
 
@@ -45,19 +44,15 @@ C002  입력값이 올바르지 않습니다.                                 40
 C003  요청한 리소스를 찾을 수 없습니다.                           404
 C004  지원하지 않는 HTTP 메서드입니다.                            405
 
-A001  이메일 또는 비밀번호가 올바르지 않습니다.                    401
 A002  토큰이 만료되었습니다.                                     401
 A003  유효하지 않은 토큰입니다.                                  401
 A004  접근 권한이 없습니다.                                      403
 A005  인증이 필요합니다.                                        401   ← P0.5에서 추가
 
-G001  비회원 검색 횟수를 초과했습니다. 로그인 후 이용해주세요.       429
-
 H001  병원 정보를 찾을 수 없습니다.                              404
-H002  가격 정보를 찾을 수 없습니다.                              404
 
-M001  회원 정보를 찾을 수 없습니다.                              404
-M002  이미 가입된 이메일입니다.                                  409
+F001  즐겨찾기 정보를 찾을 수 없습니다.                           404
+F002  이미 즐겨찾기에 추가된 병원입니다.                          409
 ```
 
 > `A005 UNAUTHORIZED`는 인증 자체가 누락된 경우(쿠키 없음/익명) 사용. 토큰 만료(A002)/변조(A003)와 구분.
@@ -76,18 +71,13 @@ M002  이미 가입된 이메일입니다.                                  409
 MediPriceException (abstract, ErrorCode 보유)
 ├── business/BusinessException
 │   ├── HospitalNotFoundException     → H001
-│   ├── PriceNotFoundException        → H002
-│   ├── MemberNotFoundException       → M001
-│   ├── DuplicateEmailException       → M002
-│   └── GuestSearchLimitExceededException → G001
+│   ├── FavoriteNotFoundException     → F001
+│   └── FavoriteAlreadyExistsException → F002
 └── auth/AuthenticationException
-    ├── LoginFailedException             → A001
-    ├── TokenExpiredException            → A002
-    ├── TokenInvalidException            → A003
-    └── AuthorizationDeniedException     → A004
+    └── AuthenticationException          → A 계열 공통 베이스
 ```
 
-> Spring Security의 `org.springframework.security.access.AccessDeniedException`과 이름이 겹치지 않도록 우리 도메인 예외는 `AuthorizationDeniedException`으로 명명. Security 단계 인가 실패는 `SecurityConfig.apiAccessDeniedHandler`가 직접 처리하고, 본 예외는 `GlobalExceptionHandler.handleMediPriceException`이 처리한다.
+> Security 단계 인증/인가 실패는 `SecurityConfig`의 EntryPoint/AccessDeniedHandler가 직접 처리한다. JWT 만료/변조 코드는 `JwtAuthFilter`가 request attribute에 담아 EntryPoint로 전달한다.
 
 ### 패키지 구조
 
@@ -96,8 +86,8 @@ global/exception/
 ├── ErrorCode.java              ← 에러 코드 enum
 ├── MediPriceException.java     ← abstract 베이스 (ErrorCode 필드)
 ├── GlobalExceptionHandler.java ← @RestControllerAdvice
-├── auth/                       ← LoginFailed, TokenExpired/Invalid, AuthorizationDenied, AuthenticationException
-└── business/                   ← BusinessException, HospitalNotFound, PriceNotFound, MemberNotFound, DuplicateEmail, GuestSearchLimitExceeded
+├── auth/                       ← AuthenticationException
+└── business/                   ← BusinessException, HospitalNotFound, FavoriteNotFound, FavoriteAlreadyExists
 ```
 
 ### 설계 원칙

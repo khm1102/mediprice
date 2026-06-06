@@ -7,8 +7,11 @@ import com.khm1102.mediprice.batch.price.PriceSyncService;
 import com.khm1102.mediprice.batch.stat.NonPayItemClcdStatSyncService;
 import com.khm1102.mediprice.batch.stat.NonPayItemSidoStatSyncService;
 import com.khm1102.mediprice.batch.summary.PriceSummarySyncService;
+import com.khm1102.mediprice.global.config.CacheConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +49,7 @@ public class BatchService {
     private final NonPayItemClcdStatSyncService clcdStatSyncService;
     private final NonPayItemSidoStatSyncService sidoStatSyncService;
     private final Executor batchExecutor;
+    private final CacheManager cacheManager;
 
     public BatchService(NonPayItemSyncService nonPayItemSyncService,
                         HospitalSyncService hospitalSyncService,
@@ -54,7 +58,8 @@ public class BatchService {
                         PriceSummarySyncService priceSummarySyncService,
                         NonPayItemClcdStatSyncService clcdStatSyncService,
                         NonPayItemSidoStatSyncService sidoStatSyncService,
-                        @Qualifier("hiraBatchExecutor") Executor batchExecutor) {
+                        @Qualifier("hiraBatchExecutor") Executor batchExecutor,
+                        CacheManager cacheManager) {
         this.nonPayItemSyncService = nonPayItemSyncService;
         this.hospitalSyncService = hospitalSyncService;
         this.priceSyncService = priceSyncService;
@@ -63,6 +68,24 @@ public class BatchService {
         this.clcdStatSyncService = clcdStatSyncService;
         this.sidoStatSyncService = sidoStatSyncService;
         this.batchExecutor = batchExecutor;
+        this.cacheManager = cacheManager;
+    }
+
+    /**
+     * 배치 dispatch 종료(또는 부분 실패) 후 호출해 항목 그룹/병원 상세 캐시를 비운다.
+     * 배치 직후 stale 데이터가 사용자에게 노출되지 않게 하는 1차 방어선.
+     */
+    public void evictPostBatchCaches() {
+        evictCache(CacheConfig.NON_PAY_ITEM_GROUPS_CACHE);
+        evictCache(CacheConfig.HOSPITAL_DETAIL_HIRA_CACHE);
+    }
+
+    private void evictCache(String name) {
+        Cache cache = cacheManager.getCache(name);
+        if (cache != null) {
+            cache.clear();
+            log.info("캐시 evict — {}", name);
+        }
     }
 
     @Scheduled(cron = "0 0 0 1 * *")
@@ -97,6 +120,9 @@ public class BatchService {
                     System.currentTimeMillis() - start);
         } catch (Exception e) {
             log.error("BatchService.syncAll 전체 실패", e);
+        } finally {
+            // 부분 실패에서도 stale 캐시를 그대로 두면 사용자에게 옛 가격이 노출된다 → 항상 evict.
+            evictPostBatchCaches();
         }
     }
 }

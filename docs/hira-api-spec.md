@@ -443,7 +443,9 @@ docx에 따르면 구버전('16.2월 이전)은 `divCd1`, `divCd2`, `divCd3` 필
 
 ## 11. DTO 매핑 요약 (API 응답 → 프론트 응답)
 
-### `GET /api/hospitals` → `HospitalSummaryDto`
+### `GET /api/hospitals/search` → `List<HospitalSummaryDto>`
+
+`search_nearby_hospitals_v2(p_lat, p_lng, p_npay_cds[], p_radius, p_sort, p_limit, p_w_price, p_w_distance)` 프로시저가 반환하는 JSON을 파싱.
 
 | DTO 필드 | 출처 | DB 컬럼 / 계산 |
 |---|---|---|
@@ -452,12 +454,19 @@ docx에 따르면 구버전('16.2월 이전)은 `divCd1`, `divCd2`, `divCd3` 필
 | `addr` | Hospital | `addr` |
 | `clCdNm` | Hospital | `cl_cd_nm` |
 | `telNo` | Hospital | `tel_no` |
-| `curAmt` | Price | `cur_amt` |
+| `curAmt` | Price (DISTINCT ON ykiho 최저가) | `cur_amt` |
 | `distance` | PostGIS | `ST_Distance(location, 검색좌표)` |
 | `lat` | Hospital | `y_pos` |
 | `lng` | Hospital | `x_pos` |
+| `matchedNpayCd` | Price | 매칭된 npayCd (다중 입력 중 최저가가 나온 코드) |
+| `matchedNpayKorNm` | NonPayItemService (batch enrich) | 매칭 항목 한글명 |
+| `score` | SQL | 혼합 점수 (mixed 모드만 의미) |
+| `avgAmt` | NonPayItemClcdStat (latest stdDate) | (npayCd × clcdKey) 평균. clcdKey 매칭 실패 시 `All` 폴백 |
+| `diffPct` | service 계산 | `(curAmt - avgAmt) / avgAmt * 100` |
 
-### `GET /api/hospitals/{ykiho}` → `HospitalDetailDto`
+### `GET /api/hospitals/{ykiho}` → `HospitalDetailDto` (통합)
+### `GET /api/hospitals/{ykiho}/basics` → `HospitalDetailBasicsDto` (DB only fast)
+### `GET /api/hospitals/{ykiho}/extras` → `HospitalDetailExtrasDto` (HIRA 5종)
 
 | DTO 필드 | 출처 | 비고 |
 |---|---|---|

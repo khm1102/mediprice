@@ -22,16 +22,23 @@ public interface HospitalRepository extends JpaRepository<Hospital, String> {
                        @Param("yPos") double yPos);
 
     /**
-     * PostGIS 프로시저 호출 — JSON 문자열 반환. Service에서 파싱.
+     * v2 검색 PostGIS 프로시저 호출 — 다중 npayCd 배열 + 정렬 모드 + 가중치. JSON 문자열 반환, Service에서 파싱.
      * <p>
      * {@code ::text} 캐스팅 — Hibernate 7이 JSON 반환 타입에 FormatMapper 필요로 하는데
      * 우리는 Service에서 직접 JsonMapper로 파싱하므로 String으로 받는다.
+     * Hibernate/Postgres JDBC는 {@code String[]} 파라미터를 {@code varchar[]}로 자동 바인딩한다.
      */
-    @Query(value = "SELECT search_nearby_hospitals(:lat, :lng, :npayCd, :radius)::text", nativeQuery = true)
-    String searchNearbyJson(@Param("lat") double lat,
-                            @Param("lng") double lng,
-                            @Param("npayCd") String npayCd,
-                            @Param("radius") int radius);
+    @Query(value = "SELECT search_nearby_hospitals_v2(" +
+            ":lat, :lng, CAST(:npayCds AS VARCHAR[]), :radius, :sort, :limit, :wPrice, :wDistance" +
+            ")::text", nativeQuery = true)
+    String searchNearbyV2Json(@Param("lat") double lat,
+                              @Param("lng") double lng,
+                              @Param("npayCds") String[] npayCds,
+                              @Param("radius") int radius,
+                              @Param("sort") String sort,
+                              @Param("limit") int limit,
+                              @Param("wPrice") double wPrice,
+                              @Param("wDistance") double wDistance);
 
     /** PriceSyncService가 ykiho별 가격상세를 호출할 때 사용. */
     @Query("SELECT h.ykiho FROM Hospital h")

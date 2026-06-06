@@ -1,6 +1,5 @@
 package com.khm1102.mediprice.service;
 
-import com.khm1102.mediprice.client.HiraDetailClient;
 import com.khm1102.mediprice.client.HiraDetailClient.HospitalDetailBundle;
 import com.khm1102.mediprice.client.hira.DgsbjtItem;
 import com.khm1102.mediprice.client.hira.DtlInfoItem;
@@ -36,7 +35,7 @@ class HospitalDetailServiceTest {
     @Mock HospitalRepository hospitalRepository;
     @Mock PriceRepository priceRepository;
     @Mock NonPayItemService nonPayItemService;
-    @Mock HiraDetailClient detailClient;
+    @Mock HospitalDetailHiraCache hiraCache;
 
     @InjectMocks HospitalDetailService service;
 
@@ -59,7 +58,7 @@ class HospitalDetailServiceTest {
         when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
                 .thenReturn(List.of(active));
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
-        when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(emptyBundle());
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
@@ -77,7 +76,7 @@ class HospitalDetailServiceTest {
                 .thenReturn(List.of(mapped, unmapped));
         when(nonPayItemService.lookupNamesByCodes(List.of("N001", "N999")))
                 .thenReturn(Map.of("N001", "박피술"));
-        when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(emptyBundle());
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
@@ -100,7 +99,7 @@ class HospitalDetailServiceTest {
                 Optional.empty(),
                 List.of(new SpclDiagItem("S1", "응급의료센터"), new SpclDiagItem("S2", null))
         );
-        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(bundle);
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
@@ -124,7 +123,7 @@ class HospitalDetailServiceTest {
                 ),
                 Optional.empty(), List.of()
         );
-        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(bundle);
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
@@ -149,7 +148,7 @@ class HospitalDetailServiceTest {
         HospitalDetailBundle bundle = new HospitalDetailBundle(
                 List.of(), List.of(), List.of(), Optional.of(dtl), List.of()
         );
-        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(bundle);
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
@@ -177,13 +176,38 @@ class HospitalDetailServiceTest {
         HospitalDetailBundle bundle = new HospitalDetailBundle(
                 List.of(), List.of(), List.of(), Optional.of(dtl), List.of()
         );
-        when(detailClient.fetchAll(YKIHO)).thenReturn(bundle);
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(bundle);
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
         assertThat(dto.parkingInfo()).isNull();
         assertThat(dto.operatingInfo()).isNotNull();
         assertThat(dto.operatingInfo().rcvWeek()).isEqualTo("08:00 ~ 17:00");
+    }
+
+    /**
+     * @Cacheable이 service 레벨에서 제거되어 DB 가격은 매 호출 새로 조회된다.
+     * HIRA 5종은 별도 컴포넌트가 캐시하므로 service 단위에서는 stub 호출 횟수로만 검증.
+     */
+    @Test
+    void dbPriceIsRefetchedEachCallWhileHiraBundleIsObtainedFromCacheComponent() {
+        givenHospital();
+        when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(emptyBundle());
+
+        // 첫 호출: 가격 1건
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of(price("N001", 10_000L, "99991231")));
+        HospitalDetailDto first = service.lookupDetail(YKIHO);
+        assertThat(first.prices()).hasSize(1);
+        assertThat(first.prices().get(0).curAmt()).isEqualTo(10_000L);
+
+        // 두 번째 호출: 배치 후 가격 갱신 → 즉시 반영되어야 한다
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(List.of(price("N001", 99_000L, "99991231")));
+        HospitalDetailDto second = service.lookupDetail(YKIHO);
+        assertThat(second.prices()).hasSize(1);
+        assertThat(second.prices().get(0).curAmt()).isEqualTo(99_000L);
     }
 
     /** DtlInfo 응답 자체가 없으면 parkingInfo와 operatingInfo 모두 null. */
@@ -193,13 +217,64 @@ class HospitalDetailServiceTest {
         when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
                 .thenReturn(List.of());
         when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of());
-        when(detailClient.fetchAll(YKIHO)).thenReturn(emptyBundle());
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(emptyBundle());
 
         HospitalDetailDto dto = service.lookupDetail(YKIHO);
 
         assertThat(dto.parkingInfo()).isNull();
         assertThat(dto.operatingInfo()).isNull();
         assertThat(dto.transitList()).isEmpty();
+    }
+
+    // ── /basics, /extras split 회귀 방지 ────────────────────────────────────
+
+    /** lookupBasics는 HIRA 캐시를 호출하지 않고 DB만 사용한다. */
+    @Test
+    void lookupBasicsDoesNotTouchHiraCache() {
+        givenHospital();
+        when(priceRepository.findAllByYkihoAndAdtEndDd(YKIHO, NonPayDtlItem.ACTIVE_END_DATE))
+                .thenReturn(java.util.List.of(price("N001", 50_000L, "99991231")));
+        when(nonPayItemService.lookupNamesByCodes(any())).thenReturn(Map.of("N001", "도수치료"));
+
+        com.khm1102.mediprice.dto.HospitalDetailBasicsDto basics = service.lookupBasics(YKIHO);
+
+        assertThat(basics.yadmNm()).isEqualTo("샘플병원");
+        assertThat(basics.prices()).hasSize(1);
+        assertThat(basics.prices().get(0).npayKorNm()).isEqualTo("도수치료");
+        org.mockito.Mockito.verifyNoInteractions(hiraCache);
+    }
+
+    /** lookupBasics는 ykiho가 없으면 HospitalNotFoundException. */
+    @Test
+    void lookupBasicsThrowsWhenYkihoMissing() {
+        when(hospitalRepository.findById(YKIHO)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.lookupBasics(YKIHO))
+                .isInstanceOf(HospitalNotFoundException.class);
+        org.mockito.Mockito.verifyNoInteractions(hiraCache);
+    }
+
+    /** lookupExtras는 HIRA 캐시만 호출하고 priceRepository는 손대지 않는다. */
+    @Test
+    void lookupExtrasUsesOnlyHiraCache() {
+        when(hospitalRepository.existsById(YKIHO)).thenReturn(true);
+        when(hiraCache.lookupBundle(YKIHO)).thenReturn(emptyBundle());
+
+        com.khm1102.mediprice.dto.HospitalDetailExtrasDto extras = service.lookupExtras(YKIHO);
+
+        assertThat(extras.ykiho()).isEqualTo(YKIHO);
+        assertThat(extras.dgsbjtList()).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(priceRepository);
+        org.mockito.Mockito.verifyNoInteractions(nonPayItemService);
+    }
+
+    /** lookupExtras도 존재하지 않는 ykiho면 HospitalNotFoundException. */
+    @Test
+    void lookupExtrasThrowsWhenYkihoMissing() {
+        when(hospitalRepository.existsById(YKIHO)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.lookupExtras(YKIHO))
+                .isInstanceOf(HospitalNotFoundException.class);
     }
 
     private Hospital sampleHospital;
@@ -219,6 +294,9 @@ class HospitalDetailServiceTest {
 
     private void givenHospital() {
         when(hospitalRepository.findById(YKIHO)).thenReturn(Optional.of(sampleHospital));
+        // lookupDetail은 lookupBasics + lookupExtras로 split됨. /extras 경로는 existsById를 사용한다.
+        org.mockito.Mockito.lenient()
+                .when(hospitalRepository.existsById(YKIHO)).thenReturn(true);
     }
 
     private static Price price(String code, long amt, String endDd) {

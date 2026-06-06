@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * totalCount ~188,700 — Producer-Consumer로 페이징 호출과 DB 쓰기를 분리.
  * Producer 1개는 단순 페이지 순회 (시도 split 불필요, API가 한 번에 전국 데이터 반환).
  * Consumer 4개는 batch로 모아 {@link PriceSummaryBatchWriter#saveBatch}에 위임.
+ * <p>
+ * 중간 페이지 응답이 실패/NODATA일 때 종료하지 않고 다음 페이지 시도. failedPages 카운트로 부분 누락 가시화.
  */
 @Slf4j
 @Service
@@ -31,6 +33,8 @@ public class PriceSummarySyncService {
     private static final int QUEUE_CAPACITY = 3000;
     private static final int CONSUMER_THREADS = 4;
     private static final long PRODUCER_SLEEP_MS = 100;
+    /** 페이지 실패 시 즉시 재시도 횟수. */
+    private static final int PAGE_RETRY = 2;
 
     /** Consumer 종료용 sentinel. reference equality(==)로 비교. */
     private static final NonPayHospSummaryItem POISON_PILL = new NonPayHospSummaryItem(
@@ -46,10 +50,18 @@ public class PriceSummarySyncService {
     }
 
     public int sync() {
+        return syncWithDetail().savedTotal();
+    }
+
+    /**
+     * sync()의 상세 카운트 버전. 테스트/모니터링에서 failedPages를 확인할 때 사용.
+     */
+    public SyncSummary syncWithDetail() {
         long start = System.currentTimeMillis();
         BlockingQueue<NonPayHospSummaryItem> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
         AtomicInteger savedTotal = new AtomicInteger(0);
         AtomicInteger producedTotal = new AtomicInteger(0);
+        AtomicInteger failedPagesTotal = new AtomicInteger(0);
 
         ExecutorService producerPool = Executors.newSingleThreadExecutor(r -> namedThread(r, "pricesum-prod"));
         ExecutorService consumerPool = Executors.newFixedThreadPool(
@@ -60,7 +72,7 @@ public class PriceSummarySyncService {
         }
 
         try {
-            producerPool.submit(() -> produce(queue, producedTotal));
+            producerPool.submit(() -> produce(queue, producedTotal, failedPagesTotal));
             producerPool.shutdown();
             if (!producerPool.awaitTermination(4, TimeUnit.HOURS)) {
                 log.warn("PriceSummary producer 4시간 내 미종료 — 강제 종료");
@@ -86,43 +98,82 @@ public class PriceSummarySyncService {
         }
 
         long elapsedMs = System.currentTimeMillis() - start;
-        log.info("PriceSummarySyncService 완료 — produced={}, savedTotal={}, elapsedMs={}",
-                producedTotal.get(), savedTotal.get(), elapsedMs);
-        return savedTotal.get();
+        log.info("PriceSummarySyncService 완료 — produced={}, savedTotal={}, failedPages={}, elapsedMs={}",
+                producedTotal.get(), savedTotal.get(), failedPagesTotal.get(), elapsedMs);
+        return new SyncSummary(savedTotal.get(), producedTotal.get(), failedPagesTotal.get());
     }
 
-    private void produce(BlockingQueue<NonPayHospSummaryItem> queue, AtomicInteger producedTotal) {
+    /** sync 결과 요약. failedPages가 0이 아니면 중간 누락이 있었다는 뜻. */
+    public record SyncSummary(int savedTotal, int producedTotal, int failedPages) {
+    }
+
+    private void produce(BlockingQueue<NonPayHospSummaryItem> queue,
+                         AtomicInteger producedTotal,
+                         AtomicInteger failedPagesTotal) {
         int produced = 0;
+        int failedPages = 0;
         int pageNo = 1;
+        int totalPages = -1;
         try {
             while (true) {
-                HiraBody<NonPayHospSummaryItem> body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
-                List<NonPayHospSummaryItem> items = body.safeItems();
-                if (items.isEmpty()) {
-                    if (pageNo == 1) {
-                        log.warn("PriceSummary producer 첫 페이지 빈 응답 — quota/응답 이상 의심");
+                HiraBody<NonPayHospSummaryItem> body = fetchWithRetry(pageNo);
+
+                if (body.isFailed()) {
+                    failedPages++;
+                    log.warn("PriceSummary 페이지 실패 (pageNo={}, totalPages={})", pageNo, totalPages);
+                    if (totalPages < 0) {
+                        log.warn("PriceSummary 첫 페이지 실패 — totalCount 미확보로 producer 종료");
+                        break;
                     }
-                    break;
+                } else if (body.isNoData() || body.safeItems().isEmpty()) {
+                    if (pageNo == 1) {
+                        log.info("PriceSummary 첫 페이지 NODATA — 정상 종료");
+                        break;
+                    }
+                    failedPages++;
+                    log.warn("PriceSummary 중간 페이지 누락 (pageNo={}, totalPages={})", pageNo, totalPages);
+                } else {
+                    for (NonPayHospSummaryItem dto : body.safeItems()) {
+                        queue.put(dto);
+                        produced++;
+                    }
+                    if (totalPages < 0) {
+                        totalPages = totalPagesOf(body);
+                    }
                 }
-                for (NonPayHospSummaryItem dto : items) {
-                    queue.put(dto);
-                    produced++;
-                }
-                int totalPages = (int) Math.ceil((double) body.getTotalCount() / PAGE_SIZE);
-                if (pageNo >= totalPages) {
+
+                if (totalPages > 0 && pageNo >= totalPages) {
                     break;
                 }
                 pageNo++;
                 Thread.sleep(PRODUCER_SLEEP_MS);
             }
             producedTotal.addAndGet(produced);
-            log.info("PriceSummary producer 완료 — produced={}", produced);
+            failedPagesTotal.addAndGet(failedPages);
+            log.info("PriceSummary producer 완료 — produced={}, failedPages={}, totalPages={}",
+                    produced, failedPages, totalPages);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("PriceSummary producer 인터럽트");
         } catch (Exception e) {
             log.error("PriceSummary producer 실패: {}", e.getMessage(), e);
         }
+    }
+
+    private HiraBody<NonPayHospSummaryItem> fetchWithRetry(int pageNo) throws InterruptedException {
+        HiraBody<NonPayHospSummaryItem> body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
+        for (int attempt = 0; attempt < PAGE_RETRY && body.isFailed(); attempt++) {
+            Thread.sleep(PRODUCER_SLEEP_MS);
+            body = client.searchHospPriceSummary(pageNo, PAGE_SIZE);
+        }
+        return body;
+    }
+
+    private static int totalPagesOf(HiraBody<NonPayHospSummaryItem> body) {
+        if (body.getTotalCount() <= 0) {
+            return 1;
+        }
+        return (int) Math.ceil((double) body.getTotalCount() / PAGE_SIZE);
     }
 
     private void consume(BlockingQueue<NonPayHospSummaryItem> queue, AtomicInteger savedTotal) {

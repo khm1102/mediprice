@@ -1,5 +1,8 @@
 
 const loadFavorites = async () => {
+    // mp_token이 HttpOnly라 JS는 토큰을 못 읽는다. authReady가 /api/auth/me 응답을 받기 전에 호출하면
+    // 로그인 상태인데도 isLoggedIn()이 false로 떨어진다 → 반드시 대기.
+    await authReady;
     if (!isLoggedIn()) {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('not-logged-in').classList.remove('hidden');
@@ -52,26 +55,36 @@ const renderFavorites = (favorites) => {
     const listEl = document.getElementById('favorites-list');
     listEl.innerHTML = favorites.map(f => renderFavoriteCard(f)).join('');
     listEl.classList.remove('hidden');
+    // 데스크톱 hover → 마커 강조 위임 (hospital.js의 헬퍼 재사용).
+    attachCardHoverHighlight?.(listEl);
 };
 
 const renderFavoriteCard = (f) => {
     const lat = f.lat ?? 0;
     const lng = f.lng ?? 0;
-    const ykihoEsc = f.ykiho.replace(/'/g, "\\'");
+    // inline onclick과 data-attribute 모두에 들어가는 ykiho는 두 컨텍스트에 안전해야 한다.
+    // - JS 문자열 컨텍스트: 작은따옴표 escape
+    // - HTML attribute 컨텍스트: escapeHtml로 따옴표/꺽쇠/앰퍼샌드 차단
+    const ykihoJs = (f.ykiho ?? '').replace(/'/g, "\\'");
+    const ykihoAttr = escapeHtml(f.ykiho ?? '');
+
+    // 병원명 + 종별 한 줄
+    const nameLine = (f.clCdNm || '').trim()
+        ? `${escapeHtml(f.hospitalName)}<span class="text-xs text-gray-400 font-normal ml-1.5">· ${escapeHtml(f.clCdNm)}</span>`
+        : escapeHtml(f.hospitalName);
 
     return `
-        <div onclick="showHospitalInPanel('${ykihoEsc}', 0, '', ${lat}, ${lng})"
-             data-ykiho="${f.ykiho}"
-             class="hospital-card bg-white rounded-2xl p-4 cursor-pointer hover:opacity-90 transition-all"
+        <div onclick="showHospitalInPanel('${ykihoJs}', 0, '', ${lat}, ${lng})"
+             data-ykiho="${ykihoAttr}"
+             class="hospital-card bg-white rounded-2xl p-4 cursor-pointer hover:opacity-95 transition-all"
              style="box-shadow: 0 2px 10px rgba(0,0,0,0.09);">
             <div class="flex items-start justify-between gap-3">
                 <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-gray-900 text-sm truncate">${escapeHtml(f.hospitalName)}</p>
-                    <p class="text-xs text-gray-400 mt-0.5">${escapeHtml(f.clCdNm || '')}</p>
+                    <p class="font-semibold text-gray-900 text-sm truncate">${nameLine}</p>
                     <p class="text-xs text-gray-400 mt-1 truncate">${escapeHtml(f.address || '')}</p>
                     ${f.telNo ? `<p class="text-xs text-[#2563EB] mt-1">${escapeHtml(f.telNo)}</p>` : ''}
                 </div>
-                <button onclick="handleFavoritesRemove('${ykihoEsc}', event)"
+                <button onclick="handleFavoritesRemove('${ykihoJs}', event)"
                         class="flex-shrink-0 p-1.5 text-yellow-400 hover:text-yellow-500 transition-colors rounded-lg hover:bg-yellow-50"
                         title="즐겨찾기 해제">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -195,12 +208,7 @@ const confirmFavRemove = async () => {
     }
 };
 
-const escapeHtml = (str) => {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-};
+// escapeHtml은 common.js에서 정의 — 별도 정의 금지(공통화).
 
 // 페이지 로드
 document.addEventListener('DOMContentLoaded', loadFavorites);

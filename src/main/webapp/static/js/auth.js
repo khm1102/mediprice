@@ -1,43 +1,41 @@
+// mp_token 쿠키가 HttpOnly이므로 JS에서 토큰을 직접 디코딩할 수 없다.
+// 페이지 로드 시 /api/auth/me를 호출해 로그인 상태를 캐싱한다.
+// 호출처는 가능하면 `await authReady` 후 isLoggedIn()/getMemberInfo()를 사용한다.
 
-const getToken = () => document.cookie
-    .split('; ')
-    .find(row => row.startsWith('mp_token='))
-    ?.split('=')[1] ?? null;
+let memberState = null;
 
-const getTokenPayload = () => {
-    const token = getToken();
-    if (!token) return null;
+const authReady = (async () => {
     try {
-        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const json = decodeURIComponent(
-            atob(base64).split('').map(c =>
-                '%' + c.charCodeAt(0).toString(16).padStart(2, '0')
-            ).join('')
-        );
-        return JSON.parse(json);
+        const res = await fetch('/api/auth/me', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) {
+            memberState = null;
+            return;
+        }
+        const json = await res.json();
+        if (json?.success && json.data) {
+            memberState = json.data;
+        }
     } catch {
-        return null;
+        memberState = null;
     }
-};
+})();
 
-const isLoggedIn = () => {
-    const payload = getTokenPayload();
-    return payload !== null && payload.exp > Date.now() / 1000 && payload.role !== 'GUEST';
-};
-
-const getMemberInfo = () => {
-    const payload = getTokenPayload();
-    if (!payload || payload.role === 'GUEST') return null;
-    return { email: payload.email, role: payload.role, name: payload.name ?? '' };
-};
+const isLoggedIn = () => memberState !== null && memberState.role === 'MEMBER';
+const getMemberInfo = () => (memberState && memberState.role === 'MEMBER') ? memberState : null;
 
 const handleLogout = async () => {
     try {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
     } catch {
-        // 서버 오류와 무관하게 클라이언트 토큰 제거
+        // 서버 오류와 무관하게 클라이언트 상태 리셋
     }
-    document.cookie = 'mp_token=; Max-Age=0; path=/';
+    memberState = null;
     window.location.href = '/';
 };
 
@@ -57,9 +55,12 @@ const confirmWithdraw = async () => {
     const btn = document.querySelector('#withdraw-card button:last-child');
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     try {
-        const res = await fetch('/api/auth/me', { method: 'DELETE' });
+        const res = await fetch('/api/auth/me', {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
         if (!res.ok) throw new Error();
-        document.cookie = 'mp_token=; Max-Age=0; path=/';
+        memberState = null;
         window.location.href = '/';
     } catch {
         if (btn) { btn.disabled = false; btn.textContent = '탈퇴하기'; }
@@ -69,12 +70,12 @@ const confirmWithdraw = async () => {
 
 // ── 페이지 로드 시 로그인 상태에 따라 네비게이션 전환 ────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await authReady;
+
     const navGuest  = document.getElementById('nav-guest');
     const navMember = document.getElementById('nav-member');
-    if (!navGuest || !navMember) return;
-
-    if (isLoggedIn()) {
+    if (navGuest && navMember && isLoggedIn()) {
         navGuest.classList.add('hidden');
         navMember.classList.remove('hidden');
 

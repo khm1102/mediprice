@@ -14,8 +14,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record HiraHeader(String resultCode, String resultMsg) {
 
     public static final String NORMAL_CODE = "00";
+    public static final String NODATA_CODE = "03";
+    public static final String TRAFFIC_LIMIT_CODE = "22";
 
     public boolean isSuccess() {
         return NORMAL_CODE.equals(resultCode);
+    }
+
+    public boolean isNoData() {
+        return NODATA_CODE.equals(resultCode);
+    }
+
+    public boolean isTrafficLimit() {
+        return TRAFFIC_LIMIT_CODE.equals(resultCode);
     }
 }
