@@ -4,9 +4,7 @@ import com.khm1102.mediprice.global.common.ApiResponse;
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.filter.AuthAttributeNames;
 import com.khm1102.mediprice.global.filter.JwtAuthFilter;
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
@@ -28,7 +26,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -180,22 +177,4 @@ public class SecurityConfig {
     }
 
     /**
-     * Spring Security 6/7의 deferred CSRF token을 강제로 materialize해 XSRF-TOKEN 쿠키를 내려준다.
-     * JS fetch는 이 쿠키 값을 읽어 X-XSRF-TOKEN 헤더로 돌려보낸다.
-     */
-    private static final class CsrfCookieFilter implements Filter {
-        @Override
-        public void doFilter(jakarta.servlet.ServletRequest request,
-                             jakarta.servlet.ServletResponse response,
-                             FilterChain chain) throws IOException, ServletException {
-            Object token = request.getAttribute(CsrfToken.class.getName());
-            if (!(token instanceof CsrfToken)) {
-                token = request.getAttribute("_csrf");
-            }
-            if (token instanceof CsrfToken csrfToken) {
-                csrfToken.getToken();
-            }
-            chain.doFilter(request, response);
-        }
-    }
 }
