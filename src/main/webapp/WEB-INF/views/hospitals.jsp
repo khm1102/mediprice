@@ -77,9 +77,11 @@
             z-index: 10;
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.07);
         }
+        /* 검색바 영역은 리스트보다 위에 위치해야 dropdown이 리스트를 덮을 수 있다 */
         /* 데스크톱에선 .main-stack 자체는 사용하지 않고 list/map이 각 grid-area로 배치된다. */
         .main-stack { display: contents; }
         #panel-list { grid-area: list; position: relative; inset: auto; overflow-y: auto; }
+        #search-area { z-index: 20; }
         .map-area   { grid-area: map;  position: relative; inset: auto; border-bottom: none; }
 
         /* 상세 패널: lg에선 화면 중앙 overlay 모달 — 지도/목록을 침범하지 않는다. */
@@ -143,7 +145,7 @@
 <div class="hospitals-grid">
 
     <%-- 검색바 + 자동완성 dropdown + 인기 칩 + 모바일 segmented control --%>
-    <div style="grid-area: search;" class="panel-left bg-white border-b border-gray-200 flex-shrink-0">
+    <div id="search-area" style="grid-area: search;" class="panel-left bg-white border-b border-gray-200 flex-shrink-0">
         <div class="px-4 pt-3 flex gap-2 relative">
             <div class="flex-1 flex items-center gap-2 bg-[#F2F4F6] rounded-xl px-3.5 focus-within:ring-2 focus-within:ring-[#2563EB]/30 transition-all">
                 <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,8 +188,6 @@
             </button>
         </div>
 
-        <%-- 정렬 토글: [추천 | 가격순 | 가까운 순]. 백엔드 /api/hospitals/search 의 sort 파라미터에 매핑. --%>
-        <%-- 가중치 슬라이더(mixed 모드 전용)는 renderWeightSlider가 #weight-slider에 주입. --%>
         <div class="px-4 pt-1.5 pb-2.5">
             <div id="weight-slider"></div>
         </div>

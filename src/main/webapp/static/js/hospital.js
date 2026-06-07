@@ -379,12 +379,6 @@ const renderWeightSlider = () => {
     const isMobile = window.innerWidth < 1024;
     container.innerHTML = `
         <div class="${isMobile ? 'py-1' : 'py-0'}">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-[10px] text-gray-400 slider-label">정렬 기준</span>
-                <span data-weight-readout class="text-[10px] text-[#2563EB] font-semibold tabular-nums slider-label">
-                    ${pct < 30 ? '거리 우선' : pct > 70 ? '가격 우선' : '거리 · 가격 혼합'}
-                </span>
-            </div>
             <div class="flex items-center gap-2">
                 <span class="text-[10px] text-gray-400 whitespace-nowrap slider-label">거리</span>
                 <input type="range" min="0" max="1" step="0.05"
@@ -393,6 +387,11 @@ const renderWeightSlider = () => {
                        aria-label="정렬 기준 (0=거리 우선, 1=가격 우선)"
                        class="flex-1 h-1 accent-[#2563EB]" />
                 <span class="text-[10px] text-gray-400 whitespace-nowrap slider-label">가격</span>
+            </div>
+            <div class="flex justify-center mt-1">
+                <span data-weight-readout class="text-[10px] text-[#2563EB] font-semibold tabular-nums slider-label">
+                    ${pct < 30 ? '거리 우선' : pct > 70 ? '가격 우선' : '거리 · 가격 혼합'}
+                </span>
             </div>
         </div>`;
     const slider = container.querySelector('[data-weight-slider]');
@@ -548,10 +547,10 @@ const renderHospitalCard = (hospital) => {
         .filter(Boolean).join(' · ');
 
     const typeBadge = (hospital.clCdNm ?? '').trim()
-        ? `<span class="text-[10px] text-gray-400 font-medium">${escapeHtml(hospital.clCdNm)}</span>`
+        ? `<span class="text-[10px] text-gray-400 font-medium flex-shrink-0 whitespace-nowrap">${escapeHtml(hospital.clCdNm)}</span>`
         : '';
     const distBadge = hospital.distance != null
-        ? `<span class="text-[10px] text-gray-400">${escapeHtml(formatDistance(hospital.distance))}</span>`
+        ? `<span class="text-[10px] text-gray-400 flex-shrink-0 whitespace-nowrap">${escapeHtml(formatDistance(hospital.distance))}</span>`
         : '';
 
     return `
@@ -563,34 +562,20 @@ const renderHospitalCard = (hospital) => {
            style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
             <div class="bg-white rounded-2xl px-4 py-3">
                 <div class="flex items-start gap-2">
-                    <div class="flex flex-col gap-1 flex-shrink-0">
-                        <button type="button"
-                                data-ykiho="${ykihoAttr}"
-                                data-favorited="false"
-                                class="fav-btn p-0.5 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
-                                title="즐겨찾기 추가">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
-                                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
-                                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
-                                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
-                                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
-                                         00.951-.69l1.519-4.674z"/>
-                            </svg>
-                        </button>
-                        <a href="https://map.naver.com/p/search/${encodeURIComponent(hospital.addr ?? hospital.yadmNm ?? '')}"
-                           target="_blank" rel="noopener noreferrer"
-                           onclick="event.stopPropagation()"
-                           class="p-0.5 rounded-lg transition-colors text-gray-300 hover:text-[#2563EB] hover:bg-blue-50"
-                           title="네이버 지도로 보기">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                        </a>
-                    </div>
+                    <button type="button"
+                            data-ykiho="${ykihoAttr}"
+                            data-favorited="false"
+                            class="fav-btn flex-shrink-0 mt-0.5 p-0.5 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
+                            title="즐겨찾기 추가">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                                     00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                                     00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                                     1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                                     1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                                     00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </button>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-2">
                             <p class="font-bold text-gray-900 text-sm lg:text-base leading-tight">${escapeHtml(hospital.yadmNm ?? '')}</p>
@@ -599,7 +584,7 @@ const renderHospitalCard = (hospital) => {
                                 ${statLabel}
                             </div>
                         </div>
-                        <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                        <div class="flex items-center gap-1.5 mt-0.5 min-w-0 flex-nowrap overflow-hidden">
                             ${typeBadge}
                             ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300 flex-shrink-0">·</span>' : ''}
                             ${distBadge}
