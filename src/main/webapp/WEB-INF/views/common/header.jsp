@@ -42,6 +42,31 @@
 </head>
 <body class="bg-[#F9FAFB] min-h-screen flex flex-col">
 
+<%-- ── 베타 설문 배너 ── 링크는 아래 SURVEY_URL 변수만 변경 --%>
+<div id="survey-banner" class="bg-[#EFF6FF] border-b border-blue-100">
+    <div class="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+        <p class="text-xs text-[#1D4ED8] flex-1 text-center">
+            🎉 MediPrice 베타 서비스 중이에요!
+            <a id="survey-link" href="#" target="_blank" rel="noopener noreferrer"
+               class="font-semibold underline underline-offset-2 hover:text-blue-800 ml-1">
+                설문조사 참여하기 →
+            </a>
+        </p>
+        <button onclick="document.getElementById('survey-banner').remove()"
+                class="flex-shrink-0 text-blue-400 hover:text-blue-600 transition-colors p-0.5"
+                aria-label="닫기">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+</div>
+<script>
+    // 설문 링크 — 여기만 변경
+    const SURVEY_URL = 'https://forms.gle/d4fVKeFnV2PFr8pXA';
+    document.getElementById('survey-link').href = SURVEY_URL;
+</script>
+
 <header class="bg-white border-b border-gray-200 sticky top-0 z-50 h-14 flex items-center">
     <div class="px-4 lg:px-6 w-full flex items-center justify-between">
 
