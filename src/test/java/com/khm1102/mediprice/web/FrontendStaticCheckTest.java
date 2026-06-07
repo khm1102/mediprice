@@ -159,16 +159,13 @@ class FrontendStaticCheckTest {
         assertThat(js).contains("const attachSuggestionInput");
     }
 
-    /** hospitals.jsp 검색바에 자동완성 dropdown / 인기 칩 / 빈 결과 추천 / 모바일 segmented 컨테이너가 있어야 한다. */
+    /** hospitals.jsp 검색바에 자동완성 dropdown / 빈 결과 추천 컨테이너가 있어야 한다. */
     @Test
     void hospitalsJspHasSearchAutocompleteAndPaneTabsMarkup() throws IOException {
         String jsp = read("WEB-INF/views/hospitals.jsp");
         assertThat(jsp).contains("id=\"search-suggestions\"");
-        assertThat(jsp).contains("id=\"quick-chips\"");
         assertThat(jsp).contains("id=\"state-empty-chips\"");
-        assertThat(jsp).contains("id=\"mobile-pane-tabs\"");
-        assertThat(jsp).contains("data-pane=\"list\"");
-        assertThat(jsp).contains("data-pane=\"map\"");
+        assertThat(jsp).contains("id=\"weight-slider\"");
     }
 
     /** hospital.js에 신규 핵심 식별자(togglePane / renderEmptyStateChips / initSearchUx / 검색 가격 카드 / hover) 가 있어야 한다. */
@@ -374,14 +371,14 @@ class FrontendStaticCheckTest {
     @Test
     void sortTabsAreWiredToBackendSortParam() throws IOException {
         String hospitalJs = read("static/js/hospital.js");
-        assertThat(hospitalJs).contains("const renderSortTabs");
+        assertThat(hospitalJs).contains("const renderWeightSlider");
         assertThat(hospitalJs).contains("_currentSort");
         assertThat(hospitalJs).contains("'mp.sort'");
         // /search 호출에 sort 파라미터 첨부
         assertThat(hospitalJs).contains("sort: _currentSort");
 
         String hospitalsJsp = read("WEB-INF/views/hospitals.jsp");
-        assertThat(hospitalsJsp).contains("id=\"sort-tabs\"");
+        assertThat(hospitalsJsp).contains("id=\"weight-slider\"");
     }
 
     /** 상세 progressive rendering — /basics, /extras 분리 호출. */
