@@ -561,8 +561,8 @@ const renderHospitalCard = (hospital) => {
            data-lng="${lng}"
            class="hospital-card block hover:opacity-95 transition-all cursor-pointer"
            style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
-            <div class="bg-white rounded-2xl px-4 py-3.5">
-                <div class="flex items-start gap-2 mb-1">
+            <div class="bg-white rounded-2xl px-4 py-3">
+                <div class="flex items-start gap-2">
                     <button type="button"
                             data-ykiho="${ykihoAttr}"
                             data-favorited="false"
@@ -579,19 +579,19 @@ const renderHospitalCard = (hospital) => {
                     </button>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="font-bold text-gray-900 text-sm lg:text-base leading-snug">${escapeHtml(hospital.yadmNm ?? '')}</p>
+                            <p class="font-bold text-gray-900 text-sm lg:text-base leading-tight">${escapeHtml(hospital.yadmNm ?? '')}</p>
                             <div class="flex-shrink-0 text-right ml-2">
                                 ${matchedLabel}
                                 ${priceBlock}
                                 ${statLabel}
                             </div>
                         </div>
-                        <div class="flex items-center gap-1.5 mt-1">
+                        <div class="flex items-center gap-1.5 mt-0.5">
                             ${typeBadge}
                             ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300">·</span>' : ''}
                             ${distBadge}
                         </div>
-                        <p class="text-xs text-gray-400 mt-1 leading-snug" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(hospital.addr ?? '')}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 leading-snug" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(hospital.addr ?? '')}</p>
                     </div>
                 </div>
             </div>

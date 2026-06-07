@@ -188,7 +188,7 @@
 
         <%-- 정렬 토글: [추천 | 가격순 | 가까운 순]. 백엔드 /api/hospitals/search 의 sort 파라미터에 매핑. --%>
         <%-- 가중치 슬라이더(mixed 모드 전용)는 renderWeightSlider가 #weight-slider에 주입. --%>
-        <div class="px-4 pb-2">
+        <div class="px-4 pt-1.5 pb-2.5">
             <div id="weight-slider"></div>
         </div>
 

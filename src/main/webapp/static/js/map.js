@@ -190,18 +190,18 @@ const buildPinHtml = (name, price, isCheapest) => {
     const safeName = String(name ?? '');
     const shortName = safeName.length > 9 ? safeName.slice(0, 9) + '…' : safeName;
     const safeShortName = escapeHtml(shortName);
-    // price가 표시에 합류할 미래 케이스에 대비해 형 변환 후 escape — 현재는 unused이지만 안전 패턴 유지.
-    const safePrice = price == null ? '' : escapeHtml(String(price));
-    void safePrice;
+    const priceText = price != null ? escapeHtml(Number(price).toLocaleString('ko-KR') + '원') : null;
     const bg        = isCheapest ? '#2563EB' : '#fff';
     const color     = isCheapest ? '#fff'    : '#374151';
+    const priceColor = isCheapest ? 'rgba(255,255,255,0.85)' : '#2563EB';
     const border    = isCheapest ? 'none'    : '1px solid #E5E7EB';
     const shadow    = isCheapest ? '0 3px 8px rgba(37,99,235,0.38)' : '0 2px 6px rgba(0,0,0,0.12)';
     const stemColor = isCheapest ? '#2563EB' : '#D1D5DB';
 
     return `<div style="transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;cursor:pointer;">
-        <div style="background:${bg};border:${border};border-radius:8px;padding:3px 8px;box-shadow:${shadow};white-space:nowrap;">
-            <span style="font-size:11px;font-weight:${isCheapest ? '700' : '500'};color:${color};">${safeShortName}</span>
+        <div style="background:${bg};border:${border};border-radius:8px;padding:3px 8px;box-shadow:${shadow};white-space:nowrap;text-align:center;">
+            <div style="font-size:11px;font-weight:${isCheapest ? '700' : '500'};color:${color};">${safeShortName}</div>
+            ${priceText ? `<div style="font-size:10px;font-weight:600;color:${priceColor};margin-top:1px;">${priceText}</div>` : ''}
         </div>
         <div style="width:2px;height:5px;background:${stemColor};"></div>
         <div style="width:5px;height:5px;border-radius:50%;background:${stemColor};"></div>
