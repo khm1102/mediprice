@@ -188,6 +188,19 @@ const renderEmptyStateChips = async (keyword) => {
  * 데스크톱: 카드 hover → 지도 마커 강조. 모바일/터치 디바이스(`(hover: none)`)는 무동작.
  * 위임 방식(컨테이너에 한 번만 부착)으로 추가/제거되는 카드에도 안전.
  */
+// 상세 패널이 열려있는 병원 ykiho — 이 병원의 핀은 mouseout에서도 highlight 유지
+let _selectedMarkerYkiho = null;
+
+const setSelectedMarker = (ykiho) => {
+    _selectedMarkerYkiho = ykiho;
+    if (ykiho) highlightMarker?.(ykiho);
+};
+
+const clearSelectedMarker = () => {
+    _selectedMarkerYkiho = null;
+    clearMarkerHighlight?.();
+};
+
 const attachCardHoverHighlight = (listEl) => {
     if (!listEl) return;
     const canHover = window.matchMedia('(hover: hover)').matches;
@@ -204,9 +217,13 @@ const attachCardHoverHighlight = (listEl) => {
     listEl.addEventListener('mouseout', (e) => {
         const card = e.target.closest?.('.hospital-card[data-ykiho]');
         const to = e.relatedTarget?.closest?.('.hospital-card[data-ykiho]');
-        // 같은 카드 안의 자식 요소 간 이동은 무시.
         if (card && card === to) return;
-        clearMarkerHighlight?.();
+        // 선택된(패널 열린) 병원은 mouseout에서도 highlight 유지
+        if (_selectedMarkerYkiho) {
+            highlightMarker?.(_selectedMarkerYkiho);
+        } else {
+            clearMarkerHighlight?.();
+        }
     });
 };
 
@@ -736,7 +753,7 @@ const showHospitalList = () => {
     _detailAbort?.abort();
     _detailAbort = null;
     clearHospitalHighlight();
-    clearMarkerHighlight?.();
+    clearSelectedMarker();
 };
 
 // ── 상세 패널 섹션 초기화  ────────────────────────────
@@ -965,7 +982,7 @@ const showHospitalInPanel = async (ykiho, dist, keyword, lat, lng) => {
     pd.classList.add('open');
     document.getElementById('pd-backdrop')?.classList.add('open');
     clearHospitalHighlight();
-    highlightMarker?.(ykiho);
+    setSelectedMarker(ykiho);
 
     if (lat && lng) focusMapOnHospital?.(parseFloat(lat), parseFloat(lng));
 

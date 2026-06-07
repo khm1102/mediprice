@@ -53,8 +53,8 @@
 
         <%-- 베타 설문 링크 --%>
         <a href="https://forms.gle/d4fVKeFnV2PFr8pXA" target="_blank" rel="noopener noreferrer"
-           class="text-xs text-[#2563EB] font-medium hover:underline underline-offset-2 flex items-center gap-1 mx-auto">
-            베타 서비스 설문조사 참여하기
+           class="text-[11px] text-[#2563EB] font-medium hover:underline underline-offset-2 flex items-center gap-1 mx-auto whitespace-nowrap">
+            설문조사 참여하기
             <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
