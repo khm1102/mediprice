@@ -13,34 +13,35 @@
     html, body { overflow: hidden; height: 100%; }
     main { height: calc(100vh - 3.5rem); min-height: 0; overflow: hidden; }
 
-    /* ── 모바일 기본 (≤1023px): 검색바 / segmented / pane(list or map) ── */
+    /* ── 모바일 기본 (≤1023px): 검색바 / 지도 / 목록 — 지도+목록 동시 노출 ── */
     .hospitals-grid {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto 40vw 1fr;
         grid-template-areas:
             "search"
-            "main";
+            "map"
+            "list";
         height: 100%;
     }
-    .main-stack { grid-area: main; position: relative; overflow: hidden; }
-    .map-area   { position: absolute; inset: 0; }
-    #panel-list { position: absolute; inset: 0; overflow-y: auto; }
+    .main-stack { display: contents; }
+    .map-area   { grid-area: map; position: relative; overflow: hidden; }
+    #panel-list { grid-area: list; position: relative; overflow-y: auto; }
 
-    /* pane 토글은 모바일에서만 의미가 있다. 데스크톱에선 list/map이 grid-area로 분리되므로 무력화한다. */
+    /* 모바일에서 pane 토글 불필요 — 항상 둘 다 보임 */
     @media (max-width: 1023px) {
-        .pane-hidden { display: none !important; }
+        .pane-hidden { display: block !important; }
     }
 
-    /* segmented control은 모바일에서만 노출 */
-    #mobile-pane-tabs { display: flex; }
+    /* segmented control 모바일에서 숨김 */
+    #mobile-pane-tabs { display: none; }
 
-    /* ── 모바일 상세: 하단 시트(90dvh 가까이 덮음, 헤더는 남김) ── */
+    /* ── 모바일 상세: 하단 시트 (목록 영역 위를 덮음) ── */
     #panel-detail {
         position: fixed;
         left: 0; right: 0; bottom: 0;
-        top: 3.5rem;
-        height: auto;
+        top: auto;
+        height: 70dvh;
         z-index: 200;
         background: #F2F4F6;
         border-radius: 20px 20px 0 0;
@@ -107,24 +108,34 @@
         #pd-backdrop.open { opacity: 1; pointer-events: auto; }
     }
 
-    /* ── 데스크톱 xl (1280px+): 우측 슬라이드 패널 (3-col) ── */
+    /* ── 모바일: 슬라이더 compact -─ */
+    @media (max-width: 1023px) {
+        #weight-slider { padding: 0 0 4px; }
+        #weight-slider .slider-label { font-size: 10px; }
+    }
+
+    /* ── 데스크톱 xl (1280px+): 리스트 오른쪽에 붙는 슬라이드 패널 ── */
     @media (min-width: 1280px) {
         #panel-detail {
             position: fixed;
-            top: 3.5rem; right: 0; bottom: 0; left: auto;
-            transform: translateX(110%);
-            width: 420px;
+            top: 3.5rem; left: 360px; bottom: 0; right: auto;
+            width: 380px;
             max-height: none;
             height: auto;
             border-radius: 0;
             background: #F2F4F6;
-            box-shadow: -4px 0 20px rgba(0,0,0,0.12);
-            opacity: 1;
-            pointer-events: auto;
-            transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.10);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-12px);
+            transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease;
             z-index: 210;
         }
-        #panel-detail.open { transform: translateX(0); }
+        #panel-detail.open {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
         #pd-backdrop { display: none !important; }
     }
 </style>
@@ -154,7 +165,7 @@
             <%-- 자동완성 dropdown — input 바로 아래 절대 위치 --%>
             <div id="search-suggestions"
                  role="listbox"
-                 class="hidden absolute left-4 right-4 top-[3.4rem] z-30 bg-white rounded-xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto"
+                 class="hidden fixed z-50 bg-white rounded-xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto"
                  style="box-shadow: 0 8px 24px rgba(0,0,0,0.10);"></div>
         </div>
 
@@ -175,16 +186,10 @@
             </button>
         </div>
 
-        <%-- 인기 항목 칩 (가로 스크롤) --%>
-        <div class="px-4 pb-2 pt-2 overflow-x-auto">
-            <div id="quick-chips" class="flex gap-1.5 whitespace-nowrap"></div>
-        </div>
-
         <%-- 정렬 토글: [추천 | 가격순 | 가까운 순]. 백엔드 /api/hospitals/search 의 sort 파라미터에 매핑. --%>
         <%-- 가중치 슬라이더(mixed 모드 전용)는 renderWeightSlider가 #weight-slider에 주입. --%>
         <div class="px-4 pb-2">
-            <div id="sort-tabs" class="flex gap-1.5"></div>
-            <div id="weight-slider" class="hidden mt-2"></div>
+            <div id="weight-slider"></div>
         </div>
 
         <%-- 모바일 segmented control: 목록 / 지도 토글 (데스크톱에선 hidden) --%>
@@ -421,11 +426,15 @@
                         <span class="text-xs">진료비 정보를 불러오는 중...</span>
                     </div>
                     <div id="pd-price-empty" class="hidden text-center py-8 text-gray-400 text-sm">등록된 비급여 진료비 정보가 없습니다</div>
-                    <table id="pd-price-table" class="w-full hidden">
+                    <table id="pd-price-table" class="w-full hidden" style="table-layout:fixed;">
+                        <colgroup>
+                            <col style="width:auto;">
+                            <col style="width:80px;">
+                        </colgroup>
                         <thead>
                             <tr class="text-left text-xs text-gray-400 border-b border-gray-200">
                                 <th class="pb-3 font-medium">항목명</th>
-                                <th class="pb-3 font-medium text-right whitespace-nowrap w-px">가격</th>
+                                <th class="pb-3 font-medium text-right">가격</th>
                             </tr>
                         </thead>
                         <tbody id="pd-price-tbody" class="divide-y divide-gray-100"></tbody>

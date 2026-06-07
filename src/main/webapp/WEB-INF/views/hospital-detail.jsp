@@ -140,11 +140,15 @@
                 등록된 비급여 진료비 정보가 없습니다
             </div>
 
-            <table id="price-table" class="w-full hidden">
+            <table id="price-table" class="w-full hidden" style="table-layout:fixed;">
+                <colgroup>
+                    <col style="width:auto;">
+                    <col style="width:90px;">
+                </colgroup>
                 <thead>
                     <tr class="text-left text-xs text-gray-400 border-b border-gray-200">
                         <th class="pb-3 font-medium">항목명</th>
-                        <th class="pb-3 font-medium text-right whitespace-nowrap w-px">가격</th>
+                        <th class="pb-3 font-medium text-right">가격</th>
                     </tr>
                 </thead>
                 <tbody id="price-tbody" class="divide-y divide-gray-100"></tbody>

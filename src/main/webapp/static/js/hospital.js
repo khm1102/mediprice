@@ -277,8 +277,7 @@ const initSearchUx = async () => {
         });
     }
 
-    // 정렬 모드 segmented control — 사용자가 클릭하면 같은 keyword로 재검색.
-    renderSortTabs();
+    renderWeightSlider();
 };
 
 // npayCd → 그룹명 반환 (캐시 미준비 시 빈 문자열)
@@ -374,30 +373,36 @@ const _scheduleWeightRefetch = () => {
 const renderWeightSlider = () => {
     const container = document.getElementById('weight-slider');
     if (!container) return;
-    if (_currentSort !== 'mixed') {
-        container.classList.add('hidden');
-        container.innerHTML = '';
-        return;
-    }
-    container.classList.remove('hidden');
+    // 항상 mixed 모드로 슬라이더만 표시
+    _setCurrentSort('mixed');
     const pct = Math.round(_currentWPrice * 100);
+    const isMobile = window.innerWidth < 1024;
     container.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span class="text-[10px] text-gray-500 font-medium">거리</span>
-            <input type="range" min="0" max="1" step="0.05"
-                   value="${_currentWPrice}"
-                   data-weight-slider
-                   aria-label="가격 가중치 (0=거리만, 1=가격만)"
-                   class="flex-1 h-1 accent-[#2563EB]" />
-            <span class="text-[10px] text-gray-500 font-medium">가격</span>
-            <span data-weight-readout class="ml-1 text-[10px] text-[#2563EB] font-semibold tabular-nums w-9 text-right">${pct}%</span>
+        <div class="${isMobile ? 'py-1' : 'py-0'}">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] text-gray-400 slider-label">정렬 기준</span>
+                <span data-weight-readout class="text-[10px] text-[#2563EB] font-semibold tabular-nums slider-label">
+                    ${pct < 30 ? '거리 우선' : pct > 70 ? '가격 우선' : '거리 · 가격 혼합'}
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-400 whitespace-nowrap slider-label">거리</span>
+                <input type="range" min="0" max="1" step="0.05"
+                       value="${_currentWPrice}"
+                       data-weight-slider
+                       aria-label="정렬 기준 (0=거리 우선, 1=가격 우선)"
+                       class="flex-1 h-1 accent-[#2563EB]" />
+                <span class="text-[10px] text-gray-400 whitespace-nowrap slider-label">가격</span>
+            </div>
         </div>`;
     const slider = container.querySelector('[data-weight-slider]');
     const readout = container.querySelector('[data-weight-readout]');
     slider?.addEventListener('input', (e) => {
         const v = parseFloat(e.target.value);
         _setCurrentWPrice(v);
-        if (readout) readout.textContent = `${Math.round(v * 100)}%`;
+        if (readout) {
+            readout.textContent = v < 0.3 ? '거리 우선' : v > 0.7 ? '가격 우선' : '거리 · 가격 혼합';
+        }
         _scheduleWeightRefetch();
     });
 };
@@ -542,6 +547,13 @@ const renderHospitalCard = (hospital) => {
     const addrLine = [escapeHtml(hospital.addr ?? ''), escapeHtml(formatDistance(hospital.distance))]
         .filter(Boolean).join(' · ');
 
+    const typeBadge = (hospital.clCdNm ?? '').trim()
+        ? `<span class="text-[10px] text-gray-400 font-medium">${escapeHtml(hospital.clCdNm)}</span>`
+        : '';
+    const distBadge = hospital.distance != null
+        ? `<span class="text-[10px] text-gray-400">${escapeHtml(formatDistance(hospital.distance))}</span>`
+        : '';
+
     return `
         <div data-ykiho="${ykihoAttr}"
            data-distance="${hospital.distance ?? 0}"
@@ -549,32 +561,37 @@ const renderHospitalCard = (hospital) => {
            data-lng="${lng}"
            class="hospital-card block hover:opacity-95 transition-all cursor-pointer"
            style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
-            <div class="bg-white rounded-2xl p-4 min-h-[88px]">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-2 flex-1 min-w-0">
-                        <button type="button"
-                                data-ykiho="${ykihoAttr}"
-                                data-favorited="false"
-                                class="fav-btn flex-shrink-0 mt-0.5 p-1 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
-                                title="즐겨찾기 추가">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
-                                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
-                                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
-                                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
-                                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
-                                         00.951-.69l1.519-4.674z"/>
-                            </svg>
-                        </button>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-gray-900 text-sm truncate">${nameLine}</p>
-                            <p class="text-xs text-gray-400 mt-1 truncate">${addrLine}</p>
+            <div class="bg-white rounded-2xl px-4 py-3.5">
+                <div class="flex items-start gap-2 mb-1">
+                    <button type="button"
+                            data-ykiho="${ykihoAttr}"
+                            data-favorited="false"
+                            class="fav-btn flex-shrink-0 mt-0.5 p-0.5 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
+                            title="즐겨찾기 추가">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                                     00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                                     00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                                     1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                                     1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                                     00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="font-bold text-gray-900 text-sm lg:text-base leading-snug">${escapeHtml(hospital.yadmNm ?? '')}</p>
+                            <div class="flex-shrink-0 text-right ml-2">
+                                ${matchedLabel}
+                                ${priceBlock}
+                                ${statLabel}
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex-shrink-0 text-right pt-0.5">
-                        ${matchedLabel}
-                        ${priceBlock}
-                        ${statLabel}
+                        <div class="flex items-center gap-1.5 mt-1">
+                            ${typeBadge}
+                            ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300">·</span>' : ''}
+                            ${distBadge}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1 leading-snug" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(hospital.addr ?? '')}</p>
                     </div>
                 </div>
             </div>
@@ -584,9 +601,25 @@ const renderHospitalCard = (hospital) => {
 // ── 검색 결과 ykiho 맵 (상세 즉시 렌더링용) ──────────────────────────────────
 let _hospitalMap = {};
 
+// ── 테스트용 더미 데이터 ──────────────────────────────────────────────────────
+const _DUMMY_HOSPITALS = [
+    { ykiho: 'TEST001', yadmNm: '테스트병원 강남점', clCdNm: '의원', addr: '서울특별시 강남구 테헤란로 123', lat: 37.5012, lng: 127.0396, distance: 320, curAmt: 35000, matchedNpayKorNm: '이학요법료/도수치료', avgAmt: 60000, diffPct: -42 },
+    { ykiho: 'TEST002', yadmNm: '메디프라이스재활의학과의원', clCdNm: '의원', addr: '서울특별시 서초구 서초대로 456', lat: 37.4969, lng: 127.0278, distance: 850, curAmt: 50000, matchedNpayKorNm: '이학요법료/도수치료', avgAmt: 60000, diffPct: -17 },
+    { ykiho: 'TEST003', yadmNm: '서울정형외과병원', clCdNm: '병원', addr: '서울특별시 강남구 논현로 789', lat: 37.5100, lng: 127.0285, distance: 1200, curAmt: 80000, matchedNpayKorNm: '이학요법료/도수치료', avgAmt: 60000, diffPct: 33 },
+    { ykiho: 'TEST004', yadmNm: '강남척추관절병원', clCdNm: '병원', addr: '서울특별시 강남구 역삼로 321', lat: 37.4980, lng: 127.0350, distance: 1800, curAmt: 45000, matchedNpayKorNm: '이학요법료/도수치료', avgAmt: 60000, diffPct: -25 },
+    { ykiho: 'TEST005', yadmNm: '청담통증의학과의원', clCdNm: '의원', addr: '서울특별시 강남구 청담동 111', lat: 37.5220, lng: 127.0470, distance: 2500, curAmt: 60000, matchedNpayKorNm: '이학요법료/도수치료', avgAmt: 60000, diffPct: 0 },
+];
+
 const fetchHospitals = async (keyword) => {
     if (!keyword?.trim()) {
         showState('state-prompt');
+        return;
+    }
+
+    // 테스트 모드
+    if (keyword.trim() === '테스트') {
+        hideReSearchBtn?.();
+        renderHospitalResults(keyword, _DUMMY_HOSPITALS);
         return;
     }
 
@@ -885,8 +918,8 @@ const _renderBasicsSection = async (h, kw) => {
             const segs = (p.npayKorNm ?? '').split('/');
             const disp = groups.length > 1 ? (segs.slice(1).join(' / ').trim() || segs[0]) : p.npayKorNm ?? '';
             rows.push(`<tr>
-                <td class="py-2.5 pr-3 text-sm leading-snug" style="word-break:keep-all;color:${group.matched?'#111827':'#6B7280'};">${escapeHtml(disp)}</td>
-                <td class="py-2.5 text-right text-sm whitespace-nowrap w-px" style="font-weight:${group.matched?'700':'500'};color:${group.matched?'#2563EB':'#9CA3AF'};">${escapeHtml(formatPrice(p.curAmt))}</td>
+                <td class="py-2.5 pr-3 text-sm leading-snug" style="word-break:break-all;color:${group.matched?'#111827':'#6B7280'};">${escapeHtml(disp)}</td>
+                <td class="py-2.5 text-right text-sm" style="font-weight:${group.matched?'700':'500'};color:${group.matched?'#2563EB':'#9CA3AF'};white-space:nowrap;">${escapeHtml(formatPrice(p.curAmt))}</td>
             </tr>`);
         });
     });
@@ -1262,11 +1295,11 @@ const fetchHospitalDetail = async (ykiho) => {
                     rows.push(`
                         <tr>
                             <td class="py-2.5 pr-3 text-sm leading-snug"
-                                style="word-break:keep-all; color:${group.matched ? '#111827' : '#6B7280'};">
+                                style="word-break:break-all; color:${group.matched ? '#111827' : '#6B7280'};">
                                 ${escapeHtml(displayName)}
                             </td>
-                            <td class="py-2.5 text-right text-sm whitespace-nowrap w-px"
-                                style="font-weight:${group.matched ? '700' : '500'};
+                            <td class="py-2.5 text-right text-sm"
+                                style="white-space:nowrap; font-weight:${group.matched ? '700' : '500'};
                                        color:${group.matched ? '#2563EB' : '#9CA3AF'};">
                                 ${escapeHtml(formatPrice(p.curAmt))}
                             </td>

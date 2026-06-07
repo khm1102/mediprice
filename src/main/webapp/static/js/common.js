@@ -191,6 +191,11 @@ const attachSuggestionInput = ({ input, dropdown, loadItems, onSelect, fallbackK
                     ${sub ? `<span class="text-[11px] text-gray-400 flex-shrink-0">${sub}</span>` : ''}
                 </button>`;
         }).join('');
+        // fixed 위치 동적 계산 — input 아래 정렬
+        const rect = input.getBoundingClientRect();
+        dropdown.style.top  = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = rect.width + 'px';
         dropdown.classList.remove('hidden');
         dropdown.querySelectorAll('.suggestion-row').forEach(btn => {
             // mousedown으로 처리 — input의 blur보다 먼저 발화해 dropdown이 닫히기 전 선택을 보장.
