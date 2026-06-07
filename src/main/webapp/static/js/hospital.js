@@ -595,7 +595,6 @@ const renderHospitalCard = (hospital) => {
                         <div class="flex items-start justify-between gap-2">
                             <p class="font-bold text-gray-900 text-sm lg:text-base leading-tight">${escapeHtml(hospital.yadmNm ?? '')}</p>
                             <div class="flex-shrink-0 text-right ml-2">
-                                ${matchedLabel}
                                 ${priceBlock}
                                 ${statLabel}
                             </div>
