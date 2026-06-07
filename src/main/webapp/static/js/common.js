@@ -182,13 +182,15 @@ const attachSuggestionInput = ({ input, dropdown, loadItems, onSelect, fallbackK
             return;
         }
         dropdown.innerHTML = rs.map((it, i) => {
-            const name = escapeHtml(it.npayKorNm ?? '');
-            const sub = escapeHtml(it.mdivCdNm ?? '');
+            const fullName = it.npayKorNm ?? '';
+            const segments = fullName.split('/');
+            const display = segments.length > 1
+                ? escapeHtml(segments.slice(1).join('/').trim())
+                : escapeHtml(segments[0].trim());
             return `
                 <button type="button" data-idx="${i}"
-                        class="suggestion-row w-full text-left px-3.5 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-3 ${i === activeIdx ? 'bg-gray-50' : ''}">
-                    <span class="text-sm text-gray-800 truncate">${name}</span>
-                    ${sub ? `<span class="text-[11px] text-gray-400 flex-shrink-0">${sub}</span>` : ''}
+                        class="suggestion-row w-full text-left px-3.5 py-2.5 hover:bg-gray-50 flex items-center ${i === activeIdx ? 'bg-gray-50' : ''}">
+                    <span class="text-sm text-gray-800">${display}</span>
                 </button>`;
         }).join('');
         // fixed 위치 동적 계산 — input 아래 정렬

@@ -599,10 +599,11 @@ const renderHospitalCard = (hospital) => {
                                 ${statLabel}
                             </div>
                         </div>
-                        <div class="flex items-center gap-1.5 mt-0.5">
+                        <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                             ${typeBadge}
-                            ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300">·</span>' : ''}
+                            ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300 flex-shrink-0">·</span>' : ''}
                             ${distBadge}
+                            ${hospital.addr ? `<span class="text-[10px] text-gray-300 flex-shrink-0">·</span><span class="text-[10px] text-gray-400 truncate">${escapeHtml(hospital.addr)}</span>` : ''}
                         </div>
                     </div>
                 </div>

@@ -5,9 +5,9 @@
 
 <script type="text/javascript"
     src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKey}"></script>
-<script src="<c:url value='/static/js/MarkerClustering.js'/>?v=20260607-ux4"></script>
-<script defer src="<c:url value='/static/js/map.js'/>?v=20260607-ux4"></script>
-<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260607-ux4"></script>
+<script src="<c:url value='/static/js/MarkerClustering.js'/>?v=20260607-ux5"></script>
+<script defer src="<c:url value='/static/js/map.js'/>?v=20260607-ux5"></script>
+<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260607-ux5"></script>
 
 <style>
     html, body { overflow: hidden; height: 100%; }
@@ -17,7 +17,7 @@
     .hospitals-grid {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: auto 40vw 1fr;
+        grid-template-rows: auto 55vw 1fr;
         grid-template-areas:
             "search"
             "map"
@@ -165,7 +165,7 @@
             <%-- 자동완성 dropdown — input 바로 아래 절대 위치 --%>
             <div id="search-suggestions"
                  role="listbox"
-                 class="hidden fixed z-50 bg-white rounded-xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto"
+                 class="hidden fixed z-[500] bg-white rounded-xl border border-gray-200 overflow-hidden max-h-64 overflow-y-auto"
                  style="box-shadow: 0 8px 24px rgba(0,0,0,0.10);"></div>
         </div>
 
