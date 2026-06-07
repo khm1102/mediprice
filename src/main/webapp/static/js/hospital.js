@@ -563,20 +563,34 @@ const renderHospitalCard = (hospital) => {
            style="box-shadow: 0 2px 10px rgba(0,0,0,0.09); border-radius: 1rem;">
             <div class="bg-white rounded-2xl px-4 py-3">
                 <div class="flex items-start gap-2">
-                    <button type="button"
-                            data-ykiho="${ykihoAttr}"
-                            data-favorited="false"
-                            class="fav-btn flex-shrink-0 mt-0.5 p-0.5 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
-                            title="즐겨찾기 추가">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
-                                     00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
-                                     00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
-                                     1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
-                                     1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
-                                     00.951-.69l1.519-4.674z"/>
-                        </svg>
-                    </button>
+                    <div class="flex flex-col gap-1 flex-shrink-0">
+                        <button type="button"
+                                data-ykiho="${ykihoAttr}"
+                                data-favorited="false"
+                                class="fav-btn p-0.5 rounded-lg transition-colors text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
+                                title="즐겨찾기 추가">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0
+                                         00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0
+                                         00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1
+                                         1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1
+                                         1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0
+                                         00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </button>
+                        <a href="https://map.naver.com/p/search/${encodeURIComponent(hospital.addr ?? hospital.yadmNm ?? '')}"
+                           target="_blank" rel="noopener noreferrer"
+                           onclick="event.stopPropagation()"
+                           class="p-0.5 rounded-lg transition-colors text-gray-300 hover:text-[#2563EB] hover:bg-blue-50"
+                           title="네이버 지도로 보기">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </a>
+                    </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-2">
                             <p class="font-bold text-gray-900 text-sm lg:text-base leading-tight">${escapeHtml(hospital.yadmNm ?? '')}</p>
@@ -591,7 +605,6 @@ const renderHospitalCard = (hospital) => {
                             ${typeBadge && distBadge ? '<span class="text-[10px] text-gray-300">·</span>' : ''}
                             ${distBadge}
                         </div>
-                        <p class="text-xs text-gray-400 mt-0.5 leading-snug" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(hospital.addr ?? '')}</p>
                     </div>
                 </div>
             </div>
