@@ -26,6 +26,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -176,5 +177,4 @@ public class SecurityConfig {
         response.getWriter().write(jsonMapper.writeValueAsString(ApiResponse.error(errorCode)));
     }
 
-    /**
 }
