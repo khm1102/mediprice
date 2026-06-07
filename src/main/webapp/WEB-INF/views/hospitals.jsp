@@ -5,9 +5,9 @@
 
 <script type="text/javascript"
     src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKey}"></script>
-<script src="<c:url value='/static/js/MarkerClustering.js'/>?v=20260606-ux2"></script>
-<script defer src="<c:url value='/static/js/map.js'/>?v=20260606-ux2"></script>
-<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260606-ux2"></script>
+<script src="<c:url value='/static/js/MarkerClustering.js'/>?v=20260607-ux3"></script>
+<script defer src="<c:url value='/static/js/map.js'/>?v=20260607-ux3"></script>
+<script defer src="<c:url value='/static/js/hospital.js'/>?v=20260607-ux3"></script>
 
 <style>
     html, body { overflow: hidden; height: 100%; }
