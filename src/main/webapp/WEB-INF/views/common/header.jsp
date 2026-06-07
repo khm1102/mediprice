@@ -36,9 +36,9 @@
         }};
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="<c:url value='/static/js/api.js'/>?v=20260607-ux5"></script>
-    <script defer src="<c:url value='/static/js/auth.js'/>?v=20260607-ux5"></script>
-    <script defer src="<c:url value='/static/js/common.js'/>?v=20260607-ux5"></script>
+    <script defer src="<c:url value='/static/js/api.js'/>?v=20260607-ux6"></script>
+    <script defer src="<c:url value='/static/js/auth.js'/>?v=20260607-ux6"></script>
+    <script defer src="<c:url value='/static/js/common.js'/>?v=20260607-ux6"></script>
 </head>
 <body class="bg-[#F9FAFB] min-h-screen flex flex-col">
 
@@ -46,7 +46,7 @@
 <div id="survey-banner" class="bg-[#EFF6FF] border-b border-blue-100">
     <div class="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
         <p class="text-xs text-[#1D4ED8] flex-1 text-center">
-            🎉 MediPrice 베타 서비스 중이에요!
+            MediPrice 베타 서비스 중입니다
             <a id="survey-link" href="#" target="_blank" rel="noopener noreferrer"
                class="font-semibold underline underline-offset-2 hover:text-blue-800 ml-1">
                 설문조사 참여하기 →

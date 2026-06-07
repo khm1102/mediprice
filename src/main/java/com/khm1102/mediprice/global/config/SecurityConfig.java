@@ -23,9 +23,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -74,10 +71,9 @@ public class SecurityConfig {
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, CorsConfigurationSource corsSource) {
         http
                 .securityMatcher("/api/**")
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        // 배치 내부 트리거는 X-Batch-Admin-Secret으로 별도 보호한다. 브라우저 폼/쿠키 기반 API와 분리.
-                        .ignoringRequestMatchers("/api/internal/**"))
+                // mp_token 쿠키가 SameSite=Lax/Strict로 발급되므로 크로스사이트 POST가 차단된다.
+                // Spring Security 6/7의 deferred CSRF materialization 불안정 이슈로 CSRF 비활성화.
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsSource))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -97,7 +93,6 @@ public class SecurityConfig {
                         .authenticationEntryPoint(apiAuthenticationEntryPoint())
                         .accessDeniedHandler(apiAccessDeniedHandler())
                 )
-                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -109,16 +104,12 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain pageSecurityFilterChain(HttpSecurity http, CorsConfigurationSource corsSource) {
         http
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
-                // 현재 corsSource는 /api/** 매핑만 등록 — 페이지 경로엔 자동 미적용.
-                // 향후 페이지 흐름에 cross-origin이 필요한 경로가 생겨도 SecurityFilterChain은 이미 활성화됨.
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsSource))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 현재는 모든 페이지 permitAll. P2 로그인 도입 시 /auth/** 외엔 authenticated + formLogin redirect 추가.
                         .anyRequest().permitAll()
-                )
-                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class);
+                );
         return http.build();
     }
 
