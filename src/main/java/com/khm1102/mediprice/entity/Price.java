@@ -43,4 +43,17 @@ public class Price extends AbstractAuditEntity {
 
     @Column(name = "adt_end_dd", length = 8)
     private String adtEndDd;
+
+    /**
+     * 가격 배치 재적재 시 null 금액/기간이 기존 현행 가격을 비우지 않게 한다.
+     */
+    public void updateFromBatch(Price source) {
+        this.curAmt = keepExistingIfNull(source.curAmt, this.curAmt);
+        this.adtFrDd = keepExistingIfNull(source.adtFrDd, this.adtFrDd);
+        this.adtEndDd = keepExistingIfNull(source.adtEndDd, this.adtEndDd);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }

@@ -3,6 +3,8 @@ package com.khm1102.mediprice.batch.price;
 import com.khm1102.mediprice.client.HiraNonPayClient;
 import com.khm1102.mediprice.client.hira.common.HiraBody;
 import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
+import com.khm1102.mediprice.entity.Price;
+import com.khm1102.mediprice.entity.PriceId;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -154,7 +156,7 @@ class PriceYkihoSyncServiceTest {
 
         assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
         assertThat(result.saved()).isEqualTo(1);
-        verify(em).merge(any());
+        verify(em).persist(any());
     }
 
     /** isActive=false 항목은 saved 카운트되지 않고 활성 집합에도 들어가지 않는다. */
@@ -168,7 +170,31 @@ class PriceYkihoSyncServiceTest {
 
         assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
         assertThat(result.saved()).isEqualTo(1);
-        verify(em).merge(any());
+        verify(em).persist(any());
         verify(cleanupService).removeStaleByYkiho(eq("YK1"), eq(java.util.Set.of("N001")));
+    }
+
+    /** 기존 가격 row가 있을 때 HIRA의 null 금액/기간은 기존 값을 비우지 않는다. */
+    @Test
+    void existingPriceKeepsCurrentValuesWhenIncomingFieldsAreNull() {
+        Price existing = Price.builder()
+                .ykiho("YK1")
+                .npayCd("N001")
+                .curAmt(10000L)
+                .adtFrDd("20240101")
+                .adtEndDd("99991231")
+                .build();
+        when(client.searchHospPriceDetail("YK1", 1, 100))
+                .thenReturn(normalBody(1, 1, List.of(
+                        new NonPayDtlItem("YK1", "N001", "name", null, null, "99991231"))));
+        when(em.find(eq(Price.class), eq(new PriceId("YK1", "N001")))).thenReturn(existing);
+
+        PriceYkihoSyncService.SyncResult result = service.saveOneYkiho("YK1");
+
+        assertThat(result.status()).isEqualTo(HiraBody.Status.NORMAL);
+        assertThat(existing.getCurAmt()).isEqualTo(10000L);
+        assertThat(existing.getAdtFrDd()).isEqualTo("20240101");
+        assertThat(existing.getAdtEndDd()).isEqualTo("99991231");
+        verify(em, never()).persist(any());
     }
 }

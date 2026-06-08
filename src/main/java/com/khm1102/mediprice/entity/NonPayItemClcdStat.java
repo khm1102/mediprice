@@ -57,4 +57,18 @@ public class NonPayItemClcdStat extends AbstractAuditEntity {
 
     @Column(name = "prc_max")
     private Long prcMax;
+
+    /**
+     * 동일 기준일 통계 재수신 시 일부 통계값 null이 기존 값을 지우지 않게 한다.
+     */
+    public void updateFromBatch(NonPayItemClcdStat source) {
+        this.prcAvg = keepExistingIfNull(source.prcAvg, this.prcAvg);
+        this.prcMid = keepExistingIfNull(source.prcMid, this.prcMid);
+        this.prcMin = keepExistingIfNull(source.prcMin, this.prcMin);
+        this.prcMax = keepExistingIfNull(source.prcMax, this.prcMax);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }

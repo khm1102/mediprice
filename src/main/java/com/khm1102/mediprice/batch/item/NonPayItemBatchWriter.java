@@ -28,7 +28,17 @@ public class NonPayItemBatchWriter {
         int saved = 0;
         for (NonPayCodeItem dto : page) {
             try {
-                em.merge(toEntity(dto));
+                NonPayItem incoming = toEntity(dto);
+                NonPayItem existing = em.find(NonPayItem.class, dto.npayCd());
+                if (existing == null) {
+                    if (incoming.getNpayKorNm() == null) {
+                        log.warn("NonPayItem 신규 row 필수값 누락 skip (npayCd={}, npayKorNm=null)", dto.npayCd());
+                        continue;
+                    }
+                    em.persist(incoming);
+                } else {
+                    existing.updateFromBatch(incoming);
+                }
                 saved++;
             } catch (Exception e) {
                 log.warn("NonPayItem 저장 실패 (npayCd={}): {}", dto.npayCd(), e.getMessage());

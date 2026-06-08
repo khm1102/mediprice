@@ -40,7 +40,17 @@ public class HospitalBatchWriter {
         int saved = 0;
         for (HospBasisItem dto : batch) {
             try {
-                em.merge(toEntity(dto));
+                Hospital incoming = toEntity(dto);
+                Hospital existing = em.find(Hospital.class, dto.ykiho());
+                if (existing == null) {
+                    if (incoming.getYadmNm() == null) {
+                        log.warn("Hospital 신규 row 필수값 누락 skip (ykiho={}, yadmNm=null)", dto.ykiho());
+                        continue;
+                    }
+                    em.persist(incoming);
+                } else {
+                    existing.updateFromBatch(incoming);
+                }
                 if (dto.xPos() != null && dto.yPos() != null) {
                     hospitalRepository.updateLocation(dto.ykiho(), dto.xPos(), dto.yPos());
                 }

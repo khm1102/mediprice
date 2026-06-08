@@ -64,34 +64,26 @@ public class NonPayItemDescBatchWriter {
                 .orElse(null);
 
         if (existingId == null) {
-            repository.save(NonPayItemDesc.builder()
-                    .divCd1(dto.divCd1())
-                    .divCd1Nm(dto.divCd1Nm())
-                    .divCd1Dsc(dto.divCd1Dsc())
-                    .divCd2(dto.divCd2())
-                    .divCd2Nm(dto.divCd2Nm())
-                    .divCd2Dsc(dto.divCd2Dsc())
-                    .divCd3(dto.divCd3())
-                    .divCd3Nm(dto.divCd3Nm())
-                    .divCd3Dsc(dto.divCd3Dsc())
-                    .build());
+            repository.save(toEntity(dto));
         } else {
-            em.createQuery("""
-                            UPDATE NonPayItemDesc d
-                            SET d.divCd1Nm = :n1, d.divCd1Dsc = :d1,
-                                d.divCd2Nm = :n2, d.divCd2Dsc = :d2,
-                                d.divCd3Nm = :n3, d.divCd3Dsc = :d3,
-                                d.updatedDttm = CURRENT_TIMESTAMP
-                            WHERE d.id = :id
-                            """)
-                    .setParameter("n1", dto.divCd1Nm())
-                    .setParameter("d1", dto.divCd1Dsc())
-                    .setParameter("n2", dto.divCd2Nm())
-                    .setParameter("d2", dto.divCd2Dsc())
-                    .setParameter("n3", dto.divCd3Nm())
-                    .setParameter("d3", dto.divCd3Dsc())
-                    .setParameter("id", existingId)
-                    .executeUpdate();
+            NonPayItemDesc existing = em.find(NonPayItemDesc.class, existingId);
+            if (existing != null) {
+                existing.updateFromBatch(toEntity(dto));
+            }
         }
+    }
+
+    private NonPayItemDesc toEntity(NonPayDescItem dto) {
+        return NonPayItemDesc.builder()
+                .divCd1(dto.divCd1())
+                .divCd1Nm(dto.divCd1Nm())
+                .divCd1Dsc(dto.divCd1Dsc())
+                .divCd2(dto.divCd2())
+                .divCd2Nm(dto.divCd2Nm())
+                .divCd2Dsc(dto.divCd2Dsc())
+                .divCd3(dto.divCd3())
+                .divCd3Nm(dto.divCd3Nm())
+                .divCd3Dsc(dto.divCd3Dsc())
+                .build();
     }
 }

@@ -36,7 +36,7 @@ class NonPayItemSidoStatBatchWriterTest {
         f.set(writer, em);
     }
 
-    /** All + 17 시도 모두 채워진 경우 18개 long row merge. */
+    /** All + 17 시도 모두 채워진 경우 18개 long row persist. */
     @Test
     void expandsAllPopulatedRegionsIntoLongRows() {
         NonPaySidoStatItem item = new NonPaySidoStatItem(
@@ -47,13 +47,12 @@ class NonPayItemSidoStatBatchWriterTest {
                 1L, 1L, 1L, 1L,  1L, 1L, 1L, 1L,  1L, 1L, 1L, 1L,  1L, 1L, 1L, 1L,
                 1L, 1L, 1L, 1L,  1L, 1L, 1L, 1L
         );
-        when(em.merge(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int saved = writer.saveBatch(List.of(item));
 
         assertThat(saved).isEqualTo(18);
         ArgumentCaptor<NonPayItemSidoStat> captor = ArgumentCaptor.forClass(NonPayItemSidoStat.class);
-        verify(em, times(18)).merge(captor.capture());
+        verify(em, times(18)).persist(captor.capture());
         assertThat(captor.getAllValues())
                 .extracting(NonPayItemSidoStat::getSidoKey)
                 .containsExactlyInAnyOrder(
@@ -86,7 +85,6 @@ class NonPayItemSidoStatBatchWriterTest {
                 null, null, null, null,
                 null, null, null, null,
                 null, null, null, null);
-        when(em.merge(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int saved = writer.saveBatch(List.of(item));
 

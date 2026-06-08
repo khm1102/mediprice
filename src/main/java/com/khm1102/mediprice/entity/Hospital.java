@@ -64,4 +64,26 @@ public class Hospital extends AbstractAuditEntity {
 
     @Column(name = "sggu_cd_nm", length = 100)
     private String sgguCdNm;
+
+    /**
+     * 배치 upsert 시 HIRA가 일시적으로 비운 optional 필드가 기존 DB 값을 null로 덮지 않게 한다.
+     * 필수값인 병원명도 기존 row에서는 null 입력이면 기존 값을 보존한다.
+     */
+    public void updateFromBatch(Hospital source) {
+        this.yadmNm = keepExistingIfNull(source.yadmNm, this.yadmNm);
+        this.clCd = keepExistingIfNull(source.clCd, this.clCd);
+        this.clCdNm = keepExistingIfNull(source.clCdNm, this.clCdNm);
+        this.addr = keepExistingIfNull(source.addr, this.addr);
+        this.xPos = keepExistingIfNull(source.xPos, this.xPos);
+        this.yPos = keepExistingIfNull(source.yPos, this.yPos);
+        this.telNo = keepExistingIfNull(source.telNo, this.telNo);
+        this.hospUrl = keepExistingIfNull(source.hospUrl, this.hospUrl);
+        this.drTotCnt = keepExistingIfNull(source.drTotCnt, this.drTotCnt);
+        this.sidoCdNm = keepExistingIfNull(source.sidoCdNm, this.sidoCdNm);
+        this.sgguCdNm = keepExistingIfNull(source.sgguCdNm, this.sgguCdNm);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }

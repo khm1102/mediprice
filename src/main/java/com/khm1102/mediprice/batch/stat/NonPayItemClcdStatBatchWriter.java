@@ -3,6 +3,7 @@ package com.khm1102.mediprice.batch.stat;
 import com.khm1102.mediprice.client.hira.stat.NonPayClcdStatItem;
 import com.khm1102.mediprice.client.hira.stat.StatValues;
 import com.khm1102.mediprice.entity.NonPayItemClcdStat;
+import com.khm1102.mediprice.entity.NonPayItemClcdStatId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,14 @@ public class NonPayItemClcdStatBatchWriter {
             Map<String, StatValues> statByClcd = dto.asStatByClcd();
             for (Map.Entry<String, StatValues> entry : statByClcd.entrySet()) {
                 try {
-                    em.merge(toEntity(dto.npayCd(), entry.getKey(), dto.stdDate(), entry.getValue()));
+                    NonPayItemClcdStat incoming = toEntity(dto.npayCd(), entry.getKey(), dto.stdDate(), entry.getValue());
+                    NonPayItemClcdStat existing = em.find(NonPayItemClcdStat.class,
+                            new NonPayItemClcdStatId(dto.npayCd(), entry.getKey(), dto.stdDate()));
+                    if (existing == null) {
+                        em.persist(incoming);
+                    } else {
+                        existing.updateFromBatch(incoming);
+                    }
                     saved++;
                 } catch (Exception e) {
                     log.warn("NonPayItemClcdStat 저장 실패 (npayCd={}, clcdKey={}): {}",

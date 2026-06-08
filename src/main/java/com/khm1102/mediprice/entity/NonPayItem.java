@@ -49,4 +49,21 @@ public class NonPayItem extends AbstractAuditEntity {
 
     @Column(name = "adt_end_dd", length = 8)
     private String adtEndDd;
+
+    /**
+     * 배치 upsert 시 HIRA 응답의 일시적 null이 기존 코드/분류/기간 정보를 비우지 않게 한다.
+     */
+    public void updateFromBatch(NonPayItem source) {
+        this.npayKorNm = keepExistingIfNull(source.npayKorNm, this.npayKorNm);
+        this.npayMdivCd = keepExistingIfNull(source.npayMdivCd, this.npayMdivCd);
+        this.npayMdivCdNm = keepExistingIfNull(source.npayMdivCdNm, this.npayMdivCdNm);
+        this.npaySdivCd = keepExistingIfNull(source.npaySdivCd, this.npaySdivCd);
+        this.npaySdivCdNm = keepExistingIfNull(source.npaySdivCdNm, this.npaySdivCdNm);
+        this.adtFrDd = keepExistingIfNull(source.adtFrDd, this.adtFrDd);
+        this.adtEndDd = keepExistingIfNull(source.adtEndDd, this.adtEndDd);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }

@@ -59,4 +59,20 @@ public class NonPayItemDesc extends BaseEntity {
 
     @Column(name = "div_cd_3_dsc", columnDefinition = "TEXT")
     private String divCd3Dsc;
+
+    /**
+     * 설명 배치 재수신 시 null 이름/설명이 기존 텍스트를 비우지 않게 한다.
+     */
+    public void updateFromBatch(NonPayItemDesc source) {
+        this.divCd1Nm = keepExistingIfNull(source.divCd1Nm, this.divCd1Nm);
+        this.divCd1Dsc = keepExistingIfNull(source.divCd1Dsc, this.divCd1Dsc);
+        this.divCd2Nm = keepExistingIfNull(source.divCd2Nm, this.divCd2Nm);
+        this.divCd2Dsc = keepExistingIfNull(source.divCd2Dsc, this.divCd2Dsc);
+        this.divCd3Nm = keepExistingIfNull(source.divCd3Nm, this.divCd3Nm);
+        this.divCd3Dsc = keepExistingIfNull(source.divCd3Dsc, this.divCd3Dsc);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }

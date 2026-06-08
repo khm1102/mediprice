@@ -4,6 +4,7 @@ import com.khm1102.mediprice.client.HiraNonPayClient;
 import com.khm1102.mediprice.client.hira.common.HiraBody;
 import com.khm1102.mediprice.client.hira.nonpay.NonPayDtlItem;
 import com.khm1102.mediprice.entity.Price;
+import com.khm1102.mediprice.entity.PriceId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
@@ -102,7 +103,13 @@ public class PriceYkihoSyncService {
                 }
                 seenNpayCds.add(dto.npayCd());
                 try {
-                    em.merge(toEntity(dto));
+                    Price incoming = toEntity(dto);
+                    Price existing = em.find(Price.class, new PriceId(dto.ykiho(), dto.npayCd()));
+                    if (existing == null) {
+                        em.persist(incoming);
+                    } else {
+                        existing.updateFromBatch(incoming);
+                    }
                     saved++;
                 } catch (Exception e) {
                     log.warn("Price 저장 실패 (ykiho={}, npayCd={}): {}",

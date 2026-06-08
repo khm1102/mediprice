@@ -35,7 +35,7 @@ const _writeGeoToSession = (lat, lng, fromFallback, accuracy) => {
         // 좌표는 의도적으로 저장하지 않음. 비민감 메타(fallback/accuracy/ts)만 저장.
         sessionStorage.setItem(GEO_SESSION_KEY,
                 JSON.stringify({ fromFallback: !!fromFallback, accuracy, ts: Date.now() }));
-    } catch {화
+    } catch {
         // sessionStorage 미지원(SafariPrivate 등) — 무시.
     }
 };

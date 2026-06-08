@@ -2,6 +2,7 @@ package com.khm1102.mediprice.batch.summary;
 
 import com.khm1102.mediprice.client.hira.nonpay.NonPayHospSummaryItem;
 import com.khm1102.mediprice.entity.PriceSummary;
+import com.khm1102.mediprice.entity.PriceSummaryId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,14 @@ public class PriceSummaryBatchWriter {
                 continue;
             }
             try {
-                em.merge(toEntity(dto));
+                PriceSummary incoming = toEntity(dto);
+                PriceSummary existing = em.find(PriceSummary.class,
+                        new PriceSummaryId(dto.ykiho(), dto.npayCd(), dto.adtFrDd()));
+                if (existing == null) {
+                    em.persist(incoming);
+                } else {
+                    existing.updateFromBatch(incoming);
+                }
                 saved++;
             } catch (Exception e) {
                 log.warn("PriceSummary 저장 실패 (ykiho={}, npayCd={}, adtFrDd={}): {}",

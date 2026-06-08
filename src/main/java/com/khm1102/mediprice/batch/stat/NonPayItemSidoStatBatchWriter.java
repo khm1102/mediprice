@@ -3,6 +3,7 @@ package com.khm1102.mediprice.batch.stat;
 import com.khm1102.mediprice.client.hira.stat.NonPaySidoStatItem;
 import com.khm1102.mediprice.client.hira.stat.StatValues;
 import com.khm1102.mediprice.entity.NonPayItemSidoStat;
+import com.khm1102.mediprice.entity.NonPayItemSidoStatId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,14 @@ public class NonPayItemSidoStatBatchWriter {
             Map<String, StatValues> statBySido = dto.asStatBySido();
             for (Map.Entry<String, StatValues> entry : statBySido.entrySet()) {
                 try {
-                    em.merge(toEntity(dto.npayCd(), entry.getKey(), dto.stdDate(), entry.getValue()));
+                    NonPayItemSidoStat incoming = toEntity(dto.npayCd(), entry.getKey(), dto.stdDate(), entry.getValue());
+                    NonPayItemSidoStat existing = em.find(NonPayItemSidoStat.class,
+                            new NonPayItemSidoStatId(dto.npayCd(), entry.getKey(), dto.stdDate()));
+                    if (existing == null) {
+                        em.persist(incoming);
+                    } else {
+                        existing.updateFromBatch(incoming);
+                    }
                     saved++;
                 } catch (Exception e) {
                     log.warn("NonPayItemSidoStat 저장 실패 (npayCd={}, sidoKey={}): {}",

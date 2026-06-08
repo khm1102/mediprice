@@ -37,7 +37,7 @@ class NonPayItemClcdStatBatchWriterTest {
         f.set(writer, em);
     }
 
-    /** 1 wide row × 4 종별 = 4개 long row merge. */
+    /** 1 wide row × 4 종별 = 4개 long row persist. */
     @Test
     void expandsOneRowIntoFourClcdEntities() {
         NonPayClcdStatItem item = new NonPayClcdStatItem(
@@ -46,13 +46,12 @@ class NonPayItemClcdStatBatchWriterTest {
                 2000L, 1900L, 1500L, 8000L,
                 3000L, 2900L, 2500L, 10000L,
                 4000L, 3900L, 3500L, 12000L);
-        when(em.merge(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int saved = writer.saveBatch(List.of(item));
 
         assertThat(saved).isEqualTo(4);
         ArgumentCaptor<NonPayItemClcdStat> captor = ArgumentCaptor.forClass(NonPayItemClcdStat.class);
-        verify(em, times(4)).merge(captor.capture());
+        verify(em, times(4)).persist(captor.capture());
         assertThat(captor.getAllValues())
                 .extracting(NonPayItemClcdStat::getClcdKey)
                 .containsExactly("All", "Usgh", "Hosp", "Gnhp");
@@ -69,12 +68,11 @@ class NonPayItemClcdStatBatchWriterTest {
                 null, null, null, null,       // Usgh
                 null, null, null, null,       // Hosp
                 null, null, null, null);      // Gnhp
-        when(em.merge(any())).thenAnswer(inv -> inv.getArgument(0));
 
         int saved = writer.saveBatch(List.of(item));
 
         assertThat(saved).isEqualTo(1);
-        verify(em, times(1)).merge(any());
+        verify(em, times(1)).persist(any());
     }
 
     /** npayCd 또는 stdDate가 null이면 row 자체 skip. */
@@ -90,6 +88,6 @@ class NonPayItemClcdStatBatchWriterTest {
         int saved = writer.saveBatch(List.of(item));
 
         assertThat(saved).isZero();
-        verify(em, never()).merge(any());
+        verify(em, never()).persist(any());
     }
 }

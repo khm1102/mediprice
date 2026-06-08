@@ -85,4 +85,26 @@ public class PriceSummary extends AbstractAuditEntity {
 
     @Column(name = "url_addr", columnDefinition = "TEXT")
     private String urlAddr;
+
+    /**
+     * 요약 배치의 동일 키 row 재수신 시 null 필드는 기존 값을 보존한다.
+     */
+    public void updateFromBatch(PriceSummary source) {
+        this.adtEndDd = keepExistingIfNull(source.adtEndDd, this.adtEndDd);
+        this.clCd = keepExistingIfNull(source.clCd, this.clCd);
+        this.clCdNm = keepExistingIfNull(source.clCdNm, this.clCdNm);
+        this.sidoCd = keepExistingIfNull(source.sidoCd, this.sidoCd);
+        this.sidoCdNm = keepExistingIfNull(source.sidoCdNm, this.sidoCdNm);
+        this.sgguCd = keepExistingIfNull(source.sgguCd, this.sgguCd);
+        this.sgguCdNm = keepExistingIfNull(source.sgguCdNm, this.sgguCdNm);
+        this.yadmNm = keepExistingIfNull(source.yadmNm, this.yadmNm);
+        this.npayKorNm = keepExistingIfNull(source.npayKorNm, this.npayKorNm);
+        this.minPrc = keepExistingIfNull(source.minPrc, this.minPrc);
+        this.maxPrc = keepExistingIfNull(source.maxPrc, this.maxPrc);
+        this.urlAddr = keepExistingIfNull(source.urlAddr, this.urlAddr);
+    }
+
+    private static <T> T keepExistingIfNull(T incoming, T existing) {
+        return incoming != null ? incoming : existing;
+    }
 }
