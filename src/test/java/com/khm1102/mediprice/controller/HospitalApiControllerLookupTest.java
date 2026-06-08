@@ -2,6 +2,7 @@ package com.khm1102.mediprice.controller;
 
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.exception.business.BusinessException;
+import com.khm1102.mediprice.service.AssistantSearchService;
 import com.khm1102.mediprice.service.HospitalDetailService;
 import com.khm1102.mediprice.service.HospitalService;
 import org.junit.jupiter.api.Test;
@@ -24,9 +25,10 @@ class HospitalApiControllerLookupTest {
 
     @Mock HospitalService hospitalService;
     @Mock HospitalDetailService detailService;
+    @Mock AssistantSearchService assistantSearchService;
 
     private HospitalApiController controller() {
-        return new HospitalApiController(hospitalService, detailService);
+        return new HospitalApiController(hospitalService, detailService, assistantSearchService);
     }
 
     @Test

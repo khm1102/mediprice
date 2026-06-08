@@ -3,9 +3,12 @@ package com.khm1102.mediprice.controller;
 import com.khm1102.mediprice.dto.HospitalDetailBasicsDto;
 import com.khm1102.mediprice.dto.HospitalDetailExtrasDto;
 import com.khm1102.mediprice.dto.HospitalSummaryDto;
+import com.khm1102.mediprice.dto.AssistantHospitalSearchRequest;
+import com.khm1102.mediprice.dto.AssistantHospitalSearchResponse;
 import com.khm1102.mediprice.global.common.ApiResponse;
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.exception.business.BusinessException;
+import com.khm1102.mediprice.service.AssistantSearchService;
 import com.khm1102.mediprice.service.HospitalDetailService;
 import com.khm1102.mediprice.service.HospitalService;
 import org.junit.jupiter.api.Test;
@@ -31,9 +34,10 @@ class HospitalApiControllerSearchTest {
 
     @Mock HospitalService hospitalService;
     @Mock HospitalDetailService detailService;
+    @Mock AssistantSearchService assistantSearchService;
 
     private HospitalApiController controller() {
-        return new HospitalApiController(hospitalService, detailService);
+        return new HospitalApiController(hospitalService, detailService, assistantSearchService);
     }
 
     /** /search는 npayCds(콤마 구분)를 파싱해 service에 List로 전달. */
@@ -53,6 +57,50 @@ class HospitalApiControllerSearchTest {
         verify(hospitalService).searchNearbyV2(eq(37.5), eq(127.0), codesCaptor.capture(),
                 eq(5000), eq("mixed"), eq(50), eq(0.7), eq(0.3));
         assertThat(codesCaptor.getValue()).containsExactly("N001", "N002", "N003");
+    }
+
+    @Test
+    void assistantSearchDelegatesToServiceWithDefaults() {
+        AssistantHospitalSearchResponse stub = new AssistantHospitalSearchResponse(
+                "도수치료 싼 병원", "price", List.of(), "도수치료 기준으로 검색했어요.", List.of());
+        when(assistantSearchService.search("도수치료 싼 병원", 37.5, 127.0, 5000, null, 50))
+                .thenReturn(stub);
+
+        ApiResponse<AssistantHospitalSearchResponse> res = controller().searchHospitalsByAssistant(
+                new AssistantHospitalSearchRequest("도수치료 싼 병원", 37.5, 127.0, null, null, null));
+
+        assertThat(res.success()).isTrue();
+        assertThat(res.data()).isSameAs(stub);
+        verify(assistantSearchService).search("도수치료 싼 병원", 37.5, 127.0, 5000, null, 50);
+    }
+
+    @Test
+    void assistantSearchRejectsBlankQuery() {
+        assertThatThrownBy(() -> controller().searchHospitalsByAssistant(
+                new AssistantHospitalSearchRequest(" ", 37.5, 127.0, null, null, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    void assistantSearchRejectsTooLongQuery() {
+        assertThatThrownBy(() -> controller().searchHospitalsByAssistant(
+                new AssistantHospitalSearchRequest("가".repeat(201), 37.5, 127.0, null, null, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    void assistantSearchRejectsInvalidRadiusAndLimit() {
+        assertThatThrownBy(() -> controller().searchHospitalsByAssistant(
+                new AssistantHospitalSearchRequest("MRI", 37.5, 127.0, 99, null, 50)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+
+        assertThatThrownBy(() -> controller().searchHospitalsByAssistant(
+                new AssistantHospitalSearchRequest("MRI", 37.5, 127.0, 5000, null, 201)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 
     @Test

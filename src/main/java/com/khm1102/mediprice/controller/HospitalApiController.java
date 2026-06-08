@@ -1,5 +1,7 @@
 package com.khm1102.mediprice.controller;
 
+import com.khm1102.mediprice.dto.AssistantHospitalSearchRequest;
+import com.khm1102.mediprice.dto.AssistantHospitalSearchResponse;
 import com.khm1102.mediprice.dto.HospitalDetailBasicsDto;
 import com.khm1102.mediprice.dto.HospitalDetailDto;
 import com.khm1102.mediprice.dto.HospitalDetailExtrasDto;
@@ -7,10 +9,13 @@ import com.khm1102.mediprice.dto.HospitalSummaryDto;
 import com.khm1102.mediprice.global.common.ApiResponse;
 import com.khm1102.mediprice.global.exception.ErrorCode;
 import com.khm1102.mediprice.global.exception.business.BusinessException;
+import com.khm1102.mediprice.service.AssistantSearchService;
 import com.khm1102.mediprice.service.HospitalDetailService;
 import com.khm1102.mediprice.service.HospitalService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,10 +55,14 @@ public class HospitalApiController {
 
     private final HospitalService hospitalService;
     private final HospitalDetailService detailService;
+    private final AssistantSearchService assistantSearchService;
 
-    public HospitalApiController(HospitalService hospitalService, HospitalDetailService detailService) {
+    public HospitalApiController(HospitalService hospitalService,
+                                 HospitalDetailService detailService,
+                                 AssistantSearchService assistantSearchService) {
         this.hospitalService = hospitalService;
         this.detailService = detailService;
+        this.assistantSearchService = assistantSearchService;
     }
 
     /**
@@ -84,6 +93,25 @@ public class HospitalApiController {
         validateSearchInputs(radius, codes);
         return ApiResponse.success(hospitalService.searchNearbyV2(
                 lat, lng, codes, radius, sort, limit, wPrice, wDistance));
+    }
+
+    /**
+     * 자연어 검색 — 질문을 비급여 항목 후보와 정렬 힌트로 해석한 뒤 기존 v2 병원 검색을 재사용한다.
+     * LLM/외부 API 호출 없이 DB 검색만 수행한다.
+     */
+    @PostMapping("/assistant-search")
+    public ApiResponse<AssistantHospitalSearchResponse> searchHospitalsByAssistant(
+            @RequestBody AssistantHospitalSearchRequest request) {
+        if (request == null) {
+            throw new InvalidInputException("검색 요청 본문이 필요합니다.");
+        }
+        String query = validateAssistantQuery(request.query());
+        validateCoordinates(request.lat(), request.lng());
+        int radius = request.radius() == null ? DEFAULT_RADIUS_METERS : request.radius();
+        int limit = request.limit() == null ? DEFAULT_LIMIT : request.limit();
+        validateAssistantInputs(radius, limit);
+        return ApiResponse.success(assistantSearchService.search(
+                query, request.lat(), request.lng(), radius, request.sort(), limit));
     }
 
     /**
@@ -126,6 +154,27 @@ public class HospitalApiController {
                         "npayCd는 영문/숫자 1~" + MAX_NPAY_CD_LEN + "자여야 합니다 (예: ABZ010001).");
             }
         }
+    }
+
+    private static void validateAssistantInputs(int radius, int limit) {
+        if (radius < MIN_RADIUS_METERS || radius > MAX_RADIUS_METERS) {
+            throw new InvalidInputException(
+                    "radius는 " + MIN_RADIUS_METERS + "~" + MAX_RADIUS_METERS + "m 범위여야 합니다.");
+        }
+        if (limit < 1 || limit > 200) {
+            throw new InvalidInputException("limit은 1~200 범위여야 합니다.");
+        }
+    }
+
+    private static String validateAssistantQuery(String query) {
+        String trimmed = query == null ? "" : query.trim();
+        if (trimmed.isBlank()) {
+            throw new InvalidInputException("query는 필수입니다.");
+        }
+        if (trimmed.length() > 200) {
+            throw new InvalidInputException("query는 200자 이하여야 합니다.");
+        }
+        return trimmed;
     }
 
     @GetMapping("/{ykiho}")

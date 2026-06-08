@@ -477,6 +477,16 @@ const searchHospitalsByNpayCds = async (npayCds, lat, lng, signal) => {
     return res?.success ? (res.data ?? []) : [];
 };
 
+const searchHospitalsByAssistant = async (query, lat, lng, signal) => {
+    const res = await api.post('/api/hospitals/assistant-search', {
+        query,
+        lat,
+        lng,
+        sort: _currentSort
+    }, { signal });
+    return res?.success ? res.data : null;
+};
+
 // ── 상태 표시 ─────────────────────────────────────────────────────────────────
 
 const showState = (id) => {
@@ -613,8 +623,33 @@ const renderHospitalCard = (hospital) => {
         </div>`;
 };
 
+const renderAssistantSummary = () => {
+    if (!_lastAssistantResult?.message) return '';
+    const chips = (_lastAssistantResult.matchedItems ?? [])
+        .slice(0, 3)
+        .map(item => item.npayKorNm)
+        .filter(Boolean)
+        .map(name => `
+            <span class="text-[10px] text-[#2563EB] bg-blue-50 rounded-full px-2 py-1 whitespace-nowrap">
+                ${escapeHtml(name)}
+            </span>`)
+        .join('');
+    const chipBlock = chips
+        ? `<div class="flex flex-wrap gap-1.5 mt-2">${chips}</div>`
+        : '';
+    return `
+        <div class="bg-white px-4 py-3"
+             style="box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 1rem;">
+            <p class="text-xs font-semibold text-gray-700 leading-relaxed">
+                ${escapeHtml(_lastAssistantResult.message)}
+            </p>
+            ${chipBlock}
+        </div>`;
+};
+
 // ── 검색 결과 ykiho 맵 (상세 즉시 렌더링용) ──────────────────────────────────
 let _hospitalMap = {};
+let _lastAssistantResult = null;
 
 // ── 테스트용 더미 데이터 ──────────────────────────────────────────────────────
 const _DUMMY_HOSPITALS = [
@@ -627,6 +662,7 @@ const _DUMMY_HOSPITALS = [
 
 const fetchHospitals = async (keyword) => {
     if (!keyword?.trim()) {
+        _lastAssistantResult = null;
         showState('state-prompt');
         return;
     }
@@ -634,6 +670,7 @@ const fetchHospitals = async (keyword) => {
     // 테스트 모드
     if (keyword.trim() === '테스트') {
         hideReSearchBtn?.();
+        _lastAssistantResult = null;
         renderHospitalResults(keyword, _DUMMY_HOSPITALS);
         return;
     }
@@ -648,16 +685,10 @@ const fetchHospitals = async (keyword) => {
         notifyGeoFallback(geo);
         const { lat, lng } = geo;
 
-        // 2. keyword → npayCd 목록 변환
-        const npayCds = await resolveNpayCds(keyword);
-        if (!npayCds.length) {
-            await renderEmptyStateChips(keyword);
-            showState('state-empty');
-            return;
-        }
-
-        // 3. 단일 백엔드 호출 — 다중 npayCd + 정렬 모드는 PostGIS v2 함수가 처리.
-        const results = await searchHospitalsByNpayCds(npayCds, lat, lng, signal);
+        // 2. 자연어 질문을 서버에서 비급여 항목 후보로 해석하고 기존 v2 병원 검색을 재사용.
+        const assistantResult = await searchHospitalsByAssistant(keyword, lat, lng, signal);
+        _lastAssistantResult = assistantResult;
+        const results = assistantResult?.hospitals ?? [];
 
         if (!results.length) {
             await renderEmptyStateChips(keyword);
@@ -680,7 +711,7 @@ const renderHospitalResults = (keyword, sorted) => {
 
         // 카드 렌더링
         const list = document.getElementById('hospital-list');
-        list.innerHTML = sorted.map(h => renderHospitalCard(h)).join('');
+        list.innerHTML = renderAssistantSummary() + sorted.map(h => renderHospitalCard(h)).join('');
         _bindHospitalListClicks(list);
         showState(null);
         // 모바일에서만 자동으로 목록 탭을 활성화. 데스크톱은 list/map이 항상 함께 보이므로 무동작.
@@ -1154,14 +1185,9 @@ const fetchHospitalsByLocation = async (lat, lng, keyword) => {
     const signal = _startSearchAbort();
 
     try {
-        const npayCds = await resolveNpayCds(keyword);
-        if (!npayCds.length) {
-            await renderEmptyStateChips(keyword);
-            showState('state-empty');
-            return;
-        }
-
-        const results = await searchHospitalsByNpayCds(npayCds, lat, lng, signal);
+        const assistantResult = await searchHospitalsByAssistant(keyword, lat, lng, signal);
+        _lastAssistantResult = assistantResult;
+        const results = assistantResult?.hospitals ?? [];
 
         if (!results.length) {
             await renderEmptyStateChips(keyword);

@@ -18,6 +18,7 @@ import java.sql.Statement;
  * 부팅 시 DB 초기화 — JPA ddl-auto가 다루지 못하는 영역 담당.
  * <ul>
  *   <li>PostGIS extension 활성화 (멱등 — IF NOT EXISTS)</li>
+ *   <li>pg_trgm extension 활성화 (비급여 항목 자연어 검색)</li>
  *   <li>Hospital.location GIST 인덱스 (ddl-auto가 GEOGRAPHY 인덱스 생성 못 함)</li>
  *   <li>{@code procedures.sql}의 {@code search_nearby_hospitals_v2} 함수 등록 (CREATE OR REPLACE)</li>
  * </ul>
@@ -31,6 +32,8 @@ public class DatabaseInitializer {
     private static final String PROCEDURES_PATH = "sql/procedures.sql";
     private static final String POSTGIS_EXTENSION_DDL =
             "CREATE EXTENSION IF NOT EXISTS postgis";
+    private static final String PG_TRGM_EXTENSION_DDL =
+            "CREATE EXTENSION IF NOT EXISTS pg_trgm";
     /** Hospital 엔티티에 location을 매핑하지 않고 native UPDATE로만 채움 — JPA ddl-auto가 만들지 못하는 컬럼 추가. */
     private static final String LOCATION_COLUMN_DDL =
             "ALTER TABLE Hospital ADD COLUMN IF NOT EXISTS location GEOGRAPHY(POINT, 4326)";
@@ -52,6 +55,12 @@ public class DatabaseInitializer {
             "CREATE INDEX IF NOT EXISTS idx_price_active_npay_ykiho_amt " +
             "ON Price (npay_cd, ykiho, cur_amt) " +
             "WHERE adt_end_dd = '99991231'";
+    private static final String NON_PAY_ITEM_SEARCH_TRGM_INDEX_DDL =
+            "CREATE INDEX IF NOT EXISTS idx_nonpayitem_search_trgm " +
+            "ON NonPayItem USING GIN (" +
+            "(COALESCE(npay_kor_nm, '') || ' ' || " +
+            "COALESCE(npay_mdiv_cd_nm, '') || ' ' || COALESCE(npay_sdiv_cd_nm, '')) gin_trgm_ops) " +
+            "WHERE adt_end_dd = '99991231'";
 
     private final DataSource dataSource;
 
@@ -63,9 +72,11 @@ public class DatabaseInitializer {
     public void initialize() {
         try (Connection conn = dataSource.getConnection()) {
             execute(conn, POSTGIS_EXTENSION_DDL);
+            execute(conn, PG_TRGM_EXTENSION_DDL);
             execute(conn, LOCATION_COLUMN_DDL);
             execute(conn, GIST_INDEX_DDL);
             execute(conn, PRICE_ACTIVE_PARTIAL_INDEX_DDL);
+            execute(conn, NON_PAY_ITEM_SEARCH_TRGM_INDEX_DDL);
             executeProceduresScript(conn);
             log.info("DatabaseInitializer 완료");
         } catch (SQLException e) {

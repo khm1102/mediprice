@@ -180,6 +180,21 @@ class FrontendStaticCheckTest {
         assertThat(js).contains("POPULAR_KEYWORDS");
     }
 
+    /** 자연어 검색은 새 assistant API를 api.post로 호출하고 기존 결과 렌더링을 재사용한다. */
+    @Test
+    void hospitalJsUsesAssistantSearchApiAndReusesResultRenderer() throws IOException {
+        String js = read("static/js/hospital.js");
+        assertThat(js).contains("const searchHospitalsByAssistant");
+        assertThat(js).contains("api.post('/api/hospitals/assistant-search'");
+        assertThat(js).contains("sort: _currentSort");
+        assertThat(js).contains("renderAssistantSummary()");
+        assertThat(js).contains("renderHospitalResults(keyword, results)");
+        assertThat(js)
+                .doesNotContain("axios")
+                .doesNotContain("jQuery");
+        assertThat(Pattern.compile("\\bvar\\b").matcher(js).find()).isFalse();
+    }
+
     /** map.js에 현재 위치 마커(showCurrentLocation) + segmented 전환 후 사이즈 갱신(refreshMapSize) API가 있어야 한다. */
     @Test
     void mapJsExposesCurrentLocationAndRefreshHooks() throws IOException {
