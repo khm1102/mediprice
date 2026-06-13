@@ -19,11 +19,13 @@
   <tr>
     <td align="center"><img src="https://github.com/kmj228.png" width="100px;"/><br /><sub><b>김민재</b></sub><br /><a href="https://github.com/kmj228">kmj228</a></td>
     <td align="center"><img src="https://github.com/khm1102.png" width="100px;"/><br /><sub><b>김현민</b></sub><br /><a href="https://github.com/khm1102">khm1102</a></td>
+    <td align="center"><img src="https://github.com/sanggeon-bot.png" width="100px;"/><br /><sub><b>이상건</b></sub><br /><a href="https://github.com/sanggeon-bot">sanggeon-bot</a></td>
     <td align="center"><img src="https://github.com/boys5210boys5210-stack.png" width="100px;"/><br /><sub><b>정재운</b></sub><br /><a href="https://github.com/boys5210boys5210-stack">boys5210boys5210-stack</a></td>
   </tr>
   <tr>
     <td align="center">PM</td>
     <td align="center">PL</td>
+    <td align="center">QA</td>
     <td align="center">Docs</td>
   </tr>
 </table>
