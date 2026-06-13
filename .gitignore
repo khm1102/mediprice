@@ -41,3 +41,12 @@ bin/
 
 ### Environment ###
 .env
+
+### Local-only tooling state ###
+.omc/
+.omx/
+.claude/
+.tomcat/
+
+### Local-only compose override ###
+docker-compose.override.yml

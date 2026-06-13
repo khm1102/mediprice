@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python3 -c \\\"import yaml,sys; yaml.safe_load(open('.github/workflows/deploy.yml')); print('deploy.yml: OK')\\\"; python3 -c \\\"import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); p...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import yaml,sys; yaml.safe_load(open('.github/workflows/deploy.yml')); print('deploy.yml: OK')\n    ^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named 'yaml'\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('ci.yml: OK')\n    ^^^^^^^^^^^\nModuleNotFoundError: No module named 'yaml'",
-  "timestamp": "2026-05-15T15:53:10.574Z",
-  "retry_count": 1
-}

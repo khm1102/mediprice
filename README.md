@@ -19,13 +19,11 @@
   <tr>
     <td align="center"><img src="https://github.com/kmj228.png" width="100px;"/><br /><sub><b>김민재</b></sub><br /><a href="https://github.com/kmj228">kmj228</a></td>
     <td align="center"><img src="https://github.com/khm1102.png" width="100px;"/><br /><sub><b>김현민</b></sub><br /><a href="https://github.com/khm1102">khm1102</a></td>
-    <td align="center"><img src="https://github.com/sanggeon-bot.png" width="100px;"/><br /><sub><b>이상건</b></sub><br /><a href="https://github.com/sanggeon-bot">sanggeon-bot</a></td>
     <td align="center"><img src="https://github.com/boys5210boys5210-stack.png" width="100px;"/><br /><sub><b>정재운</b></sub><br /><a href="https://github.com/boys5210boys5210-stack">boys5210boys5210-stack</a></td>
   </tr>
   <tr>
     <td align="center">PM</td>
     <td align="center">PL</td>
-    <td align="center">QA</td>
     <td align="center">Docs</td>
   </tr>
 </table>
@@ -119,61 +117,70 @@ MediPrice는 건강보험심사평가원(심평원) 공공 API를 기반으로 <
 
 ## 시작하기
 
+> 로컬 실행은 **빈 데이터베이스**로 시작한다. 스키마(테이블 + PostGIS 검색 함수)는 앱이 부팅하면서 자동 생성하지만, 병원·가격 데이터는 비어 있다(지도/검색 결과가 비어 보이는 것이 정상). 데이터를 채우려면 *데이터 적재*를 참고한다. 운영용 `docker-compose.yml`은 ghcr 이미지 + Cloudflare Tunnel DB를 전제로 하므로 로컬에서는 사용하지 않는다.
+
 ### 사전 요구사항
 
-- Docker & Docker Compose
-- 심평원 공공 API 키 ([공공데이터포털](https://www.data.go.kr) 발급)
-- 네이버맵 API 키 ([네이버 클라우드 플랫폼](https://www.ncloud.com) 발급)
+- **Docker & Docker Compose** (방법 A 전체, 방법 B의 DB 구동에 사용)
+- 방법 B를 쓰면 추가로 **JDK 21**
+- (선택) 네이버맵 API 키 — 지도 타일 렌더링용. 없으면 지도는 비어 보이지만 앱은 정상 구동된다 ([네이버 클라우드 플랫폼](https://www.ncloud.com) 발급).
 
-### 실행
+### 방법 A — Docker Compose (권장, 한 번에)
+
+PostGIS DB와 앱을 한 번에 띄운다. Docker만 있으면 된다.
 
 ```bash
-git clone https://github.com/YOUR_REPO/mediprice.git
+git clone https://github.com/khm1102/mediprice.git
 cd mediprice
 
-# 환경변수 파일 설정 (아래 환경변수 설정 참고)
-cp .env.example .env
+# (선택) 지도 키가 있으면 export
+export NAVER_MAP_KEY=your_naver_map_key
 
-# 실행
-docker-compose up -d
+docker compose -f docker-compose.local.yml up --build
 ```
 
-서버가 정상적으로 올라오면 `http://localhost:8080` 으로 접속한다.
+`http://localhost:8080` 으로 접속한다. 종료는 `Ctrl+C`, 완전 정리는 `docker compose -f docker-compose.local.yml down -v`.
+
+### 방법 B — setup 스크립트 (네이티브 Tomcat)
+
+DB는 Docker로 띄우고, 앱은 Tomcat 11을 내려받아 네이티브로 구동한다. JDK 21이 필요하다.
+
+```bash
+git clone https://github.com/khm1102/mediprice.git
+cd mediprice
+
+# (선택) 지도 키
+export NAVER_MAP_KEY=your_naver_map_key
+
+./setup.sh
+```
+
+스크립트가 ① JDK 21 확인 → ② Docker로 PostGIS DB 기동 → ③ `./gradlew war`로 WAR 빌드 → ④ Tomcat 11 다운로드(`.tomcat/`) → ⑤ `ROOT.war` 배포 → ⑥ 앱 구동까지 수행한다. 접속은 동일하게 `http://localhost:8080`.
+
+### 데이터 적재 (선택)
+
+빈 DB에 심평원 데이터를 채우려면 배치를 직접 트리거한다. 심평원 공공 API 키([공공데이터포털](https://www.data.go.kr))가 필요하며 항목별로 수십 분 걸릴 수 있다. 배치 트리거 API는 기본 비활성(fail-closed)이므로 `BATCH_ADMIN_ENABLED=true`와 `BATCH_ADMIN_SECRET`을 함께 설정해야 한다(아래 환경변수 표 참고).
+
+```bash
+curl -X POST http://localhost:8080/api/internal/batch/sync \
+  -H "X-Batch-Admin-Secret: <설정한 시크릿>"
+```
 
 ---
 
 ## 환경변수 설정
 
-프로젝트 루트에 `.env` 파일을 생성하고 아래 항목을 채운다.
+방법 A/B 모두 로컬 구동에 필요한 값(DB 접속, JWT 시크릿 등)은 **로컬 전용 기본값**이 이미 들어 있어 별도 설정 없이 뜬다. 아래는 선택적으로 덮어쓸 수 있는 주요 키다. 방법 A·B 모두 셸 환경변수(`export KEY=value`)를 그대로 읽는다.
 
-```env
-# 데이터베이스 (Cloudflare Tunnel 프록시 경유 — 호스트 localhost:5774에 cloudflared 리스닝 필요)
-DB_URL=jdbc:postgresql://host.docker.internal:5774/mediprice?reWriteBatchedInserts=true
-DB_USERNAME=your_db_username
-DB_PASSWORD=your_db_password
+| 변수 | 기본값(로컬) | 설명 |
+|---|---|---|
+| `NAVER_MAP_KEY` | (빈 값) | 네이버맵 타일 렌더링 키. 없으면 지도는 빈 화면. |
+| `HIRA_API_KEY` | `your-hira-key` | 심평원 공공 API 키. 데이터 배치 적재 시 필요. |
+| `JWT_SECRET` | 로컬 더미(32B+) | 토큰 서명 키. 운영은 `openssl rand -base64 48`로 교체. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (빈 값) | Google OAuth 로그인용. 미설정 시 로그인만 비활성(검색은 공개). |
+| `BATCH_ADMIN_ENABLED` / `BATCH_ADMIN_SECRET` | `false` / (빈 값) | 배치 트리거 API 보호. 둘 다 충족해야 동작. |
 
-# JWT
-JWT_SECRET=your_jwt_secret_here
-JWT_EXPIRATION=86400000
-
-# JWT 쿠키
-COOKIE_SECURE=false
-COOKIE_SAME_SITE=Lax
-
-# 배치 수동 트리거 보호
-BATCH_ADMIN_ENABLED=false
-BATCH_ADMIN_SECRET=
-
-# 네이버맵 API
-NAVER_MAP_KEY=your_naver_map_key_here
-
-# 심평원 공공 API
-HIRA_API_KEY=your_hira_api_key_here
-HIRA_API_KEYS=your_hira_key_1,your_hira_key_2
-
-# 캐시
-CACHE_TTL_SECONDS=3600
-```
+> 운영 배포는 루트 `.env`(템플릿: `.env.example`)로 전체 키를 주입한다. 운영 `docker-compose.yml` 기준이며 로컬 구동(`docker-compose.local.yml` / `setup.sh`)과는 별개다.
 
 ---
 
@@ -221,4 +228,3 @@ CACHE_TTL_SECONDS=3600
 - `docs/hira-api-spec.md` — 심평원 API 필드와 DB 가공 규격
 - `docs/troubleshooting.md` — 배치/인코딩/통계 코드 장애 이력
 - `TODO.md` — 남은 작업과 결정 보류 사항
-- `CLAUDE.md` / `AGENTS.md` — 작업 규칙과 코드 컨벤션

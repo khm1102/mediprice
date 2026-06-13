@@ -1,0 +1,57 @@
+# 로컬 개발/시연 전용 — 운영 docker-compose.yml과 분리.
+# PostGIS DB + 앱을 한 번에 띄운다. 외부 네트워크/Cloudflare Tunnel 의존 없음.
+# DB는 빈 상태로 시작하며, 스키마(테이블 + 검색 함수)는 앱 부팅 시 자동 생성된다.
+#
+#   docker compose -f docker-compose.local.yml up --build
+#   # 접속: http://localhost:8080
+#   # 종료: Ctrl+C   /   정리: docker compose -f docker-compose.local.yml down -v
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: mediprice-db-local
+    environment:
+      POSTGRES_DB: mediprice
+      POSTGRES_USER: mediprice
+      POSTGRES_PASSWORD: mediprice
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - mediprice-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediprice -d mediprice"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    container_name: mediprice-app-local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/mediprice?reWriteBatchedInserts=true
+      DB_USERNAME: mediprice
+      DB_PASSWORD: mediprice
+      JPA_DDL_AUTO: update
+      # 로컬 전용 더미 시크릿(32바이트 이상). 운영에서는 절대 사용 금지.
+      JWT_SECRET: local-dev-only-secret-change-me-at-least-32-bytes-long
+      JWT_EXPIRATION: 86400000
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: Lax
+      # 선택 키 — 셸 환경변수로 주입(없으면 빈 값/기본값). 지도 타일은 NAVER_MAP_KEY 필요.
+      NAVER_MAP_KEY: ${NAVER_MAP_KEY:-}
+      HIRA_API_KEY: ${HIRA_API_KEY:-your-hira-key}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+volumes:
+  mediprice-db-data:
